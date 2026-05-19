@@ -90,6 +90,20 @@ springdoc:
       paths-to-match: '/**'
       packages-to-scan: top.egon.familyaibutler.uaa
 
+egon:
+  openapi:
+    console:
+      producer:
+        enabled: true
+        title: FamilyAiButler UAA API
+        description: 用户认证与授权服务接口
+        version: v0.0.1
+        contact-name: Egon
+        contact-url: https://github.com/AllenDEricDAlexander/FamilyAiButler
+        contact-email: mqa010225@gmail.com
+        license-name: MIT License
+        license-url: https://opensource.org/licenses/MIT
+
 logging:
   file:
     path: ${FAMILY_AI_BUTLER_LOG_PATH:./logs}/${spring.application.name}

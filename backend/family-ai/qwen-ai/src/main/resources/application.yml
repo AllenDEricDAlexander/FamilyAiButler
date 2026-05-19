@@ -96,6 +96,21 @@ springdoc:
     - group: 'default'
       paths-to-match: '/**'
       packages-to-scan: top.egon.familyaibutler.ai
+
+egon:
+  openapi:
+    console:
+      producer:
+        enabled: true
+        title: FamilyAiButler Qwen AI API
+        description: Qwen AI 服务接口
+        version: v0.0.1
+        contact-name: Egon
+        contact-url: https://github.com/AllenDEricDAlexander/FamilyAiButler
+        contact-email: mqa010225@gmail.com
+        license-name: MIT License
+        license-url: https://opensource.org/licenses/MIT
+
 knife4j:
   enable: true
   setting:

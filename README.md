@@ -49,14 +49,33 @@ mvn clean package -DskipTests
 
 主要服务名：
 
-| 模块 | Spring 应用名 | 端口 |
-| --- | --- | --- |
-| `family-core` | `family-core` | `39090` |
-| `family-uaa` | `family-uaa` | `39092` |
+| 模块                  | Spring 应用名       | 端口      |
+|---------------------|------------------|---------|
+| `family-core`       | `family-core`    | `39090` |
+| `family-uaa`        | `family-uaa`     | `39092` |
 | `family-ai/qwen-ai` | `family-ai-qwen` | `39091` |
-| `family-gateway` | `family-gateway` | `9527` |
+| `family-gateway`    | `family-gateway` | `9527`  |
 
-日志目录默认使用 `${FAMILY_AI_BUTLER_LOG_PATH:./logs}/${spring.application.name}`，部署时可以通过环境变量 `FAMILY_AI_BUTLER_LOG_PATH` 统一调整。
+日志目录默认使用 `${FAMILY_AI_BUTLER_LOG_PATH:./logs}/${spring.application.name}`，部署时可以通过环境变量
+`FAMILY_AI_BUTLER_LOG_PATH` 统一调整。
+
+本地 JDK 启动后端服务：
+
+```bash
+./ops/scripts/backend-local.sh
+```
+
+后端脚本支持 `all|core|uaa|qwen-ai|gateway`、`dev|prod`、`status|start|stop|restart`。不传参数时默认等价于 `all dev start`。
+
+```bash
+./ops/scripts/backend-local.sh status dev
+./ops/scripts/backend-local.sh all dev start
+./ops/scripts/backend-local.sh core dev restart
+./ops/scripts/backend-local.sh gateway prod stop
+```
+
+脚本会按 `core -> uaa -> qwen-ai -> gateway` 顺序启动，停止时反向处理，运行日志位于 `ops/.runtime/`。该脚本只使用本机
+JDK/Maven 启动应用，不会启动 Docker。
 
 ## 大前端
 
@@ -77,7 +96,9 @@ mvn clean package -DskipTests
 ./ops/scripts/frontend-web-dev.sh stop dev
 ```
 
-脚本会在缺少依赖时执行 `corepack pnpm install`，然后按需构建 Expo Web 并后台托管 `frontend/apps/web/dist`。`dev` 默认把接口指向 `http://localhost:9527`，`prod` 默认把接口指向本机 Nginx `http://localhost:8090`，运行日志位于 `ops/.runtime/`。需要热更新开发时仍可在 `frontend` 下直接执行 `corepack pnpm dev:web`。
+脚本会在缺少依赖时执行 `corepack pnpm install`，然后按需构建 Expo Web 并后台托管 `frontend/apps/web/dist`。`dev` 默认把接口指向
+`http://localhost:9527`，`prod` 默认把接口指向本机 Nginx `http://localhost:8090`，运行日志位于 `ops/.runtime/`。需要热更新开发时仍可在
+`frontend` 下直接执行 `corepack pnpm dev:web`。
 
 本地开发可以不走 Nginx，直接打开 Expo 地址测试。需要本机 Nginx 做前后端分离代理时，可以参考：
 
@@ -85,7 +106,8 @@ mvn clean package -DskipTests
 ops/nginx/family-ai-butler.local.conf
 ```
 
-该配置默认监听 `http://localhost:8090`，把页面代理到 Expo `http://127.0.0.1:8081`，把 `/base`、`/uaa`、`/ai` 代理到后端网关 `http://127.0.0.1:9527`。
+该配置默认监听 `http://localhost:8090`，把页面代理到 Expo `http://127.0.0.1:8081`，把 `/base`、`/uaa`、`/ai` 代理到后端网关
+`http://127.0.0.1:9527`。
 
 使用容器 Nginx 验证前后端分离镜像：
 
@@ -93,7 +115,8 @@ ops/nginx/family-ai-butler.local.conf
 ./ops/scripts/frontend-nginx-up.sh
 ```
 
-默认访问地址为 `http://localhost:8080`。Nginx 托管前端静态资源，并把 `/base`、`/uaa`、`/ai` 代理到 `.env` 中的 `NGINX_API_PROXY`，默认是 `http://host.docker.internal:9527`。
+默认访问地址为 `http://localhost:8080`。Nginx 托管前端静态资源，并把 `/base`、`/uaa`、`/ai` 代理到 `.env` 中的
+`NGINX_API_PROXY`，默认是 `http://host.docker.internal:9527`。
 
 桌面端开发：
 
@@ -101,20 +124,37 @@ ops/nginx/family-ai-butler.local.conf
 ./ops/scripts/desktop-tauri-dev.sh start dev
 ```
 
+该命令用于调试 Tauri 桌面客户端窗口，会启动 `tauri dev`，并由 Tauri 的 `beforeDevCommand` 拉起 Expo Web dev
+server。它不是浏览器预览命令；正常结果是出现 macOS 桌面窗口 `FamilyAiButler`。桌面端开发模式需要独占 `localhost:8081`
+，如果已经启动了 `frontend-web-dev.sh` 或其他进程占用该端口，需要先停止 Web 预览：
+
+```bash
+./ops/scripts/frontend-web-dev.sh stop dev
+lsof -nP -iTCP:8081 -sTCP:LISTEN
+```
+
+只验证 Web 页面时使用 `frontend-web-dev.sh`；需要调试 Tauri/WebView/桌面端能力时才使用 `desktop-tauri-dev.sh`。更多运维脚本说明见
+`ops/README.md`。
+
 桌面端构建：
 
 ```bash
 ./ops/scripts/desktop-tauri-build.sh
 ```
 
-默认只打 macOS `.app`，用于日常验证会比全量 bundle 更快。常用参数：
+默认打 macOS `.dmg` 安装包。常用参数：
 
 ```bash
 ./ops/scripts/desktop-tauri-build.sh --skip-web     # 复用已有 frontend/apps/web/dist
-./ops/scripts/desktop-tauri-build.sh --dmg          # 生成 dmg
-./ops/scripts/desktop-tauri-build.sh --all          # 使用 Tauri 配置生成全部 bundle
+./ops/scripts/desktop-tauri-build.sh dmg            # 生成 macOS dmg
+./ops/scripts/desktop-tauri-build.sh app            # 生成 macOS app
+./ops/scripts/desktop-tauri-build.sh exe            # 在 Windows 环境生成 exe 安装包
+./ops/scripts/desktop-tauri-build.sh apk            # 在已初始化 Android 工程后生成 apk
+./ops/scripts/desktop-tauri-build.sh all            # 尝试生成 dmg、exe、apk
 ./ops/scripts/desktop-tauri-build.sh --no-bundle    # 只验证 Rust/Tauri 编译
 ```
+
+`exe` 需要在 Windows 上执行，`apk` 需要先完成 Tauri Android 工程初始化。macOS 本机默认只适合直接生成 `.dmg`。
 
 ## 运维
 

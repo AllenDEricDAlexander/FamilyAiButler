@@ -18,6 +18,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>openapi-debug-console-spring-boot-starter</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
         <!--   Spring 体系     -->
         <!--    spring cloud 体系    -->
         <dependency>

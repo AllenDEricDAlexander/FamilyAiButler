@@ -12,10 +12,12 @@
     <modules>
         <module>family-core</module>
         <module>family-common</module>
+        <module>openapi-debug-console-spring-boot-starter</module>
         <module>family-ai</module>
         <module>family-uaa</module>
         <module>family-gateway</module>
         <module>family-cache-spring-boot-starter</module>
+        <module>pg-ddd-codegen</module>
     </modules>
     <groupId>top.egon</groupId>
     <artifactId>family-ai-butler-backend</artifactId>

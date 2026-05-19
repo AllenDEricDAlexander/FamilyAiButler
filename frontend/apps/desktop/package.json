@@ -7,8 +7,11 @@
   "scripts": {
     "dev": "tauri dev",
     "build:web": "node ../../scripts/build-web-if-needed.mjs",
-    "build": "tauri build --bundles app",
+    "build": "tauri build --bundles dmg",
+    "build:app": "tauri build --bundles app",
     "build:dmg": "tauri build --bundles dmg",
+    "build:exe": "tauri build --bundles nsis",
+    "build:apk": "tauri android build --apk",
     "build:all": "tauri build",
     "build:no-bundle": "tauri build --no-bundle",
     "typecheck": "tsc --noEmit"

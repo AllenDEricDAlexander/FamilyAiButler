@@ -22,6 +22,11 @@
             <groupId>top.egon</groupId>
             <artifactId>ai-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>openapi-debug-console-spring-boot-starter</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/com.alibaba/dashscope-sdk-java -->
         <dependency>
             <groupId>com.alibaba</groupId>

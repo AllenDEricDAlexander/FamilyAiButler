@@ -5,7 +5,7 @@ spring:
     name: family-gateway
   config:
     import:
-      - optional:nacos:family-gateway-dev.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:family-gateway-${FAMILY_AI_BUTLER_ENV:dev}.yaml?group=DEFAULT_GROUP&refreshEnabled=true
   cloud:
     nacos:
       username: ${NACOS_USERNAME:test}

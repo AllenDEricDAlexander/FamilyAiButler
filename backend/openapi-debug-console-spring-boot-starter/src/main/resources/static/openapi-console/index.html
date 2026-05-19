@@ -1,0 +1,265 @@
+<!--
+  @BelongsProject: openapi-console
+  @BelongsPackage: static.openapi-console
+  @FileName: index.html
+  @Author: atluofu
+  @CreateTime: 2026Year-05Month-19Day-17:55
+  @Description: OpenAPI 调试文档控制台页面
+  @Version: 1.0
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>OpenAPI Debug Console</title>
+    <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+<main class="shell">
+    <section id="loginView" class="login-view">
+        <form id="loginForm" class="login-panel">
+            <div class="login-brand">
+                <span class="logo-mark">A</span>
+                <div>
+                    <h1>FamilyAiButler</h1>
+                    <p>API Debug Console</p>
+                </div>
+            </div>
+            <label>
+                <span>账号</span>
+                <input id="username" name="username" autocomplete="username" value="admin"/>
+            </label>
+            <label>
+                <span>密码</span>
+                <input id="password" name="password" type="password" autocomplete="current-password"/>
+            </label>
+            <button type="submit">登录</button>
+            <p id="loginMessage"></p>
+        </form>
+    </section>
+
+    <section id="consoleView" class="console-view hidden">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="logo-mark">A</span>
+                <div>
+                    <h1 id="title">FamilyAiButler</h1>
+                    <p>API Debug Console</p>
+                </div>
+            </div>
+
+            <label class="search-wrap">
+                <span class="search-icon">⌕</span>
+                <input id="search" class="search" placeholder="搜索接口 / 路径 / 标签"/>
+            </label>
+
+            <div class="side-section">
+                <div class="side-title">
+                    <span>服务分组</span>
+                    <button id="refreshCatalog" class="icon-button" type="button" title="刷新">↻</button>
+                </div>
+                <div id="serviceList" class="service-list"></div>
+            </div>
+
+            <div class="side-section operation-section">
+                <div class="side-title">
+                    <span>接口列表</span>
+                    <small id="operationCount">0</small>
+                </div>
+                <div id="currentOperationList" class="operation-results"></div>
+            </div>
+
+            <div id="searchResults" class="side-section hidden">
+                <div class="side-title">
+                    <span>搜索结果</span>
+                </div>
+                <div id="operationResults" class="operation-results"></div>
+            </div>
+
+            <nav class="side-nav">
+                <button id="showHistory" type="button"><span>接口历史</span><strong id="historyCount">0</strong>
+                </button>
+                <button id="showFavorites" type="button"><span>收藏接口</span><strong id="favoriteCount">0</strong>
+                </button>
+                <button id="showPresets" type="button"><span>接口预设</span><strong id="presetCount">0</strong></button>
+                <button id="showSettings" type="button"><span>本地数据</span><strong>JSON</strong></button>
+            </nav>
+
+            <div id="localPanel" class="local-panel hidden"></div>
+
+            <div class="user-card">
+                <span id="userAvatar">A</span>
+                <div>
+                    <strong id="usernameLabel">admin</strong>
+                    <small id="modeLabel">FULL</small>
+                </div>
+            </div>
+        </aside>
+
+        <section class="content">
+            <header class="toolbar">
+                <div class="service-heading">
+                    <h2 id="currentServiceName">请选择服务</h2>
+                    <span id="currentServiceTag">服务</span>
+                </div>
+                <div class="toolbar-actions">
+                    <button id="environmentButton" class="ghost-button status-button" type="button"><span></span><strong
+                            id="environment">dev</strong></button>
+                    <button id="exportLocalData" class="ghost-button" type="button">导出数据</button>
+                    <button id="importLocalData" class="ghost-button" type="button">导入数据</button>
+                    <button id="exportMd" class="ghost-button" type="button">导出 MD</button>
+                    <button id="exportPdf" class="ghost-button" type="button">导出 PDF</button>
+                    <button id="logout" class="ghost-button" type="button">退出</button>
+                </div>
+            </header>
+
+            <section class="workspace">
+                <section class="request-panel">
+                    <div class="request-line">
+                        <select id="methodSelect" aria-label="请求方法">
+                            <option>GET</option>
+                            <option>POST</option>
+                            <option>PUT</option>
+                            <option>PATCH</option>
+                            <option>DELETE</option>
+                        </select>
+                        <input id="requestPath" placeholder="选择接口后自动填充 URL" readonly/>
+                        <button id="favoriteOperation" class="ghost-button" type="button">收藏</button>
+                        <button id="savePreset" class="ghost-button" type="button">保存接口</button>
+                        <button id="sendRequest" type="button">发送请求</button>
+                    </div>
+
+                    <div class="tabs" role="tablist">
+                        <button class="tab active" data-tab="params" type="button">Params</button>
+                        <button class="tab" data-tab="headers" type="button">Headers <span id="headerCount">(0)</span>
+                        </button>
+                        <button class="tab" data-tab="body" type="button">Body</button>
+                        <button class="tab" data-tab="auth" type="button">认证</button>
+                        <button class="tab" data-tab="script" type="button">预设脚本</button>
+                    </div>
+
+                    <div id="paramsPanel" class="tab-panel active">
+                        <label class="editor-label">
+                            <span>Path 参数 (JSON)</span>
+                            <textarea id="pathInput" spellcheck="false"></textarea>
+                        </label>
+                        <label class="editor-label">
+                            <span>Query 参数 (JSON)</span>
+                            <textarea id="queryInput" spellcheck="false"></textarea>
+                        </label>
+                    </div>
+
+                    <div id="headersPanel" class="tab-panel">
+                        <label class="editor-label full">
+                            <span>Headers (JSON)</span>
+                            <textarea id="headersInput" spellcheck="false"></textarea>
+                        </label>
+                    </div>
+
+                    <div id="bodyPanel" class="tab-panel">
+                        <label class="editor-label full">
+                            <span>Body (JSON)</span>
+                            <textarea id="bodyInput" spellcheck="false"></textarea>
+                        </label>
+                    </div>
+
+                    <div id="authPanel" class="tab-panel auth-panel">
+                        <label>
+                            <span>类型</span>
+                            <select id="authType">
+                                <option value="none">None</option>
+                                <option value="bearer">Bearer Token</option>
+                                <option value="basic">Basic Auth</option>
+                                <option value="apiKey">ApiKey Header</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Bearer Token</span>
+                            <input id="bearerToken"/>
+                        </label>
+                        <label>
+                            <span>ApiKey Header</span>
+                            <input id="apiKeyName" value="X-Api-Key"/>
+                        </label>
+                        <label>
+                            <span>ApiKey Value</span>
+                            <input id="apiKeyValue"/>
+                        </label>
+                        <label>
+                            <span>Basic Username</span>
+                            <input id="basicUsername"/>
+                        </label>
+                        <label>
+                            <span>Basic Password</span>
+                            <input id="basicPassword" type="password"/>
+                        </label>
+                        <button id="applyAuth" type="button">应用认证</button>
+                    </div>
+
+                    <div id="scriptPanel" class="tab-panel">
+                        <label class="editor-label full">
+                            <span>预设变量 (JSON)</span>
+                            <textarea id="scriptInput" spellcheck="false">{}</textarea>
+                        </label>
+                    </div>
+
+                    <div class="request-actions">
+                        <button id="formatEditor" class="ghost-button" type="button">美化</button>
+                        <button id="clearEditor" class="ghost-button" type="button">清空</button>
+                        <button id="importEditorJson" class="ghost-button" type="button">导入</button>
+                        <span class="spacer"></span>
+                        <button id="fillExample" class="ghost-button" type="button">生成测试数据</button>
+                        <button id="runLoadTest" class="ghost-button" type="button">压力测试</button>
+                        <label class="compact-field">次数 <input id="totalRequests" type="number" min="1"
+                                                                 value="10"/></label>
+                        <label class="compact-field">并发 <input id="concurrency" type="number" min="1"
+                                                                 value="2"/></label>
+                    </div>
+                </section>
+
+                <section class="result-grid">
+                    <section class="result-card">
+                        <div class="result-head">
+                            <h3>Response 响应结果</h3>
+                            <div class="status-pills">
+                                <span id="statusPill">-</span>
+                                <span id="durationPill">-</span>
+                                <span id="sizePill">-</span>
+                            </div>
+                        </div>
+                        <div class="result-tools">
+                            <button id="copyResponse" class="icon-button" type="button" title="复制">⧉</button>
+                            <button id="downloadResponse" class="icon-button" type="button" title="下载">⇩</button>
+                        </div>
+                        <pre id="responseOutput"></pre>
+                    </section>
+
+                    <section class="result-card">
+                        <div class="result-head">
+                            <h3>cURL / Load Result</h3>
+                            <button id="copyCurl" class="ghost-button" type="button">复制 cURL</button>
+                        </div>
+                        <pre id="curlOutput"></pre>
+                        <div id="loadResult" class="load-result hidden">
+                            <div class="load-head">
+                                <strong>Load Test Result</strong>
+                                <span id="loadSummary">-</span>
+                            </div>
+                            <div id="loadMetrics" class="metric-grid"></div>
+                            <div id="loadChart" class="load-chart"></div>
+                        </div>
+                    </section>
+                </section>
+            </section>
+        </section>
+
+        <input id="localDataFile" type="file" accept="application/json,.json" hidden/>
+        <input id="editorJsonFile" type="file" accept="application/json,.json" hidden/>
+    </section>
+</main>
+<script src="./storage.js"></script>
+<script src="./openapi.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

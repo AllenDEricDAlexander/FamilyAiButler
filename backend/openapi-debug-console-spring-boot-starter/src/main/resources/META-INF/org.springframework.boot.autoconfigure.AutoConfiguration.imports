@@ -1,0 +1,3 @@
+top.egon.openapi.console.ApiDocConsoleAutoConfiguration
+top.egon.openapi.console.ApiDocConsoleServletAutoConfiguration
+top.egon.openapi.console.ApiDocOpenApiAutoConfiguration

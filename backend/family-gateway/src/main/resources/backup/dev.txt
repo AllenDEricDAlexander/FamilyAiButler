@@ -17,6 +17,29 @@ spring:
     gateway:
       server:
         webflux:
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowedOriginPatterns:
+                  - "http://localhost:*"
+                  - "http://127.0.0.1:*"
+                  - "tauri://localhost"
+                  - "http://tauri.localhost"
+                  - "https://tauri.localhost"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - "*"
+                exposedHeaders:
+                  - Authorization
+                  - Content-Type
+                allowCredentials: true
+                maxAge: 3600
           routes:
             - id: familyCore
               uri: lb://family-core
@@ -41,6 +64,67 @@ spring:
                     key-resolver: '#{@pathKeyResolver}'
                     redis-rate-limiter.replenishRate: 1
                     redis-rate-limiter.burstCapacity: 1
+
+family-gateway:
+  jwt:
+    ignoreUrlSet:
+      - /user/login
+      - /user/register
+      - /user/refresh
+      - /openapi-console
+      - /v3/api-docs
+    authorization: Authorization
+    accessKey: MTIzNDU2
+    refresh-key: MTIzNDU2
+    access-token-expire-time: 300000
+    refresh-token-expire-time: 2592000000
+
+egon:
+  openapi:
+    console:
+      enabled: true
+      mode: auto
+      base-path: /openapi-console
+      title: FamilyAiButler API Debug Console
+      environment: dev
+      auth:
+        username: admin
+        password: OpenApi@123456
+        session-secret: FamilyAiButlerOpenApiConsoleSecretChangeMe
+        secure-cookie: false
+        ttl: 8h
+      producer:
+        enabled: false
+      signing:
+        enabled: false
+        algorithm: HmacSHA256
+        access-key-id: family-ai-butler
+        secret: FamilyAiButlerOpenApiSigningSecretChangeMe
+      load-test:
+        enabled: true
+        max-requests: 200
+        max-concurrency: 20
+      export:
+        enabled: true
+      services:
+        - id: family-core
+          name: 家庭核心服务
+          group: 业务服务
+          open-api-url: http://family-core/v3/api-docs
+          base-url: http://family-core
+          order: 10
+        - id: family-uaa
+          name: 用户认证服务
+          group: 基础服务
+          open-api-url: http://family-uaa/v3/api-docs
+          base-url: http://family-uaa
+          order: 20
+        - id: family-ai-qwen
+          name: Qwen AI 服务
+          group: AI 服务
+          open-api-url: http://family-ai-qwen/v3/api-docs
+          base-url: http://family-ai-qwen
+          order: 30
 
 logging:
   level:
