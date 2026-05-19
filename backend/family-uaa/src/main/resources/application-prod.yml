@@ -1,0 +1,7 @@
+logging:
+  level:
+    root: error
+
+jwt:
+  secret: pKQzTRvVpla2baIvNh6oWNrBWRuCidWi
+  expiration: 216000

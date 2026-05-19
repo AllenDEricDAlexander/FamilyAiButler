@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:5432}/${POSTGRES_DB:familyaibutler}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:HomeLab666}
+    driver-class-name: org.postgresql.Driver
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+
+logging:
+  level:
+    root: info
+
+jwt:
+  secret: ${JWT_SECRET:pKQzTRvVpla2baIvNh6oWNrBWRuCidWi}
+  expiration: ${JWT_EXPIRATION:216000}

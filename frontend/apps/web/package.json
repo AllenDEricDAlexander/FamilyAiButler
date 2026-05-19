@@ -1,0 +1,32 @@
+{
+  "name": "@family-ai-butler/web",
+  "version": "0.0.1",
+  "private": true,
+  "description": "FamilyAiButler web frontend based on Expo and React Native Web.",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "EXPO_NO_TELEMETRY=1 EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://localhost:9527} expo start --web --localhost",
+    "build": "EXPO_NO_TELEMETRY=1 expo export --platform web --output-dir dist",
+    "preview": "npx serve dist -l 4173",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ant-design/react-native": "^5.4.3",
+    "@expo/metro-runtime": "^55.0.11",
+    "@family-ai-butler/app-core": "workspace:*",
+    "@family-ai-butler/ui": "workspace:*",
+    "antd": "^6.3.7",
+    "expo": "^55.0.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "0.83.6",
+    "react-native-web": "^0.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.9.3"
+  }
+}

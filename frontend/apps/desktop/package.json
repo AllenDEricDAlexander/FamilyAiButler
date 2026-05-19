@@ -1,0 +1,23 @@
+{
+  "name": "@family-ai-butler/desktop",
+  "version": "0.0.1",
+  "private": true,
+  "description": "FamilyAiButler desktop frontend based on Tauri.",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build:web": "node ../../scripts/build-web-if-needed.mjs",
+    "build": "tauri build --bundles app",
+    "build:dmg": "tauri build --bundles dmg",
+    "build:all": "tauri build",
+    "build:no-bundle": "tauri build --no-bundle",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.1",
+    "typescript": "^5.9.3"
+  }
+}

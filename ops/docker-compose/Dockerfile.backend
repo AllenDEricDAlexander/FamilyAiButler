@@ -1,0 +1,14 @@
+# @BelongsProject: FamilyAiButler
+# @BelongsPackage: ops.docker-compose
+# @ClassName: Dockerfile.backend
+# @Author: atluofu
+# @CreateTime: 2026Year-05Month-19Day
+# @Description: 后端服务运行镜像
+# @Version: 1.0
+FROM eclipse-temurin:21-jre
+
+ARG JAR_FILE
+WORKDIR /app
+COPY ${JAR_FILE} app.jar
+EXPOSE 39090
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

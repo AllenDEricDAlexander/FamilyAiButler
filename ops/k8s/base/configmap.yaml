@@ -1,0 +1,43 @@
+# @BelongsProject: FamilyAiButler
+# @BelongsPackage: ops.k8s.base
+# @ClassName: configmap
+# @Author: atluofu
+# @CreateTime: 2026Year-05Month-19Day
+# @Description: 服务公共配置
+# @Version: 1.0
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: family-ai-butler-config
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  FAMILY_AI_BUTLER_LOG_PATH: "/var/log/family-ai-butler"
+  NACOS_NAMESPACE: "default"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: family-web-nginx-config
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+
+        root /usr/share/nginx/html;
+        index index.html;
+        charset utf-8;
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        location ~ ^/(base|uaa|ai)(/|$) {
+            proxy_pass http://family-gateway:9527;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }

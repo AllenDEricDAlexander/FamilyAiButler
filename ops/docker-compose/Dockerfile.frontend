@@ -1,0 +1,28 @@
+# @BelongsProject: FamilyAiButler
+# @BelongsPackage: ops.docker-compose
+# @ClassName: Dockerfile.frontend
+# @Author: atluofu
+# @CreateTime: 2026Year-05Month-19Day
+# @Description: 构建前端 Expo Web 静态资源并交给 Nginx 托管
+# @Version: 1.0
+FROM node:22-alpine AS build
+
+WORKDIR /workspace/frontend
+
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/tsconfig.base.json ./
+COPY frontend/apps ./apps
+COPY frontend/packages ./packages
+
+RUN corepack enable && corepack pnpm install --frozen-lockfile
+
+ARG EXPO_PUBLIC_API_BASE_URL=""
+ENV EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL}
+
+RUN corepack pnpm build:web
+
+FROM nginx:1.29-alpine
+
+COPY ops/docker-compose/nginx.frontend.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /workspace/frontend/apps/web/dist /usr/share/nginx/html
+
+EXPOSE 80

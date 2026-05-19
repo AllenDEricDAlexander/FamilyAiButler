@@ -1,0 +1,11 @@
+# @BelongsProject: FamilyAiButler
+# @BelongsPackage: ops.k8s.base
+# @ClassName: namespace
+# @Author: atluofu
+# @CreateTime: 2026Year-05Month-19Day
+# @Description: Kubernetes 命名空间
+# @Version: 1.0
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: family-ai-butler

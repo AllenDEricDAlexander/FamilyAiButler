@@ -1,0 +1,54 @@
+server:
+  port: 9527
+
+spring:
+  profiles:
+    active: dev
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:2}
+      password: ${REDIS_PASSWORD:HomeLab666}
+      timeout: 30000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: familyCore
+              uri: lb://family-core
+              predicates:
+                - Path=/base/**
+              filters:
+                - StripPrefix=1
+            - id: familyUaa
+              uri: lb://family-uaa
+              predicates:
+                - Path=/uaa/**
+              filters:
+                - StripPrefix=1
+            - id: familyAiQwen
+              uri: lb://family-ai-qwen
+              predicates:
+                - Path=/ai/**
+              filters:
+                - StripPrefix=1
+
+family-gateway:
+  jwt:
+    ignoreUrlSet:
+      - /user/login
+      - /user/register
+      - /user/refresh
+    authorization: Authorization
+    accessKey: MTIzNDU2
+    refresh-key: MTIzNDU2
+    access-token-expire-time: 300000
+    refresh-token-expire-time: 2592000000

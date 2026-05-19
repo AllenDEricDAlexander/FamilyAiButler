@@ -1,0 +1,16 @@
+# @BelongsProject: FamilyAiButler
+# @BelongsPackage: ops.k8s.base
+# @ClassName: kustomization
+# @Author: atluofu
+# @CreateTime: 2026Year-05Month-19Day
+# @Description: Kubernetes 基础资源聚合
+# @Version: 1.0
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: family-ai-butler
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.example.yaml
+  - deployments.yaml
+  - services.yaml

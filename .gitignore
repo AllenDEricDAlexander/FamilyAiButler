@@ -1,16 +1,18 @@
 # Compiled class file
 *.class
 
-# Log file
+# Logs
 *.log
+logs/
+~/log/
 
-# BlueJ files
-*.ctxt
+# Local environment
+.env
+.env.*
+!.env.example
+!.env.*.example
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+# Package files
 *.jar
 *.war
 *.nar
@@ -19,22 +21,47 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Java / Maven
+target/
+**/target/
+.mvn/
+**/mvnw
+**/mvnw.cmd
 hs_err_pid*
 replay_pid*
 
+# Node / frontend
+node_modules/
+**/node_modules/
+.pnpm-store/
+dist/
+**/dist/
+build/
+**/build/
+.turbo/
+.vite/
+.expo/
 
-### IntelliJ IDEA ###
-.idea
+# Tauri / Rust
+frontend/apps/desktop/src-tauri/target/
+frontend/apps/desktop/src-tauri/Cargo.lock
+
+# Kubernetes / local generated files
+*.kubeconfig
+ops/.runtime/
+
+# IDE
+.idea/
 *.iws
 *.iml
 *.ipr
+.vscode/
 
-/target/
+# OS
+.DS_Store
 
-.vscode
+# BlueJ files
+*.ctxt
 
-### mvn 
-.mvn
-*/mvnw
-*.cmd
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/

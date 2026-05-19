@@ -1,0 +1,25 @@
+{
+  "name": "family-ai-butler-frontend",
+  "version": "0.0.1",
+  "private": true,
+  "description": "FamilyAiButler unified frontend workspace.",
+  "scripts": {
+    "dev:web": "corepack pnpm --filter @family-ai-butler/web dev",
+    "build:web": "corepack pnpm --filter @family-ai-butler/web build",
+    "dev:desktop": "corepack pnpm --filter @family-ai-butler/desktop dev",
+    "build:desktop": "corepack pnpm --filter @family-ai-butler/desktop build",
+    "build:desktop:dmg": "corepack pnpm --filter @family-ai-butler/desktop build:dmg",
+    "build:desktop:all": "corepack pnpm --filter @family-ai-butler/desktop build:all",
+    "build:desktop:no-bundle": "corepack pnpm --filter @family-ai-butler/desktop build:no-bundle",
+    "test": "corepack pnpm --filter @family-ai-butler/api-client test",
+    "typecheck": "corepack pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.0.0",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

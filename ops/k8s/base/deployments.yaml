@@ -1,0 +1,134 @@
+# @BelongsProject: FamilyAiButler
+# @BelongsPackage: ops.k8s.base
+# @ClassName: deployments
+# @Author: atluofu
+# @CreateTime: 2026Year-05Month-19Day
+# @Description: 服务 Deployment
+# @Version: 1.0
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: family-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: family-web
+  template:
+    metadata:
+      labels:
+        app: family-web
+    spec:
+      containers:
+        - name: family-web
+          image: family-ai-butler/family-web:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: family-web-nginx-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: family-core
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: family-core
+  template:
+    metadata:
+      labels:
+        app: family-core
+    spec:
+      containers:
+        - name: family-core
+          image: family-ai-butler/family-core:latest
+          ports:
+            - containerPort: 39090
+          envFrom:
+            - configMapRef:
+                name: family-ai-butler-config
+            - secretRef:
+                name: family-ai-butler-secret
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: family-uaa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: family-uaa
+  template:
+    metadata:
+      labels:
+        app: family-uaa
+    spec:
+      containers:
+        - name: family-uaa
+          image: family-ai-butler/family-uaa:latest
+          ports:
+            - containerPort: 39092
+          envFrom:
+            - configMapRef:
+                name: family-ai-butler-config
+            - secretRef:
+                name: family-ai-butler-secret
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: family-ai-qwen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: family-ai-qwen
+  template:
+    metadata:
+      labels:
+        app: family-ai-qwen
+    spec:
+      containers:
+        - name: family-ai-qwen
+          image: family-ai-butler/family-ai-qwen:latest
+          ports:
+            - containerPort: 39091
+          envFrom:
+            - configMapRef:
+                name: family-ai-butler-config
+            - secretRef:
+                name: family-ai-butler-secret
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: family-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: family-gateway
+  template:
+    metadata:
+      labels:
+        app: family-gateway
+    spec:
+      containers:
+        - name: family-gateway
+          image: family-ai-butler/family-gateway:latest
+          ports:
+            - containerPort: 9527
+          envFrom:
+            - configMapRef:
+                name: family-ai-butler-config
+            - secretRef:
+                name: family-ai-butler-secret

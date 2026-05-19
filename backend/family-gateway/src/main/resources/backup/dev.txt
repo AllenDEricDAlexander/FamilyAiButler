@@ -1,0 +1,47 @@
+# family-gateway-dev.yaml
+spring:
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 2
+      password: HomeLab666
+      timeout: 30000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: familyCore
+              uri: lb://family-core
+              predicates:
+                - Path=/base/**
+              filters:
+                - StripPrefix=1
+            - id: familyUaa
+              uri: lb://family-uaa
+              predicates:
+                - Path=/uaa/**
+              filters:
+                - StripPrefix=1
+            - id: familyAiQwen
+              uri: lb://family-ai-qwen
+              predicates:
+                - Path=/ai/**
+              filters:
+                - StripPrefix=1
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: '#{@pathKeyResolver}'
+                    redis-rate-limiter.replenishRate: 1
+                    redis-rate-limiter.burstCapacity: 1
+
+logging:
+  level:
+    root: info

@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "FamilyAiButler",
+    "slug": "family-ai-butler-web",
+    "version": "0.0.1",
+    "icon": "./assets/icon.png",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/icon.png"
+    }
+  }
+}
