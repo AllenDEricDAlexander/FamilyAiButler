@@ -1,7 +1,7 @@
 package top.egon.familyaibutler.uaa.filter;
 
-import jakarta.servlet.FilterChain;
 import io.jsonwebtoken.Claims;
+import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -51,6 +51,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String extractToken(HttpServletRequest request) {
-        return request.getHeader("Authorization");
+        return request.getHeader(jwtTokenUtil.authorizationHeader());
     }
 }

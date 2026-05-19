@@ -1,21 +1,12 @@
 package top.egon.familyaibutler.gateway.util;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.security.SignatureException;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import top.egon.familyaibutler.gateway.config.FamilyButlerGateWayProperties;
+import top.egon.familyaibutler.common.security.jwt.FamilyJwtService;
 
-import javax.crypto.spec.SecretKeySpec;
-import java.security.Key;
-import java.util.Base64;
-import java.util.Date;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -25,102 +16,95 @@ import java.util.Optional;
  * @ClassName: JwtUtil
  * @Author: atluofu
  * @CreateTime: 2025Year-08Month-15Day-20:19
- * @Description: JWT 工具类
+ * @Description: 网关 JWT 统一工具适配器
  * @Version: 1.0
  */
-@Slf4j
 @Component
-@Getter
+@RequiredArgsConstructor
 public class JwtUtil {
 
-    private final Key accessKey;
+    private final FamilyJwtService familyJwtService;
 
-    private final Key refreshKey;
-
-    private final long accessTokenExpireTime;
-
-    private final long refreshTokenExpireTime;
-
-    private final FamilyButlerGateWayProperties familyButlerGatewayProperties;
-
-    public JwtUtil(FamilyButlerGateWayProperties familyButlerGatewayProperties) {
-        this.familyButlerGatewayProperties = familyButlerGatewayProperties;
-        this.accessTokenExpireTime = familyButlerGatewayProperties.getJwt().getAccessTokenExpireTime();
-        this.refreshTokenExpireTime = familyButlerGatewayProperties.getJwt().getRefreshTokenExpireTime();
-        this.accessKey = new SecretKeySpec(Base64.getDecoder().decode(familyButlerGatewayProperties.getJwt().getAccessKey()), SignatureAlgorithm.HS512.getJcaName());
-        this.refreshKey = new SecretKeySpec(Base64.getDecoder().decode(familyButlerGatewayProperties.getJwt().getRefreshKey()), SignatureAlgorithm.HS512.getJcaName());
-    }
-
-    public String createJWTToken(Map<String, Object> userDetails, long timeToExpire, String key) {
-        return createJWTToken(userDetails, timeToExpire, new SecretKeySpec(Base64.getDecoder().decode(key), SignatureAlgorithm.HS512.getJcaName()));
-    }
-
+    /**
+     * 创建访问令牌
+     *
+     * @param userDetails 用户信息
+     * @return String 返回访问令牌
+     */
     public String createAccessToken(Map<String, Object> userDetails) {
-        return createJWTToken(userDetails, this.getAccessTokenExpireTime(), this.accessKey);
+        return familyJwtService.createAccessToken(userDetails.get("username").toString(), authorities(userDetails));
     }
 
+    /**
+     * 创建刷新令牌
+     *
+     * @param userDetails 用户信息
+     * @return String 返回刷新令牌
+     */
     public String createRefreshToken(Map<String, Object> userDetails) {
-        return createJWTToken(userDetails, this.getRefreshTokenExpireTime(), this.refreshKey);
+        return familyJwtService.createRefreshToken(userDetails.get("username").toString(), authorities(userDetails));
     }
 
+    /**
+     * 校验访问令牌
+     *
+     * @param jwtToken JWT 访问令牌
+     * @return boolean 返回 true 表示有效
+     */
     public boolean validateAccessToken(String jwtToken) {
-        return validateToken(jwtToken, this.accessKey);
+        return familyJwtService.validateAccessToken(jwtToken);
     }
 
+    /**
+     * 校验刷新令牌
+     *
+     * @param jwtToken JWT 刷新令牌
+     * @return boolean 返回 true 表示有效
+     */
     public boolean validateRefreshToken(String jwtToken) {
-        return validateToken(jwtToken, this.refreshKey);
+        return familyJwtService.validateRefreshToken(jwtToken);
     }
 
-    public static boolean validateToken(String jwtToken, Key signKey) {
-        return parseClaims(jwtToken, signKey).isPresent();
+    /**
+     * 解析访问令牌
+     *
+     * @param jwtToken JWT 访问令牌
+     * @return Optional<Claims> 返回访问令牌 Claims
+     */
+    public Optional<Claims> parseAccessClaims(String jwtToken) {
+        return familyJwtService.parseAccessClaims(jwtToken);
     }
 
-    public static Optional<Claims> parseClaims(String jwtToken, Key signKey) {
-        return Optional.ofNullable(Jwts.parserBuilder().setSigningKey(signKey).build().parseClaimsJws(jwtToken).getBody());
+    /**
+     * 从 Authorization 头解析 JWT 令牌
+     *
+     * @param authorization Authorization 请求头
+     * @return String 返回 JWT 令牌
+     */
+    public String resolveAuthorizationToken(String authorization) {
+        return familyJwtService.resolveAuthorizationToken(authorization);
     }
 
-    public boolean validateAccessTokenWithoutExpiration(String jwtToken) {
-        try {
-            Jwts.parserBuilder().setSigningKey(this.accessKey).build().parseClaimsJws(jwtToken);
-            return true;
-        } catch (ExpiredJwtException | SignatureException | MalformedJwtException | UnsupportedJwtException |
-                 IllegalArgumentException e) {
-            if (e instanceof ExpiredJwtException) {
-                return true;
-            }
+    /**
+     * 获取 Authorization Header 名称
+     *
+     * @return String 返回 Header 名称
+     */
+    public String authorizationHeader() {
+        return familyJwtService.authorizationHeader();
+    }
+
+    /**
+     * 转换权限列表
+     *
+     * @param userDetails 用户信息
+     * @return Collection<String> 返回权限列表
+     */
+    private Collection<String> authorities(Map<String, Object> userDetails) {
+        Object value = userDetails.get("authorities");
+        if (value instanceof Collection<?> collection) {
+            return collection.stream().map(String::valueOf).toList();
         }
-        return false;
+        return List.of();
     }
-
-    public String refreshJWTToken(String oldToken, long timeToExpire, Key signKey) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(signKey)
-                .build()
-                .parseClaimsJws(oldToken)
-                .getBody();
-
-        Date newExpirationDate = new Date(System.currentTimeMillis() + timeToExpire);
-
-        return Jwts.builder()
-                .setId(claims.getId())
-                .setSubject(claims.getSubject())
-                .claim("authorities", claims.get("authorities"))
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(newExpirationDate)
-                .signWith(signKey, SignatureAlgorithm.HS512)
-                .compact();
-    }
-
-    public String createJWTToken(Map<String, Object> userDetails, long timeToExpire, Key signKey) {
-        return Jwts
-                .builder()
-                // todo uuidv7
-                .setId("ycyd")
-                .setSubject(userDetails.get("username").toString())
-                .claim("authorities", userDetails.get("authorities"))
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + timeToExpire))
-                .signWith(signKey, SignatureAlgorithm.HS512).compact();
-    }
-
 }

@@ -48,6 +48,21 @@ public class ApiDocConsoleServletAutoConfiguration {
     }
 
     /**
+     * 创建 OpenAPI JSON 内部访问控制过滤器
+     *
+     * @param properties 控制台配置
+     * @return FilterRegistrationBean<ApiDocOpenApiAccessServletFilter> 返回过滤器注册信息
+     */
+    @Bean
+    public FilterRegistrationBean<ApiDocOpenApiAccessServletFilter> apiDocOpenApiAccessServletFilter(ApiDocConsoleProperties properties) {
+        FilterRegistrationBean<ApiDocOpenApiAccessServletFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new ApiDocOpenApiAccessServletFilter(properties));
+        registrationBean.addUrlPatterns("/v3/api-docs", "/v3/api-docs/*");
+        registrationBean.setOrder(Integer.MIN_VALUE + 1);
+        return registrationBean;
+    }
+
+    /**
      * 获取规范化基础路径
      *
      * @param properties 控制台配置

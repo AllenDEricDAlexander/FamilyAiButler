@@ -5,7 +5,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
+import top.egon.familyaibutler.common.security.jwt.FamilyJwtProperties;
+import top.egon.familyaibutler.common.security.jwt.FamilyJwtService;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -22,6 +25,7 @@ import java.net.UnknownHostException;
 @Slf4j
 @EnableDiscoveryClient
 @SpringBootApplication
+@Import({FamilyJwtProperties.class, FamilyJwtService.class})
 public class FamilyGateway {
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(FamilyGateway.class);

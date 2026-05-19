@@ -111,6 +111,7 @@ public class ApiDocConsoleService {
                 .flatMap(uri -> webClient()
                         .get()
                         .uri(uri)
+                        .headers(headers -> fillOpenApiRequestHeaders(headers, service.get()))
                         .retrieve()
                         .bodyToMono(String.class)
                         .timeout(properties.getRequestTimeout()))
@@ -129,6 +130,7 @@ public class ApiDocConsoleService {
         if (service.isEmpty()) {
             return Mono.error(new IllegalArgumentException("服务不存在: " + request.getServiceId()));
         }
+        validateDebugPath(service.get(), request.getPath());
         URI targetUri = buildTargetUri(service.get(), request);
         HttpMethod method = HttpMethod.valueOf(request.getMethod().toUpperCase(Locale.ROOT));
         String body = request.getBody() == null ? "" : request.getBody();
@@ -329,6 +331,54 @@ public class ApiDocConsoleService {
             headers.set(HttpHeaders.CONTENT_TYPE, request.getContentType());
         }
         fillSignatureHeaders(headers, request, targetUri, body);
+    }
+
+    /**
+     * 填充 OpenAPI JSON 内部访问请求头
+     *
+     * @param headers HTTP 请求头
+     * @param route   服务配置
+     */
+    private void fillOpenApiRequestHeaders(HttpHeaders headers, ApiDocConsoleProperties.ServiceRoute route) {
+        if (StringUtils.hasText(route.getOpenApiAccessHeader()) && StringUtils.hasText(route.getOpenApiAccessToken())) {
+            headers.set(route.getOpenApiAccessHeader(), route.getOpenApiAccessToken());
+        }
+    }
+
+    /**
+     * 校验调试请求路径
+     *
+     * @param route 服务配置
+     * @param path  请求路径
+     */
+    private void validateDebugPath(ApiDocConsoleProperties.ServiceRoute route, String path) {
+        String requestPath = StringUtils.hasText(path) ? path : "/";
+        String normalizedPath = requestPath.startsWith("/") ? requestPath : "/" + requestPath;
+        if (route.getPathDenyList().stream().anyMatch(pattern -> pathMatches(pattern, normalizedPath))) {
+            throw new IllegalArgumentException("当前接口路径禁止通过 OpenAPI 控制台调试");
+        }
+        if (!route.getPathAllowList().isEmpty()
+                && route.getPathAllowList().stream().noneMatch(pattern -> pathMatches(pattern, normalizedPath))) {
+            throw new IllegalArgumentException("当前接口路径不在 OpenAPI 控制台调试白名单内");
+        }
+    }
+
+    /**
+     * 判断路径是否匹配
+     *
+     * @param pattern 路径模式
+     * @param path    请求路径
+     * @return boolean 返回 true 表示匹配
+     */
+    private boolean pathMatches(String pattern, String path) {
+        if (!StringUtils.hasText(pattern)) {
+            return false;
+        }
+        String normalizedPattern = pattern.startsWith("/") ? pattern : "/" + pattern;
+        if (normalizedPattern.endsWith("/**")) {
+            return path.startsWith(normalizedPattern.substring(0, normalizedPattern.length() - 3));
+        }
+        return normalizedPattern.equals(path);
     }
 
     /**

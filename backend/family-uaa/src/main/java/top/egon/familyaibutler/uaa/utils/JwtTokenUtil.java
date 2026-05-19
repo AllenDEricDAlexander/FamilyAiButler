@@ -1,18 +1,11 @@
 package top.egon.familyaibutler.uaa.utils;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
+import top.egon.familyaibutler.common.security.jwt.FamilyJwtService;
 
-import javax.crypto.SecretKey;
 import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -26,49 +19,57 @@ import java.util.stream.Collectors;
  */
 @Component
 public class JwtTokenUtil {
-    @Value("${jwt.secret}")
-    private String secret;
 
-    @Value("${jwt.expiration}")
-    private Long expiration;
+    private final FamilyJwtService familyJwtService;
 
-    // 生成安全的密钥
-    private SecretKey getSecretKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+    /**
+     * 创建 JWT 工具类
+     *
+     * @param familyJwtService 统一 JWT 服务
+     */
+    public JwtTokenUtil(FamilyJwtService familyJwtService) {
+        this.familyJwtService = familyJwtService;
     }
 
-    // 生成 JWT 令牌
+    /**
+     * 生成 JWT 访问令牌
+     *
+     * @param username    用户名
+     * @param authorities 权限列表
+     * @return String 返回访问令牌
+     */
     public String generateToken(String username, Collection<? extends GrantedAuthority> authorities) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("authorities", authorities.stream()
+        return familyJwtService.createAccessToken(username, authorities.stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
-
-        return Jwts.builder()
-                .setSubject(username)
-                .addClaims(claims)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration * 1000))
-                .signWith(getSecretKey(), SignatureAlgorithm.HS256)
-                .compact();
     }
 
-    // 解析 JWT 令牌
+    /**
+     * 解析 JWT 访问令牌
+     *
+     * @param token JWT 访问令牌
+     * @return Claims 返回 JWT Claims
+     */
     public Claims parseToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSecretKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        return familyJwtService.parseAccessClaims(token).orElseThrow();
     }
 
-    // 验证令牌是否有效
+    /**
+     * 验证访问令牌是否有效
+     *
+     * @param token JWT 访问令牌
+     * @return boolean 返回 true 表示有效
+     */
     public boolean validateToken(String token) {
-        try {
-            parseToken(token);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+        return familyJwtService.validateAccessToken(token);
+    }
+
+    /**
+     * 获取 Authorization Header 名称
+     *
+     * @return String 返回 Header 名称
+     */
+    public String authorizationHeader() {
+        return familyJwtService.authorizationHeader();
     }
 }

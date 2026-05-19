@@ -68,16 +68,21 @@ spring:
 family-gateway:
   jwt:
     ignoreUrlSet:
-      - /user/login
-      - /user/register
-      - /user/refresh
-      - /openapi-console
-      - /v3/api-docs
-    authorization: Authorization
-    accessKey: MTIzNDU2
-    refresh-key: MTIzNDU2
-    access-token-expire-time: 300000
-    refresh-token-expire-time: 2592000000
+      - /uaa/user/login
+      - /uaa/user/register
+      - /uaa/user/refresh
+      - /openapi-console/**
+
+family:
+  security:
+    jwt:
+      enabled: true
+      authorization-header: Authorization
+      token-prefix: ""
+      access-key: BWvIZZhY5+IKEcZRkEKz8Pf8qnZO+4FVpCRPKMy+vVgvqmN9ZxEWi7I2iuFdWdG1OePjAp4ih7IQpedEhj1IVg==
+      refresh-key: RXnNs+kEjjl+eaypNkK7QKb5i/mbpi2vi5VBUeor7GrlLBV/XcEsoOtHqqtLq4no8FZPOObT49l1gqMui64LoA==
+      access-token-expire-time: 300000
+      refresh-token-expire-time: 2592000000
 
 egon:
   openapi:
@@ -89,8 +94,8 @@ egon:
       environment: dev
       auth:
         username: admin
-        password: OpenApi@123456
-        session-secret: FamilyAiButlerOpenApiConsoleSecretChangeMe
+        password: "{sha256}7bb2941643fcee3a190d402136de9b3b8f650a58e76177681bf74e990ddf833b"
+        session-secret: 2b51b70dd6c7275cecb23dc2f9ac49a9b3e327dbb1cfc2857a45ab156120031c
         secure-cookie: false
         ttl: 8h
       producer:
@@ -102,8 +107,8 @@ egon:
         secret: FamilyAiButlerOpenApiSigningSecretChangeMe
       load-test:
         enabled: true
-        max-requests: 200
-        max-concurrency: 20
+        max-requests: 50
+        max-concurrency: 5
       export:
         enabled: true
       services:
@@ -111,18 +116,21 @@ egon:
           name: 家庭核心服务
           group: 业务服务
           open-api-url: http://family-core/v3/api-docs
+          open-api-access-token: 656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45
           base-url: http://family-core
           order: 10
         - id: family-uaa
           name: 用户认证服务
           group: 基础服务
           open-api-url: http://family-uaa/v3/api-docs
+          open-api-access-token: 656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45
           base-url: http://family-uaa
           order: 20
         - id: family-ai-qwen
           name: Qwen AI 服务
           group: AI 服务
           open-api-url: http://family-ai-qwen/v3/api-docs
+          open-api-access-token: 656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45
           base-url: http://family-ai-qwen
           order: 30
 

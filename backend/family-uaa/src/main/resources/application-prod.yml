@@ -2,6 +2,13 @@ logging:
   level:
     root: error
 
-jwt:
-  secret: pKQzTRvVpla2baIvNh6oWNrBWRuCidWi
-  expiration: 216000
+family:
+  security:
+    jwt:
+      enabled: true
+      authorization-header: ${JWT_AUTHORIZATION_HEADER:Authorization}
+      token-prefix: ${JWT_TOKEN_PREFIX:}
+      access-key: ${JWT_ACCESS_KEY:BWvIZZhY5+IKEcZRkEKz8Pf8qnZO+4FVpCRPKMy+vVgvqmN9ZxEWi7I2iuFdWdG1OePjAp4ih7IQpedEhj1IVg==}
+      refresh-key: ${JWT_REFRESH_KEY:RXnNs+kEjjl+eaypNkK7QKb5i/mbpi2vi5VBUeor7GrlLBV/XcEsoOtHqqtLq4no8FZPOObT49l1gqMui64LoA==}
+      access-token-expire-time: ${JWT_ACCESS_TOKEN_EXPIRE_TIME:300000}
+      refresh-token-expire-time: ${JWT_REFRESH_TOKEN_EXPIRE_TIME:2592000000}

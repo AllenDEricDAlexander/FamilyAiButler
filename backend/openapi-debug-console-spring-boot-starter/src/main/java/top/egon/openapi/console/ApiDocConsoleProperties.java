@@ -100,6 +100,12 @@ public class ApiDocConsoleProperties {
         private String sameSite = "Lax";
 
         private String sessionSecret = "OpenApiDebugConsoleSessionSecretChangeMe";
+
+        private boolean rejectDefaultCredentials = true;
+
+        private int maxLoginFailures = 5;
+
+        private Duration loginLockDuration = Duration.ofMinutes(10);
     }
 
     /**
@@ -191,6 +197,14 @@ public class ApiDocConsoleProperties {
 
         private String baseUrl;
 
+        private String openApiAccessHeader = "X-OpenAPI-Console-Token";
+
+        private String openApiAccessToken;
+
+        private List<String> pathAllowList = new ArrayList<>();
+
+        private List<String> pathDenyList = new ArrayList<>();
+
         private boolean enabled = true;
 
         private int order = 0;
@@ -228,5 +242,27 @@ public class ApiDocConsoleProperties {
         private String licenseUrl = "";
 
         private String authorizationHeader = "Authorization";
+
+        private AccessControl accessControl = new AccessControl();
+    }
+
+    /**
+     * @BelongsProject: openapi-console
+     * @BelongsPackage: top.egon.openapi.console
+     * @ClassName: AccessControl
+     * @Author: atluofu
+     * @CreateTime: 2026Year-05Month-19Day-23:15
+     * @Description: 业务模块 OpenAPI JSON 内部访问控制配置
+     * @Version: 1.0
+     */
+    @Getter
+    @Setter
+    public static class AccessControl {
+
+        private boolean enabled = false;
+
+        private String headerName = "X-OpenAPI-Console-Token";
+
+        private String token;
     }
 }

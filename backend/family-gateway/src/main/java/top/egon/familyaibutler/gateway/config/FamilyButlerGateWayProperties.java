@@ -35,20 +35,11 @@ public class FamilyButlerGateWayProperties {
     public static class Jwt {
 
         private Set<String> ignoreurlset = new HashSet<>(Arrays.asList(
-                "/api/user/login",
-                "/api/user/register",
-                "/api/user/refresh"
+                "/uaa/user/login",
+                "/uaa/user/register",
+                "/uaa/user/refresh",
+                "/openapi-console/**"
         ));
-
-        private String authorization = "Authorization";
-
-        private long accessTokenExpireTime = 60 * 1000L;
-
-        private long refreshTokenExpireTime = 30 * 24 * 3600 * 1000L;
-
-        private String accessKey;
-
-        private String refreshKey;
     }
 
 }

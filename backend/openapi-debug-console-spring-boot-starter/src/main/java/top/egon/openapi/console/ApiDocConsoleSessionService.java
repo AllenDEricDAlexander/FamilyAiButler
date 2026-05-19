@@ -9,7 +9,6 @@
  */
 package top.egon.openapi.console;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseCookie;
 import org.springframework.util.StringUtils;
@@ -23,8 +22,10 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @BelongsProject: openapi-console
@@ -35,16 +36,37 @@ import java.util.UUID;
  * @Description: OpenAPI 调试文档控制台会话服务
  * @Version: 1.0
  */
-@RequiredArgsConstructor
 public class ApiDocConsoleSessionService {
 
     private static final String PASSWORD_SHA256_PREFIX = "{sha256}";
 
     private static final String PASSWORD_PLAIN_PREFIX = "{plain}";
 
+    private static final String DEFAULT_PASSWORD = "OpenApi@123456";
+
+    private static final String DEFAULT_PASSWORD_SHA256 = "26f14356ce3643fcbe7facfd45819669f3f044f42360b009c740a10ceddb2fd2";
+
+    private static final String DEFAULT_SESSION_SECRET = "OpenApiDebugConsoleSessionSecretChangeMe";
+
+    private static final String CLIENT_UNKNOWN = "unknown";
+
     private final ApiDocConsoleProperties properties;
 
     private final Environment environment;
+
+    private final Map<String, LoginFailure> loginFailureMap = new ConcurrentHashMap<>();
+
+    /**
+     * 创建接口文档平台会话服务
+     *
+     * @param properties  接口文档平台配置
+     * @param environment Spring 环境对象
+     */
+    public ApiDocConsoleSessionService(ApiDocConsoleProperties properties, Environment environment) {
+        this.properties = properties;
+        this.environment = environment;
+        validateAuthConfiguration();
+    }
 
     /**
      * 判断文档平台是否开放
@@ -90,11 +112,34 @@ public class ApiDocConsoleSessionService {
      * @return boolean 返回 true 表示账号密码有效
      */
     public boolean validateLogin(String username, String password) {
-        if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
+        return validateLogin(username, password, CLIENT_UNKNOWN);
+    }
+
+    /**
+     * 校验登录账号密码并记录失败次数
+     *
+     * @param username 用户名
+     * @param password 密码
+     * @param clientId 客户端标识
+     * @return boolean 返回 true 表示账号密码有效
+     */
+    public boolean validateLogin(String username, String password, String clientId) {
+        String failureKey = loginFailureKey(username, clientId);
+        if (isLoginLocked(failureKey)) {
             return false;
         }
-        return constantEquals(properties.getAuth().getUsername(), username)
+        if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
+            recordLoginFailure(failureKey);
+            return false;
+        }
+        boolean matched = constantEquals(properties.getAuth().getUsername(), username)
                 && validatePassword(password, properties.getAuth().getPassword());
+        if (matched) {
+            loginFailureMap.remove(failureKey);
+            return true;
+        }
+        recordLoginFailure(failureKey);
+        return false;
     }
 
     /**
@@ -108,7 +153,7 @@ public class ApiDocConsoleSessionService {
         String token = createToken(username, expiresAt);
         return ResponseCookie.from(properties.getAuth().getCookieName(), token)
                 .httpOnly(true)
-                .secure(properties.getAuth().isSecureCookie())
+                .secure(shouldUseSecureCookie())
                 .sameSite(properties.getAuth().getSameSite())
                 .path(normalizedBasePath())
                 .maxAge(properties.getAuth().getTtl())
@@ -123,7 +168,7 @@ public class ApiDocConsoleSessionService {
     public ResponseCookie createLogoutCookie() {
         return ResponseCookie.from(properties.getAuth().getCookieName(), "")
                 .httpOnly(true)
-                .secure(properties.getAuth().isSecureCookie())
+                .secure(shouldUseSecureCookie())
                 .sameSite(properties.getAuth().getSameSite())
                 .path(normalizedBasePath())
                 .maxAge(Duration.ZERO)
@@ -223,6 +268,98 @@ public class ApiDocConsoleSessionService {
     }
 
     /**
+     * 校验认证配置安全性
+     */
+    private void validateAuthConfiguration() {
+        if (!properties.isEnabled() || !properties.getAuth().isRejectDefaultCredentials()) {
+            return;
+        }
+        String password = properties.getAuth().getPassword();
+        String sessionSecret = properties.getAuth().getSessionSecret();
+        if (!StringUtils.hasText(password)
+                || DEFAULT_PASSWORD.equals(password)
+                || ("{plain}" + DEFAULT_PASSWORD).equals(password)
+                || (PASSWORD_SHA256_PREFIX + DEFAULT_PASSWORD_SHA256).equalsIgnoreCase(password)) {
+            throw new IllegalStateException("OpenAPI 控制台开启时禁止使用默认密码");
+        }
+        if (!StringUtils.hasText(sessionSecret)
+                || DEFAULT_SESSION_SECRET.equals(sessionSecret)
+                || sessionSecret.contains("ChangeMe")
+                || sessionSecret.length() < 32) {
+            throw new IllegalStateException("OpenAPI 控制台开启时必须配置非默认高强度 session-secret");
+        }
+    }
+
+    /**
+     * 判断登录来源是否被锁定
+     *
+     * @param failureKey 失败记录键
+     * @return boolean 返回 true 表示已锁定
+     */
+    private boolean isLoginLocked(String failureKey) {
+        LoginFailure failure = loginFailureMap.get(failureKey);
+        if (failure == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        if (failure.lockedUntil > now) {
+            return true;
+        }
+        if (failure.lockedUntil > 0) {
+            loginFailureMap.remove(failureKey);
+        }
+        return false;
+    }
+
+    /**
+     * 记录登录失败
+     *
+     * @param failureKey 失败记录键
+     */
+    private void recordLoginFailure(String failureKey) {
+        int maxFailures = Math.max(1, properties.getAuth().getMaxLoginFailures());
+        Duration lockDuration = properties.getAuth().getLoginLockDuration() == null ? Duration.ofMinutes(10) : properties.getAuth().getLoginLockDuration();
+        long lockMillis = Math.max(1, lockDuration.toMillis());
+        loginFailureMap.compute(failureKey, (key, oldFailure) -> {
+            LoginFailure failure = oldFailure == null ? new LoginFailure() : oldFailure;
+            long now = System.currentTimeMillis();
+            if (failure.lockedUntil > 0 && failure.lockedUntil <= now) {
+                failure.failureCount = 0;
+                failure.lockedUntil = 0;
+            }
+            failure.failureCount++;
+            if (failure.failureCount >= maxFailures) {
+                failure.lockedUntil = now + lockMillis;
+            }
+            return failure;
+        });
+    }
+
+    /**
+     * 构造登录失败记录键
+     *
+     * @param username 用户名
+     * @param clientId 客户端标识
+     * @return String 返回失败记录键
+     */
+    private String loginFailureKey(String username, String clientId) {
+        String safeUsername = StringUtils.hasText(username) ? username : CLIENT_UNKNOWN;
+        String safeClientId = StringUtils.hasText(clientId) ? clientId : CLIENT_UNKNOWN;
+        return safeClientId + ":" + safeUsername;
+    }
+
+    /**
+     * 判断是否使用 Secure Cookie
+     *
+     * @return boolean 返回 true 表示启用 Secure Cookie
+     */
+    private boolean shouldUseSecureCookie() {
+        return properties.getAuth().isSecureCookie()
+                || "prod".equalsIgnoreCase(properties.getEnvironment())
+                || hasActiveProfile("prod");
+    }
+
+    /**
      * 生成 HmacSHA256 摘要
      *
      * @param value 原文
@@ -280,5 +417,21 @@ public class ApiDocConsoleSessionService {
      */
     private String normalizedBasePath() {
         return StringUtils.hasText(properties.getBasePath()) ? properties.getBasePath() : "/";
+    }
+
+    /**
+     * @BelongsProject: openapi-console
+     * @BelongsPackage: top.egon.openapi.console
+     * @ClassName: LoginFailure
+     * @Author: atluofu
+     * @CreateTime: 2026Year-05Month-19Day-23:15
+     * @Description: 登录失败计数记录
+     * @Version: 1.0
+     */
+    private static class LoginFailure {
+
+        private int failureCount;
+
+        private long lockedUntil;
     }
 }

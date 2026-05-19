@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -54,14 +55,16 @@ public class ApiDocConsoleController {
      * 登录控制台
      *
      * @param request 登录请求
+     * @param exchange WebFlux 请求上下文
      * @return ResponseEntity<LoginResponse> 返回登录结果
      */
     @PostMapping("/login")
-    public ResponseEntity<ApiDocConsolePayloads.LoginResponse> login(@RequestBody ApiDocConsolePayloads.LoginRequest request) {
+    public ResponseEntity<ApiDocConsolePayloads.LoginResponse> login(@RequestBody ApiDocConsolePayloads.LoginRequest request,
+                                                                     ServerWebExchange exchange) {
         if (!sessionService.isConsoleOpen()) {
             return ResponseEntity.notFound().build();
         }
-        if (!sessionService.validateLogin(request.getUsername(), request.getPassword())) {
+        if (!sessionService.validateLogin(request.getUsername(), request.getPassword(), clientId(exchange))) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         ApiDocConsolePayloads.LoginResponse response = new ApiDocConsolePayloads.LoginResponse();
@@ -214,6 +217,24 @@ public class ApiDocConsoleController {
             return Optional.empty();
         }
         return sessionService.resolveSession(exchange);
+    }
+
+    /**
+     * 获取客户端标识
+     *
+     * @param exchange WebFlux 请求上下文
+     * @return String 返回客户端标识
+     */
+    private String clientId(ServerWebExchange exchange) {
+        String forwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",", 2)[0].trim();
+        }
+        InetSocketAddress address = exchange.getRequest().getRemoteAddress();
+        if (address == null || address.getAddress() == null) {
+            return "unknown";
+        }
+        return address.getAddress().getHostAddress();
     }
 
     /**

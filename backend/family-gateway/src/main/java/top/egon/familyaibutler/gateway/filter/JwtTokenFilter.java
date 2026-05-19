@@ -9,8 +9,10 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -30,7 +32,7 @@ import java.nio.charset.StandardCharsets;
  * @Version: 1.0
  */
 @Slf4j
-//@Component
+@Component
 @RequiredArgsConstructor
 public class JwtTokenFilter implements GlobalFilter, Ordered {
 
@@ -48,18 +50,23 @@ public class JwtTokenFilter implements GlobalFilter, Ordered {
         // todo 限流
 
         // todo 请求过滤
-        log.error("白名单: {}", familyButlerGateWayProperties.getJwt().getIgnoreurlset());
+        log.debug("白名单: {}", familyButlerGateWayProperties.getJwt().getIgnoreurlset());
 
         // todo 日志审计体系
 
+        if (HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())) {
+            return chain.filter(exchange);
+        }
+
         for (String ignoreUrl : familyButlerGateWayProperties.getJwt().getIgnoreurlset()) {
-            if (url.contains(ignoreUrl)) {
+            if (pathMatches(ignoreUrl, url)) {
                 // todo 透传 tenantID jwt附带信息
                 return chain.filter(exchange);
             }
         }
 
-        String token = exchange.getRequest().getHeaders().getFirst(familyButlerGateWayProperties.getJwt().getAuthorization());
+        String authorization = exchange.getRequest().getHeaders().getFirst(jwtUtil.authorizationHeader());
+        String token = jwtUtil.resolveAuthorizationToken(authorization);
         ServerHttpResponse resp = exchange.getResponse();
 
         if (StringUtils.isBlank(token)) {
@@ -72,17 +79,38 @@ public class JwtTokenFilter implements GlobalFilter, Ordered {
                 // todo 判断 refreshToken 刷新token
                 throw new BusinessException("token已过期");
             }
-            return chain.filter(exchange).then(Mono.fromRunnable(() -> {
-                ServerHttpResponse response = exchange.getResponse();
-                String oldToken = response.getHeaders().getFirst(familyButlerGateWayProperties.getJwt().getAuthorization());
-                String newToken = jwtUtil.refreshJWTToken(oldToken, familyButlerGateWayProperties.getJwt().getAccessTokenExpireTime(), jwtUtil.getAccessKey());
-                response.getHeaders().add(familyButlerGateWayProperties.getJwt().getAuthorization(), newToken);
-            }));
+            return chain.filter(exchange);
         } catch (Exception e) {
             return authError(resp, e.getMessage());
         }
     }
 
+    /**
+     * 判断请求路径是否匹配白名单
+     *
+     * @param pattern 白名单路径模式
+     * @param path    请求路径
+     * @return boolean 返回 true 表示匹配
+     */
+    private boolean pathMatches(String pattern, String path) {
+        if (StringUtils.isBlank(pattern)) {
+            return false;
+        }
+        String normalizedPattern = pattern.startsWith("/") ? pattern : "/" + pattern;
+        if (normalizedPattern.endsWith("/**")) {
+            String prefix = normalizedPattern.substring(0, normalizedPattern.length() - 3);
+            return path.equals(prefix) || path.startsWith(prefix + "/");
+        }
+        return path.equals(normalizedPattern);
+    }
+
+    /**
+     * 返回认证失败响应
+     *
+     * @param resp 响应对象
+     * @param msg  错误信息
+     * @return Mono<Void> 返回响应写入结果
+     */
     private Mono<Void> authError(ServerHttpResponse resp, String msg) {
         resp.setStatusCode(HttpStatus.UNAUTHORIZED);
         resp.getHeaders().add("Content-Type", "application/json;charset=UTF-8");

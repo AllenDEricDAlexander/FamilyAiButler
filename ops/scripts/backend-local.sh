@@ -183,10 +183,28 @@ backend_module_port() {
 backend_module_health_path() {
   case "$1" in
     uaa)
-      echo "/v3/api-docs"
+      echo "/"
       ;;
     *)
       echo "/actuator/health"
+      ;;
+  esac
+}
+
+# 判断后端健康检查 HTTP 状态是否表示服务已可响应。
+is_backend_health_http_code_success() {
+  local module="$1"
+  local http_code="$2"
+  case "${http_code}" in
+    2*|3*)
+      return 0
+      ;;
+    401|403)
+      [ "${module}" = "uaa" ]
+      return
+      ;;
+    *)
+      return 1
       ;;
   esac
 }
@@ -245,12 +263,10 @@ wait_backend_health() {
 
   while [ "${waited}" -lt "${timeout}" ]; do
     http_code="$(curl -sS -o /dev/null -w "%{http_code}" --max-time 2 "http://127.0.0.1:${port}${health_path}" 2>/dev/null || true)"
-    case "${http_code}" in
-      2*|3*)
-      echo "${service_name} ${ENVIRONMENT} health check passed, port=${port}, path=${health_path}"
+    if is_backend_health_http_code_success "${module}" "${http_code}"; then
+      echo "${service_name} ${ENVIRONMENT} health check passed, port=${port}, path=${health_path}, http_code=${http_code}"
       return
-      ;;
-    esac
+    fi
     waited=$((waited + 2))
     sleep 2
   done
