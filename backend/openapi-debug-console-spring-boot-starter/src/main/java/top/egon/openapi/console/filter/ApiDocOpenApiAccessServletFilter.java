@@ -1,13 +1,13 @@
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.filter
  * @FileName: ApiDocOpenApiAccessServletFilter.java
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-23:20
  * @Description: OpenAPI JSON 内部访问控制 Servlet 过滤器文件
  * @Version: 1.0
  */
-package top.egon.openapi.console;
+package top.egon.openapi.console.filter;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
+import top.egon.openapi.console.ApiDocConsoleProperties;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +26,7 @@ import java.security.MessageDigest;
 
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.filter
  * @ClassName: ApiDocOpenApiAccessServletFilter
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-23:20

@@ -1,10 +1,8 @@
 package ${packageName};
 
-${imports!""}
-${classComment}
-@Data
+${imports!""}${classComment}@Data
 @Entity
-@Table(name = "${tableName}")
+${entityListenersAnnotation!""}@Table(name = "${tableName}")
 public class ${className} {
 ${fields}
 }

@@ -31,10 +31,18 @@
             <artifactId>spring-webflux</artifactId>
         </dependency>
 
+        <!-- Reactive WebClient 连接池配置，网关/WebFlux 场景由宿主项目提供运行时实现 -->
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty-http</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Spring Cloud 服务发现地址解析 -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-commons</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- Servlet 业务模块静态控制台保护 -->
@@ -68,6 +76,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- 单元测试 -->

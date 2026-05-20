@@ -108,12 +108,7 @@ ensure_frontend_dependencies() {
 
 # 获取前端默认接口地址。
 default_frontend_api_base_url() {
-  local environment="$1"
-  if [ "${environment}" = "prod" ]; then
-    echo "http://localhost:8090"
-    return
-  fi
-  echo "http://localhost:9527"
+  echo "http://localhost/api"
 }
 
 # 启动托管进程。

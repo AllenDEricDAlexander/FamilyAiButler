@@ -6,7 +6,7 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "dev": "EXPO_NO_TELEMETRY=1 EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://localhost:9527} expo start --web --localhost",
+    "dev": "EXPO_NO_TELEMETRY=1 EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://localhost/api} expo start --web --localhost",
     "build": "EXPO_NO_TELEMETRY=1 expo export --platform web --output-dir dist",
     "preview": "npx serve dist -l 4173",
     "typecheck": "tsc --noEmit"

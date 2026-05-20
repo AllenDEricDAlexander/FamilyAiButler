@@ -105,10 +105,24 @@ egon:
         algorithm: HmacSHA256
         access-key-id: family-ai-butler
         secret: FamilyAiButlerOpenApiSigningSecretChangeMe
+      client:
+        engine: AUTO
+        max-connections: 200
+        pending-acquire-max-count: 500
+        pending-acquire-timeout: 5s
+        connect-timeout: 3s
+        response-timeout: 30s
+        max-idle-time: 30s
+        max-life-time: 5m
+        compression-enabled: true
+        wiretap: false
       load-test:
         enabled: true
         max-requests: 50
         max-concurrency: 5
+        max-active-runs: 2
+        max-active-concurrency: 50
+        reject-when-busy: true
       export:
         enabled: true
       services:

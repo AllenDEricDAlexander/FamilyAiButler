@@ -1,13 +1,13 @@
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.filter
  * @FileName: ApiDocConsoleServletFilter.java
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-18:05
  * @Description: OpenAPI 调试文档控制台 Servlet 过滤器文件
  * @Version: 1.0
  */
-package top.egon.openapi.console;
+package top.egon.openapi.console.filter;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -16,12 +16,13 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import top.egon.openapi.console.ApiDocConsoleProperties;
 
 import java.io.IOException;
 
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.filter
  * @ClassName: ApiDocConsoleServletFilter
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-18:05

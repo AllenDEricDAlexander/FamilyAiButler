@@ -15,10 +15,10 @@ COPY frontend/packages ./packages
 
 RUN corepack enable && corepack pnpm install --frozen-lockfile
 
-ARG EXPO_PUBLIC_API_BASE_URL=""
+ARG EXPO_PUBLIC_API_BASE_URL="/api"
 ENV EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL}
 
-RUN corepack pnpm build:web
+RUN node scripts/build-web-if-needed.mjs
 
 FROM nginx:1.29-alpine
 

@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "identifier": "top.egon.familyaibutler.desktop",
   "build": {
-    "beforeDevCommand": "EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://localhost:9527} corepack pnpm --filter @family-ai-butler/web dev",
-    "beforeBuildCommand": "EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://localhost:9527} corepack pnpm --filter @family-ai-butler/desktop build:web",
+    "beforeDevCommand": "EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://localhost/api} corepack pnpm --filter @family-ai-butler/web dev",
+    "beforeBuildCommand": "EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://localhost/api} corepack pnpm --filter @family-ai-butler/desktop build:web",
     "devUrl": "http://localhost:8081",
     "frontendDist": "../../web/dist"
   },

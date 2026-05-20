@@ -1,13 +1,13 @@
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.autoconfigure
  * @FileName: ApiDocOpenApiAutoConfiguration.java
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:35
  * @Description: OpenAPI 生产端自动配置文件
  * @Version: 1.0
  */
-package top.egon.openapi.console;
+package top.egon.openapi.console.autoconfigure;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -23,10 +23,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.util.StringUtils;
+import top.egon.openapi.console.ApiDocConsoleProperties;
 
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.autoconfigure
  * @ClassName: ApiDocOpenApiAutoConfiguration
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:35

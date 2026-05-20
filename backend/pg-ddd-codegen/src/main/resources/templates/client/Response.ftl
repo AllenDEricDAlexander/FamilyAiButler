@@ -1,7 +1,6 @@
 package ${packageName};
 
-${imports!""}
-${classComment}
+${imports!""}${classComment}
 public record ${className}(
 ${fields}
 ) {

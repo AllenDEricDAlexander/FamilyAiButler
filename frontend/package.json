@@ -5,7 +5,7 @@
   "description": "FamilyAiButler unified frontend workspace.",
   "scripts": {
     "dev:web": "corepack pnpm --filter @family-ai-butler/web dev",
-    "build:web": "corepack pnpm --filter @family-ai-butler/web build",
+    "build:web": "node scripts/build-web-if-needed.mjs",
     "dev:desktop": "corepack pnpm --filter @family-ai-butler/desktop dev",
     "build:desktop": "corepack pnpm --filter @family-ai-butler/desktop build",
     "build:desktop:app": "corepack pnpm --filter @family-ai-butler/desktop build:app",

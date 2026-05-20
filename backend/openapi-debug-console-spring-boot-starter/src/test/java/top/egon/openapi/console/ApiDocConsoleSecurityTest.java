@@ -15,15 +15,18 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import top.egon.openapi.console.client.ApiDocConsoleHttpClient;
+import top.egon.openapi.console.client.ApiDocConsoleHttpResponse;
+import top.egon.openapi.console.core.ApiDocConsoleDocumentRenderer;
+import top.egon.openapi.console.core.ApiDocConsoleService;
+import top.egon.openapi.console.core.ApiDocConsoleSessionService;
+import top.egon.openapi.console.filter.ApiDocOpenApiAccessServletFilter;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
@@ -121,21 +124,21 @@ class ApiDocConsoleSecurityTest {
         route.setBaseUrl("http://demo");
         route.setOpenApiAccessToken("internal-openapi-token");
         properties.getServices().add(route);
-        WebClient.Builder webClientBuilder = WebClient.builder().exchangeFunction(request -> {
-            accessToken.set(request.headers().getFirst("X-OpenAPI-Console-Token"));
-            ClientResponse response = ClientResponse.create(HttpStatus.OK)
-                    .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                    .body("{\"openapi\":\"3.1.0\",\"info\":{\"title\":\"demo\",\"version\":\"v1\"},\"paths\":{}}")
-                    .build();
+        ApiDocConsoleHttpClient httpClient = request -> {
+            accessToken.set(request.getHeaders().getFirst("X-OpenAPI-Console-Token"));
+            ApiDocConsoleHttpResponse response = new ApiDocConsoleHttpResponse();
+            response.setStatus(HttpStatus.OK.value());
+            response.setBody("{\"openapi\":\"3.1.0\",\"info\":{\"title\":\"demo\",\"version\":\"v1\"},\"paths\":{}}");
             return Mono.just(response);
-        });
+        };
 
         ApiDocConsoleService consoleService = new ApiDocConsoleService(
                 properties,
                 new ObjectMapper(),
-                webClientBuilder,
+                httpClient,
                 new ApiDocConsoleDocumentRenderer(),
-                new DefaultListableBeanFactory().getBeanProvider(org.springframework.cloud.client.discovery.ReactiveDiscoveryClient.class));
+                new DefaultListableBeanFactory().getBeanProvider(org.springframework.cloud.client.discovery.ReactiveDiscoveryClient.class),
+                new DefaultListableBeanFactory().getBeanProvider(org.springframework.cloud.client.discovery.DiscoveryClient.class));
 
         consoleService.fetchOpenApi("demo").block();
 

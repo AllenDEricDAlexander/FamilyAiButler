@@ -1,7 +1,5 @@
 package ${packageName};
 
-${imports!""}
-${classComment}
-@Mapper
+${imports!""}${classComment}@Mapper
 public interface ${className} extends BaseMapper<${dataObjectClass}> {
 }

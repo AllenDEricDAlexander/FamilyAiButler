@@ -2,8 +2,7 @@ package ${packageName};
 
 import java.util.List;
 
-${classComment}
-public record ${className}
+${classComment}public record ${className}
 <T>(
     List
     <T> records,

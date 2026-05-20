@@ -43,6 +43,10 @@ import {
 } from "@family-ai-butler/api-client";
 import appIcon from "./assets/icon.png";
 
+declare const process: { env: { EXPO_PUBLIC_API_BASE_URL?: string } };
+const COMPILED_GATEWAY_URL = "__FAMILY_AI_BUTLER_API_BASE_URL__";
+const LOCAL_GATEWAY_URL = "http://localhost/api";
+
 type AppSection = "overview" | "password" | "category" | "security" | "member" | "setting";
 type AccountTab = "all" | "favorite" | "recent";
 type PasswordModalMode = "create" | "edit";
@@ -1116,10 +1120,12 @@ function syncBrowserFavicon(iconUrl: string) {
  * @returns 本地开发、Nginx 托管和 Tauri 打包下可用的默认地址
  */
 function getDefaultGatewayUrl() {
-    const runtime = globalThis as { process?: { env?: Record<string, string | undefined> } };
-    const envGatewayUrl = runtime.process?.env?.EXPO_PUBLIC_API_BASE_URL;
+    const envGatewayUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
     if (envGatewayUrl !== undefined && envGatewayUrl.trim().length > 0) {
-        return envGatewayUrl;
+        return envGatewayUrl.trim();
     }
-    return "http://localhost:9527";
+    if (!COMPILED_GATEWAY_URL.startsWith("__") && COMPILED_GATEWAY_URL.trim().length > 0) {
+        return COMPILED_GATEWAY_URL.trim();
+    }
+    return LOCAL_GATEWAY_URL;
 }

@@ -252,6 +252,37 @@ class CodeGenerationServiceTest {
     }
 
     /**
+     * 核心模板应承载主要分层代码结构，渲染器只负责准备模型数据。
+     *
+     * @throws Exception 文件读写异常
+     */
+    @Test
+    void shouldKeepCoreLayerStructuresInTemplates() throws Exception {
+        Path renderer = Path.of("src/main/java/top/egon/familyaibutler/codegen/generator/DddSourceRenderer.java");
+        String rendererContent = Files.readString(renderer);
+        assertThat(Files.readString(Path.of("src/main/resources/templates/adapter/Controller.ftl")))
+                .contains("@RestController", "@RequestMapping");
+        assertThat(Files.readString(Path.of("src/main/resources/templates/app/CommandService.ftl")))
+                .contains("@Service");
+        assertThat(Files.readString(Path.of("src/main/resources/templates/app/CmdExe.ftl")))
+                .contains("@Component");
+        assertThat(Files.readString(Path.of("src/main/resources/templates/domain/Repository.ftl")))
+                .contains("Optional<${aggregateName}> find", "${aggregateName} save");
+        assertThat(Files.readString(Path.of("src/main/resources/templates/infrastructure/jpa/JpaEntity.ftl")))
+                .contains("@Entity", "@Table(name = \"${tableName}\")", "${fields}");
+        assertThat(Files.readString(Path.of("src/main/resources/templates/infrastructure/mp/DataObject.ftl")))
+                .contains("@TableName(\"${tableName}\")", "${fields}");
+        assertThat(Files.readString(Path.of("src/main/resources/templates/test/ArchitectureTest.ftl")))
+                .contains("@AnalyzeClasses", "ArchRule");
+        assertThat(rendererContent)
+                .contains("TemplateRegistry.ADAPTER_CONTROLLER")
+                .contains("TemplateRegistry.APP_COMMAND_SERVICE")
+                .contains("TemplateRegistry.DOMAIN_REPOSITORY")
+                .contains("TemplateRegistry.INFRA_JPA_ENTITY")
+                .contains("TemplateRegistry.TEST_ARCHITECTURE");
+    }
+
+    /**
      * 生成完整 DDD/COLA 分层骨架，包含子实体、DomainService、DomainEvent、测试骨架和工程依赖。
      *
      * @param tempDir JUnit 临时目录

@@ -79,21 +79,7 @@ public class DddSourceRenderer {
      */
     private String renderApplication(GeneratorConfig config, String className) {
         String packageName = config.getProject().getBasePackage();
-        return packageLine(packageName)
-                + "import org.springframework.boot.SpringApplication;\n"
-                + "import org.springframework.boot.autoconfigure.SpringBootApplication;\n\n"
-                + classComment(packageName, className, config.getProject().getModuleName() + " 启动类")
-                + "@SpringBootApplication\n"
-                + "public class " + className + " {\n\n"
-                + "    /**\n"
-                + "     * 应用启动入口。\n"
-                + "     *\n"
-                + "     * @param args 启动参数\n"
-                + "     */\n"
-                + "    public static void main(String[] args) {\n"
-                + "        SpringApplication.run(" + className + ".class, args);\n"
-                + "    }\n"
-                + "}\n";
+        return renderTemplate(TemplateRegistry.PROJECT_APPLICATION, packageName, className, config.getProject().getModuleName() + " 启动类", Map.of());
     }
 
     /**
@@ -235,13 +221,11 @@ public class DddSourceRenderer {
      */
     private String renderPojo(GenerationContext context, String subPackage, String className, PgTableModel table, WritePolicy policy) {
         String packageName = context.getConfig().getProject().getBasePackage() + "." + subPackage;
-        return packageLine(packageName)
-                + imports(importsFor(table, context, false), "lombok.Data")
-                + classComment(packageName, className, table.getTableName() + " 领域模型，写入策略 " + policy)
-                + "@Data\n"
-                + "public class " + className + " {\n"
-                + fields(context, table, false)
-                + "}\n";
+        String templateName = subPackage.endsWith("aggregate") ? TemplateRegistry.DOMAIN_AGGREGATE : TemplateRegistry.DOMAIN_ENTITY;
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importsFor(table, context, false), "lombok.Data"));
+        model.put("fields", fields(context, table, false));
+        return renderTemplate(templateName, packageName, className, table.getTableName() + " 领域模型，写入策略 " + policy, model);
     }
 
     /**
@@ -256,19 +240,10 @@ public class DddSourceRenderer {
         String packageName = context.getConfig().getProject().getBasePackage() + ".domain.model.valueobject";
         String valueType = context.getTypeMapper().toValueObjectType(column);
         Set<String> importSet = importsForType(valueType);
-        return packageLine(packageName)
-                + imports(importSet)
-                + classComment(packageName, className, column.getColumnName() + " 值对象")
-                + "public record " + className + "(" + valueType + " value) {\n\n"
-                + "    /**\n"
-                + "     * 校验值对象基础合法性。\n"
-                + "     */\n"
-                + "    public " + className + " {\n"
-                + "        if (value == null) {\n"
-                + "            throw new IllegalArgumentException(\"" + className + "不能为空\");\n"
-                + "        }\n"
-                + "    }\n"
-                + "}\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importSet));
+        model.put("valueType", valueType);
+        return renderTemplate(TemplateRegistry.DOMAIN_VALUE_OBJECT, packageName, className, column.getColumnName() + " 值对象", model);
     }
 
     /**
@@ -300,10 +275,7 @@ public class DddSourceRenderer {
         String aggregateName = context.getAggregate().getName();
         String className = aggregateName + "CreatedEvent";
         String packageName = context.getConfig().getProject().getBasePackage() + ".domain.event";
-        return packageLine(packageName)
-                + classComment(packageName, className, aggregateName + " 创建领域事件")
-                + "public record " + className + "() {\n"
-                + "}\n";
+        return renderTemplate(TemplateRegistry.DOMAIN_DOMAIN_EVENT, packageName, className, aggregateName + " 创建领域事件", Map.of());
     }
 
     /**
@@ -317,27 +289,17 @@ public class DddSourceRenderer {
         String aggregateName = context.getAggregate().getName();
         String idType = context.getAggregate().getIdValueObject() == null ? "Long" : context.getAggregate().getIdValueObject();
         String packageName = basePackage + ".domain.repository";
-        return packageLine(packageName)
-                + "import " + basePackage + ".domain.model.aggregate." + aggregateName + ";\n"
-                + (idType.equals("Long") ? "" : "import " + basePackage + ".domain.model.valueobject." + idType + ";\n")
-                + "import java.util.Optional;\n\n"
-                + classComment(packageName, aggregateName + "Repository", aggregateName + " 领域仓储接口")
-                + "public interface " + aggregateName + "Repository {\n\n"
-                + "    /**\n"
-                + "     * 按主键查找聚合。\n"
-                + "     *\n"
-                + "     * @param id 聚合主键\n"
-                + "     * @return 聚合对象\n"
-                + "     */\n"
-                + "    Optional<" + aggregateName + "> find(" + idType + " id);\n\n"
-                + "    /**\n"
-                + "     * 保存聚合。\n"
-                + "     *\n"
-                + "     * @param aggregate 聚合对象\n"
-                + "     * @return 保存后的聚合\n"
-                + "     */\n"
-                + "    " + aggregateName + " save(" + aggregateName + " aggregate);\n"
-                + "}\n";
+        Set<String> importSet = new LinkedHashSet<>();
+        importSet.add(basePackage + ".domain.model.aggregate." + aggregateName);
+        if (!idType.equals("Long")) {
+            importSet.add(basePackage + ".domain.model.valueobject." + idType);
+        }
+        importSet.add("java.util.Optional");
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importSet));
+        model.put("aggregateName", aggregateName);
+        model.put("idType", idType);
+        return renderTemplate(TemplateRegistry.DOMAIN_REPOSITORY, packageName, aggregateName + "Repository", aggregateName + " 领域仓储接口", model);
     }
 
     /**
@@ -349,18 +311,7 @@ public class DddSourceRenderer {
     private String renderQueryGateway(GenerationContext context) {
         String packageName = context.getConfig().getProject().getBasePackage() + ".domain.gateway";
         String aggregateName = context.getAggregate().getName();
-        return packageLine(packageName)
-                + "import java.util.List;\n\n"
-                + classComment(packageName, aggregateName + "QueryGateway", aggregateName + " 复杂查询网关")
-                + "public interface " + aggregateName + "QueryGateway {\n\n"
-                + "    /**\n"
-                + "     * 执行复杂查询。\n"
-                + "     *\n"
-                + "     * @param query 查询对象\n"
-                + "     * @return 查询结果\n"
-                + "     */\n"
-                + "    List<?> query(Object query);\n"
-                + "}\n";
+        return renderTemplate(TemplateRegistry.DOMAIN_QUERY_GATEWAY, packageName, aggregateName + "QueryGateway", aggregateName + " 复杂查询网关", Map.of());
     }
 
     /**
@@ -377,11 +328,10 @@ public class DddSourceRenderer {
             appendValidatedRecordField(context, fields, column);
         }
         String body = trimRecordFields(fields);
-        return packageLine(packageName)
-                + imports(importsFor(context.getRootTable(), context, false), "jakarta.validation.constraints.*")
-                + classComment(packageName, command.getName() + "Command", command.getName() + " 命令对象")
-                + "public record " + command.getName() + "Command(\n" + body + "\n) {\n"
-                + "}\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importsFor(context.getRootTable(), context, false), "jakarta.validation.constraints.*"));
+        model.put("fields", body);
+        return renderTemplate(TemplateRegistry.CLIENT_COMMAND, packageName, command.getName() + "Command", command.getName() + " 命令对象", model);
     }
 
     /**
@@ -399,11 +349,10 @@ public class DddSourceRenderer {
             context.getRootTable().getColumn(filter).ifPresent(column -> appendQueryField(context, fields, column));
         }
         String body = trimRecordFields(fields);
-        return packageLine(packageName)
-                + imports(importsFor(context.getRootTable(), context, false))
-                + classComment(packageName, className, query.getName() + " 查询对象")
-                + "public record " + className + "(\n" + body + "\n) {\n"
-                + "}\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importsFor(context.getRootTable(), context, false)));
+        model.put("fields", body);
+        return renderTemplate(TemplateRegistry.CLIENT_QUERY, packageName, className, query.getName() + " 查询对象", model);
     }
 
     /**
@@ -420,11 +369,10 @@ public class DddSourceRenderer {
             fields.append("        ").append(context.getTypeMapper().toJavaType(column, context.getNaming()))
                     .append(" ").append(context.getNaming().columnToField(column.getColumnName())).append(",\n");
         }
-        return packageLine(packageName)
-                + imports(importsFor(context.getRootTable(), context, false))
-                + classComment(packageName, className, className + " 响应对象")
-                + "public record " + className + "(\n" + trimRecordFields(fields) + "\n) {\n"
-                + "}\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importsFor(context.getRootTable(), context, false)));
+        model.put("fields", trimRecordFields(fields));
+        return renderTemplate(TemplateRegistry.CLIENT_RESPONSE, packageName, className, className + " 响应对象", model);
     }
 
     /**
@@ -461,11 +409,10 @@ public class DddSourceRenderer {
         for (PgColumnModel column : businessColumns(table)) {
             appendValidatedRecordField(context, fields, column);
         }
-        return packageLine(packageName)
-                + imports(importsFor(table, context, false), "jakarta.validation.constraints.*")
-                + classComment(packageName, className, className + " 子实体命令对象")
-                + "public record " + className + "(\n" + trimRecordFields(fields) + "\n) {\n"
-                + "}\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importsFor(table, context, false), "jakarta.validation.constraints.*"));
+        model.put("fields", trimRecordFields(fields));
+        return renderTemplate(TemplateRegistry.CLIENT_COMMAND, packageName, className, className + " 子实体命令对象", model);
     }
 
     /**
@@ -477,12 +424,8 @@ public class DddSourceRenderer {
      */
     private String renderAppService(GenerationContext context, String className) {
         String packageName = context.getConfig().getProject().getBasePackage() + ".app.service";
-        return packageLine(packageName)
-                + "import org.springframework.stereotype.Service;\n\n"
-                + classComment(packageName, className, className + " 应用服务")
-                + "@Service\n"
-                + "public class " + className + " {\n"
-                + "}\n";
+        String templateName = className.endsWith("QueryService") ? TemplateRegistry.APP_QUERY_SERVICE : TemplateRegistry.APP_COMMAND_SERVICE;
+        return renderTemplate(templateName, packageName, className, className + " 应用服务", Map.of());
     }
 
     /**
@@ -495,12 +438,8 @@ public class DddSourceRenderer {
      */
     private String renderExecutor(GenerationContext context, String type, String className) {
         String packageName = context.getConfig().getProject().getBasePackage() + ".app.executor." + type;
-        return packageLine(packageName)
-                + "import org.springframework.stereotype.Component;\n\n"
-                + classComment(packageName, className, className + " 用例执行器")
-                + "@Component\n"
-                + "public class " + className + " {\n"
-                + "}\n";
+        String templateName = "query".equals(type) ? TemplateRegistry.APP_QRY_EXE : TemplateRegistry.APP_CMD_EXE;
+        return renderTemplate(templateName, packageName, className, className + " 用例执行器", Map.of());
     }
 
     /**
@@ -512,14 +451,9 @@ public class DddSourceRenderer {
     private String renderController(GenerationContext context) {
         String packageName = context.getConfig().getProject().getBasePackage() + ".adapter.web.controller";
         String aggregateName = context.getAggregate().getName();
-        return packageLine(packageName)
-                + "import org.springframework.web.bind.annotation.RequestMapping;\n"
-                + "import org.springframework.web.bind.annotation.RestController;\n\n"
-                + classComment(packageName, aggregateName + "Controller", aggregateName + " Web 控制层")
-                + "@RestController\n"
-                + "@RequestMapping(\"/" + context.getNaming().classToField(aggregateName) + "s\")\n"
-                + "public class " + aggregateName + "Controller {\n"
-                + "}\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("requestMapping", "/" + context.getNaming().classToField(aggregateName) + "s");
+        return renderTemplate(TemplateRegistry.ADAPTER_CONTROLLER, packageName, aggregateName + "Controller", aggregateName + " Web 控制层", model);
     }
 
     /**
@@ -530,7 +464,8 @@ public class DddSourceRenderer {
      */
     private String renderAssembler(GenerationContext context) {
         String aggregateName = context.getAggregate().getName();
-        return renderComponent(context, "adapter.web.assembler", aggregateName + "WebAssembler", aggregateName + " Web 装配器");
+        String packageName = context.getConfig().getProject().getBasePackage() + ".adapter.web.assembler";
+        return renderTemplate(TemplateRegistry.ADAPTER_WEB_ASSEMBLER, packageName, aggregateName + "WebAssembler", aggregateName + " Web 装配器", Map.of());
     }
 
     /**
@@ -558,16 +493,12 @@ public class DddSourceRenderer {
                 : List.of();
         Set<String> imports = importsFor(table, context, true);
         imports.addAll(auditImports);
-        return packageLine(packageName)
-                + imports(imports, "jakarta.persistence.*", "lombok.Data")
-                + classComment(packageName, className, table.getTableName() + " JPA 实体")
-                + "@Data\n"
-                + "@Entity\n"
-                + (hasAuditFields(table) ? "@EntityListeners(AuditingEntityListener.class)\n" : "")
-                + "@Table(name = \"" + table.getTableName() + "\")\n"
-                + "public class " + className + " {\n"
-                + jpaFields(context, table)
-                + "}\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(imports, "jakarta.persistence.*", "lombok.Data"));
+        model.put("entityListenersAnnotation", hasAuditFields(table) ? "@EntityListeners(AuditingEntityListener.class)\n" : "");
+        model.put("tableName", table.getTableName());
+        model.put("fields", jpaFields(context, table));
+        return renderTemplate(TemplateRegistry.INFRA_JPA_ENTITY, packageName, className, table.getTableName() + " JPA 实体", model);
     }
 
     /**
@@ -582,12 +513,14 @@ public class DddSourceRenderer {
         String pkType = context.getRootTable().getPrimaryKeyColumn()
                 .map(column -> context.getTypeMapper().toJavaType(column, context.getNaming()))
                 .orElse("Long");
-        return packageLine(packageName)
-                + "import " + context.getConfig().getProject().getBasePackage() + ".infrastructure.persistence.jpa.entity." + aggregateName + "JpaEntity;\n"
-                + "import org.springframework.data.jpa.repository.JpaRepository;\n\n"
-                + classComment(packageName, aggregateName + "JpaRepository", aggregateName + " JPA Repository")
-                + "public interface " + aggregateName + "JpaRepository extends JpaRepository<" + aggregateName + "JpaEntity, " + pkType + "> {\n"
-                + "}\n";
+        Set<String> importSet = new LinkedHashSet<>();
+        importSet.add(context.getConfig().getProject().getBasePackage() + ".infrastructure.persistence.jpa.entity." + aggregateName + "JpaEntity");
+        importSet.add("org.springframework.data.jpa.repository.JpaRepository");
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importSet));
+        model.put("entityClass", aggregateName + "JpaEntity");
+        model.put("idType", pkType);
+        return renderTemplate(TemplateRegistry.INFRA_JPA_REPOSITORY, packageName, aggregateName + "JpaRepository", aggregateName + " JPA Repository", model);
     }
 
     /**
@@ -601,38 +534,20 @@ public class DddSourceRenderer {
         String aggregateName = context.getAggregate().getName();
         String idType = context.getAggregate().getIdValueObject() == null ? "Long" : context.getAggregate().getIdValueObject();
         String packageName = basePackage + ".infrastructure.persistence.impl";
-        return packageLine(packageName)
-                + "import " + basePackage + ".domain.model.aggregate." + aggregateName + ";\n"
-                + (idType.equals("Long") ? "" : "import " + basePackage + ".domain.model.valueobject." + idType + ";\n")
-                + "import " + basePackage + ".domain.repository." + aggregateName + "Repository;\n"
-                + "import lombok.RequiredArgsConstructor;\n"
-                + "import org.springframework.stereotype.Repository;\n"
-                + "import java.util.Optional;\n\n"
-                + classComment(packageName, aggregateName + "RepositoryJpaImpl", aggregateName + " JPA 仓储实现")
-                + "@Repository\n"
-                + "@RequiredArgsConstructor\n"
-                + "public class " + aggregateName + "RepositoryJpaImpl implements " + aggregateName + "Repository {\n\n"
-                + "    /**\n"
-                + "     * 按主键查找聚合。\n"
-                + "     *\n"
-                + "     * @param id 聚合主键\n"
-                + "     * @return 聚合对象\n"
-                + "     */\n"
-                + "    @Override\n"
-                + "    public Optional<" + aggregateName + "> find(" + idType + " id) {\n"
-                + "        return Optional.empty();\n"
-                + "    }\n\n"
-                + "    /**\n"
-                + "     * 保存聚合。\n"
-                + "     *\n"
-                + "     * @param aggregate 聚合对象\n"
-                + "     * @return 保存后的聚合\n"
-                + "     */\n"
-                + "    @Override\n"
-                + "    public " + aggregateName + " save(" + aggregateName + " aggregate) {\n"
-                + "        return aggregate;\n"
-                + "    }\n"
-                + "}\n";
+        Set<String> importSet = new LinkedHashSet<>();
+        importSet.add(basePackage + ".domain.model.aggregate." + aggregateName);
+        if (!idType.equals("Long")) {
+            importSet.add(basePackage + ".domain.model.valueobject." + idType);
+        }
+        importSet.add(basePackage + ".domain.repository." + aggregateName + "Repository");
+        importSet.add("lombok.RequiredArgsConstructor");
+        importSet.add("org.springframework.stereotype.Repository");
+        importSet.add("java.util.Optional");
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importSet));
+        model.put("aggregateName", aggregateName);
+        model.put("idType", idType);
+        return renderTemplate(TemplateRegistry.INFRA_JPA_REPOSITORY_IMPL, packageName, aggregateName + "RepositoryJpaImpl", aggregateName + " JPA 仓储实现", model);
     }
 
     /**
@@ -655,14 +570,11 @@ public class DddSourceRenderer {
      */
     private String renderMpDo(GenerationContext context, String className, PgTableModel table) {
         String packageName = context.getConfig().getProject().getBasePackage() + ".infrastructure.persistence.mp.dataobject";
-        return packageLine(packageName)
-                + imports(importsFor(table, context, true), "com.baomidou.mybatisplus.annotation.*", "lombok.Data")
-                + classComment(packageName, className, table.getTableName() + " MyBatis Plus 数据对象")
-                + "@Data\n"
-                + "@TableName(\"" + table.getTableName() + "\")\n"
-                + "public class " + className + " {\n"
-                + mpFields(context, table)
-                + "}\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importsFor(table, context, true), "com.baomidou.mybatisplus.annotation.*", "lombok.Data"));
+        model.put("tableName", table.getTableName());
+        model.put("fields", mpFields(context, table));
+        return renderTemplate(TemplateRegistry.INFRA_MP_DATA_OBJECT, packageName, className, table.getTableName() + " MyBatis Plus 数据对象", model);
     }
 
     /**
@@ -675,14 +587,14 @@ public class DddSourceRenderer {
         String basePackage = context.getConfig().getProject().getBasePackage();
         String aggregateName = context.getAggregate().getName();
         String packageName = basePackage + ".infrastructure.persistence.mp.mapper";
-        return packageLine(packageName)
-                + "import " + basePackage + ".infrastructure.persistence.mp.dataobject." + aggregateName + "DO;\n"
-                + "import com.baomidou.mybatisplus.core.mapper.BaseMapper;\n"
-                + "import org.apache.ibatis.annotations.Mapper;\n\n"
-                + classComment(packageName, aggregateName + "Mapper", aggregateName + " MyBatis Plus Mapper")
-                + "@Mapper\n"
-                + "public interface " + aggregateName + "Mapper extends BaseMapper<" + aggregateName + "DO> {\n"
-                + "}\n";
+        Set<String> importSet = new LinkedHashSet<>();
+        importSet.add(basePackage + ".infrastructure.persistence.mp.dataobject." + aggregateName + "DO");
+        importSet.add("com.baomidou.mybatisplus.core.mapper.BaseMapper");
+        importSet.add("org.apache.ibatis.annotations.Mapper");
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importSet));
+        model.put("dataObjectClass", aggregateName + "DO");
+        return renderTemplate(TemplateRegistry.INFRA_MP_MAPPER, packageName, aggregateName + "Mapper", aggregateName + " MyBatis Plus Mapper", model);
     }
 
     /**
@@ -700,27 +612,14 @@ public class DddSourceRenderer {
                 .findFirst()
                 .map(this::responseClassName)
                 .orElse(aggregateName + "PageResponse");
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
-                + "<!DOCTYPE mapper PUBLIC \"-//mybatis.org//DTD Mapper 3.0//EN\" \"http://mybatis.org/dtd/mybatis-3-mapper.dtd\">\n"
-                + "<mapper namespace=\"" + basePackage + ".infrastructure.persistence.mp.mapper." + aggregateName + "Mapper\">\n\n"
-                + "    <!-- AUTO-GENERATED-START: base-columns -->\n"
-                + "    <sql id=\"Base_Column_List\">\n"
-                + "        " + columns + "\n"
-                + "    </sql>\n"
-                + "    <!-- AUTO-GENERATED-END: base-columns -->\n\n"
-                + "    <!-- AUTO-GENERATED-START: page-query -->\n"
-                + "    <select id=\"page" + aggregateName + "s\" resultType=\"" + basePackage + ".client.response." + responseClass + "\">\n"
-                + "        SELECT\n"
-                + "        <include refid=\"Base_Column_List\" />\n"
-                + "        FROM " + context.getRootTable().getTableName() + "\n"
-                + "        WHERE 1 = 1\n"
-                + logicDeleteSql(context)
-                + "    </select>\n"
-                + "    <!-- AUTO-GENERATED-END: page-query -->\n\n"
-                + "    <!-- CUSTOM-START -->\n"
-                + "    <!-- 开发自己写的 SQL 放这里 -->\n"
-                + "    <!-- CUSTOM-END -->\n\n"
-                + "</mapper>\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("mapperNamespace", basePackage + ".infrastructure.persistence.mp.mapper." + aggregateName + "Mapper");
+        model.put("baseColumns", columns);
+        model.put("pageQueryId", "page" + aggregateName + "s");
+        model.put("resultType", basePackage + ".client.response." + responseClass);
+        model.put("tableName", context.getRootTable().getTableName());
+        model.put("logicDeleteSql", logicDeleteSql(context));
+        return templateEngine.render(TemplateRegistry.INFRA_MP_MAPPER_XML, model);
     }
 
     /**
@@ -733,26 +632,15 @@ public class DddSourceRenderer {
         String basePackage = context.getConfig().getProject().getBasePackage();
         String aggregateName = context.getAggregate().getName();
         String packageName = basePackage + ".infrastructure.gatewayimpl";
-        return packageLine(packageName)
-                + "import " + basePackage + ".domain.gateway." + aggregateName + "QueryGateway;\n"
-                + "import lombok.RequiredArgsConstructor;\n"
-                + "import org.springframework.stereotype.Repository;\n"
-                + "import java.util.List;\n\n"
-                + classComment(packageName, aggregateName + "QueryGatewayImpl", aggregateName + " MP 查询网关实现")
-                + "@Repository\n"
-                + "@RequiredArgsConstructor\n"
-                + "public class " + aggregateName + "QueryGatewayImpl implements " + aggregateName + "QueryGateway {\n\n"
-                + "    /**\n"
-                + "     * 执行复杂查询。\n"
-                + "     *\n"
-                + "     * @param query 查询对象\n"
-                + "     * @return 查询结果\n"
-                + "     */\n"
-                + "    @Override\n"
-                + "    public List<?> query(Object query) {\n"
-                + "        return List.of();\n"
-                + "    }\n"
-                + "}\n";
+        Set<String> importSet = new LinkedHashSet<>();
+        importSet.add(basePackage + ".domain.gateway." + aggregateName + "QueryGateway");
+        importSet.add("lombok.RequiredArgsConstructor");
+        importSet.add("org.springframework.stereotype.Repository");
+        importSet.add("java.util.List");
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importSet));
+        model.put("aggregateName", aggregateName);
+        return renderTemplate(TemplateRegistry.INFRA_MP_QUERY_GATEWAY_IMPL, packageName, aggregateName + "QueryGatewayImpl", aggregateName + " MP 查询网关实现", model);
     }
 
     /**
@@ -782,17 +670,13 @@ public class DddSourceRenderer {
      */
     private String renderTestClass(GenerationContext context, String subPackage, String className, String description) {
         String packageName = context.getConfig().getProject().getBasePackage() + "." + subPackage;
-        return packageLine(packageName)
-                + "import org.junit.jupiter.api.Test;\n\n"
-                + classComment(packageName, className, description)
-                + "class " + className + " {\n\n"
-                + "    /**\n"
-                + "     * 保留基础测试入口，业务逻辑落地后补充具体断言。\n"
-                + "     */\n"
-                + "    @Test\n"
-                + "    void contextLoads() {\n"
-                + "    }\n"
-                + "}\n";
+        String templateName = TemplateRegistry.TEST_DOMAIN;
+        if (className.endsWith("RepositoryJpaIntegrationTest")) {
+            templateName = TemplateRegistry.TEST_JPA_REPOSITORY_INTEGRATION;
+        } else if (className.endsWith("MapperIntegrationTest")) {
+            templateName = TemplateRegistry.TEST_MP_MAPPER_INTEGRATION;
+        }
+        return renderTemplate(templateName, packageName, className, description, Map.of());
     }
 
     /**
@@ -806,10 +690,7 @@ public class DddSourceRenderer {
      */
     private String renderSimpleComponent(GenerationContext context, String subPackage, String className, String description) {
         String packageName = context.getConfig().getProject().getBasePackage() + "." + subPackage;
-        return packageLine(packageName)
-                + classComment(packageName, className, description)
-                + "public class " + className + " {\n"
-                + "}\n";
+        return renderTemplate(TemplateRegistry.DOMAIN_DOMAIN_SERVICE, packageName, className, description, Map.of());
     }
 
     /**
@@ -823,12 +704,8 @@ public class DddSourceRenderer {
      */
     private String renderComponent(GenerationContext context, String subPackage, String className, String description) {
         String packageName = context.getConfig().getProject().getBasePackage() + "." + subPackage;
-        return packageLine(packageName)
-                + "import org.springframework.stereotype.Component;\n\n"
-                + classComment(packageName, className, description)
-                + "@Component\n"
-                + "public class " + className + " {\n"
-                + "}\n";
+        String templateName = subPackage.contains(".mp.") ? TemplateRegistry.INFRA_MP_CONVERTER : TemplateRegistry.INFRA_JPA_CONVERTER;
+        return renderTemplate(templateName, packageName, className, description, Map.of());
     }
 
     /**
@@ -840,47 +717,9 @@ public class DddSourceRenderer {
     private GeneratedSourceFile renderArchitectureTest(GenerationContext context) {
         String basePackage = context.getConfig().getProject().getBasePackage();
         String packageName = basePackage + ".architecture";
-        String content = packageLine(packageName)
-                + "import com.tngtech.archunit.junit.AnalyzeClasses;\n"
-                + "import com.tngtech.archunit.junit.ArchTest;\n"
-                + "import com.tngtech.archunit.lang.ArchRule;\n\n"
-                + "import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;\n"
-                + "import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;\n\n"
-                + classComment(packageName, "ArchitectureTest", "DDD/COLA 架构约束测试")
-                + "@AnalyzeClasses(packages = \"" + basePackage + "\")\n"
-                + "public class ArchitectureTest {\n\n"
-                + "    /**\n"
-                + "     * 校验领域层不依赖外层。\n"
-                + "     */\n"
-                + "    @ArchTest\n"
-                + "    static final ArchRule domainShouldNotDependOnOuterLayers = noClasses()\n"
-                + "            .that().resideInAPackage(\"..domain..\")\n"
-                + "            .should().dependOnClassesThat()\n"
-                + "            .resideInAnyPackage(\"..adapter..\", \"..app..\", \"..infrastructure..\");\n\n"
-                + "    /**\n"
-                + "     * 校验领域层不依赖 JPA 或 MyBatis Plus。\n"
-                + "     */\n"
-                + "    @ArchTest\n"
-                + "    static final ArchRule domainShouldNotUseJpaOrMp = noClasses()\n"
-                + "            .that().resideInAPackage(\"..domain..\")\n"
-                + "            .should().dependOnClassesThat()\n"
-                + "            .resideInAnyPackage(\"jakarta.persistence..\", \"org.springframework.data.jpa..\", \"com.baomidou.mybatisplus..\");\n\n"
-                + "    /**\n"
-                + "     * 校验 Controller 不直接访问 Mapper。\n"
-                + "     */\n"
-                + "    @ArchTest\n"
-                + "    static final ArchRule controllerShouldNotAccessMapper = noClasses()\n"
-                + "            .that().resideInAPackage(\"..adapter.web.controller..\")\n"
-                + "            .should().dependOnClassesThat()\n"
-                + "            .resideInAnyPackage(\"..infrastructure.persistence.mp.mapper..\");\n\n"
-                + "    /**\n"
-                + "     * 校验 Mapper 只能存在于 MP mapper 包。\n"
-                + "     */\n"
-                + "    @ArchTest\n"
-                + "    static final ArchRule mapperShouldOnlyExistInMpPackage = classes()\n"
-                + "            .that().areAssignableTo(\"com.baomidou.mybatisplus.core.mapper.BaseMapper\")\n"
-                + "            .should().resideInAPackage(\"..infrastructure.persistence.mp.mapper..\");\n"
-                + "}\n";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("basePackage", basePackage);
+        String content = renderTemplate(TemplateRegistry.TEST_ARCHITECTURE, packageName, "ArchitectureTest", "DDD/COLA 架构约束测试", model);
         return javaTestFile(context, "architecture/ArchitectureTest.java", content, WritePolicy.OVERWRITE);
     }
 
@@ -1126,6 +965,24 @@ public class DddSourceRenderer {
     }
 
     /**
+     * 追加通用模板参数并渲染 Freemarker 模板。
+     *
+     * @param templateName 模板名称
+     * @param packageName  包名
+     * @param className    类名
+     * @param description  类描述
+     * @param model        扩展模板参数
+     * @return 渲染后的源码
+     */
+    private String renderTemplate(String templateName, String packageName, String className, String description, Map<String, Object> model) {
+        Map<String, Object> templateModel = new LinkedHashMap<>(model);
+        templateModel.put("packageName", packageName);
+        templateModel.put("className", className);
+        templateModel.put("classComment", classComment(packageName, className, description));
+        return templateEngine.render(templateName, templateModel);
+    }
+
+    /**
      * 根据字段类型生成 import。
      *
      * @param table       表模型
@@ -1185,16 +1042,6 @@ public class DddSourceRenderer {
             builder.append("import ").append(item).append(";\n");
         }
         return builder.append("\n").toString();
-    }
-
-    /**
-     * 输出 package 行。
-     *
-     * @param packageName 包名
-     * @return package 源码
-     */
-    private String packageLine(String packageName) {
-        return "package " + packageName + ";\n\n";
     }
 
     /**

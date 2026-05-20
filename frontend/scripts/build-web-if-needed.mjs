@@ -16,6 +16,7 @@ const frontendRoot = resolve(import.meta.dirname, "..");
 const distIndex = resolve(frontendRoot, "apps/web/dist/index.html");
 const envStampFile = resolve(frontendRoot, "apps/web/dist/.family-ai-butler-build-env");
 const buildApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+const apiBaseUrlPlaceholder = "__FAMILY_AI_BUTLER_API_BASE_URL__";
 const sourceRoots = [
     "apps/web",
     "packages/app-core/src",
@@ -61,6 +62,32 @@ function prepareTauriWebDist() {
             writeFileSync(path, content);
         }
     });
+    replaceBuiltApiBaseUrl();
+}
+
+/**
+ * 替换构建产物中的接口地址占位符。
+ */
+function replaceBuiltApiBaseUrl() {
+    const javascriptFiles = latestFiles(resolve(frontendRoot, "apps/web/dist/_expo/static/js"), ".js");
+    javascriptFiles.forEach((path) => {
+        let content = readFileSync(path, "utf8");
+        const originalContent = content;
+        content = content.replaceAll(apiBaseUrlPlaceholder, escapeJavaScriptStringContent(buildApiBaseUrl));
+        if (content !== originalContent) {
+            writeFileSync(path, content);
+        }
+    });
+}
+
+/**
+ * 转义 JavaScript 字符串内容。
+ *
+ * @param value 原始字符串
+ * @returns 可写入构建产物字符串字面量的内容
+ */
+function escapeJavaScriptStringContent(value) {
+    return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 }
 
 /**

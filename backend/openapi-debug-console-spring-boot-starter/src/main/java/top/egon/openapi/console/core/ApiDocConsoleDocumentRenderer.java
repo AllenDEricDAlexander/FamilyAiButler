@@ -1,13 +1,13 @@
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.core
  * @FileName: ApiDocConsoleDocumentRenderer.java
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:45
  * @Description: OpenAPI 调试文档控制台导出渲染器文件
  * @Version: 1.0
  */
-package top.egon.openapi.console;
+package top.egon.openapi.console.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.core
  * @ClassName: ApiDocConsoleDocumentRenderer
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:45

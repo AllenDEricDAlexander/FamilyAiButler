@@ -1,13 +1,13 @@
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.filter
  * @FileName: ApiDocConsoleSecurityWebFilter.java
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:50
  * @Description: OpenAPI 调试文档控制台安全过滤器文件
  * @Version: 1.0
  */
-package top.egon.openapi.console;
+package top.egon.openapi.console.filter;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -16,10 +16,12 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
+import top.egon.openapi.console.ApiDocConsoleProperties;
+import top.egon.openapi.console.core.ApiDocConsoleSessionService;
 
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.filter
  * @ClassName: ApiDocConsoleSecurityWebFilter
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:50

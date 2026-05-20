@@ -44,7 +44,7 @@ clean_tauri_application_cache() {
 run_tauri() {
   ensure_tauri_icon
   clean_tauri_application_cache
-  EXPO_PUBLIC_API_BASE_URL="${EXPO_PUBLIC_API_BASE_URL:-http://localhost:9527}" \
+  EXPO_PUBLIC_API_BASE_URL="${EXPO_PUBLIC_API_BASE_URL:-http://localhost/api}" \
     corepack pnpm --filter @family-ai-butler/desktop exec tauri "$@"
 }
 

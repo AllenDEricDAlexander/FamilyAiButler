@@ -1,13 +1,10 @@
 package ${packageName};
 
-<#if detailed>
-    import lombok.Getter;
+<#if detailed>import lombok.Getter;
 
 </#if>
-${classComment}<#if detailed>
-    @Getter
-</#if>
-public enum ${className} {
+${classComment}<#if detailed>@Getter
+</#if>public enum ${className} {
 <#if detailed>
     <#list values as value>
 
@@ -48,7 +45,7 @@ public enum ${className} {
     }
 <#else>
     <#list values as value>
-        ${value.name}<#if value_has_next>,<#else></#if>
+        ${value.name}<#if value_has_next>,<#else>;</#if>
     </#list>
 </#if>
 }

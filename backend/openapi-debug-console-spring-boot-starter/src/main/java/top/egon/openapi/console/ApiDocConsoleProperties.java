@@ -50,6 +50,8 @@ public class ApiDocConsoleProperties {
 
     private Signing signing = new Signing();
 
+    private Client client = new Client();
+
     private LoadTest loadTest = new LoadTest();
 
     private Export export = new Export();
@@ -72,6 +74,21 @@ public class ApiDocConsoleProperties {
         OFF,
         READ_ONLY,
         FULL
+    }
+
+    /**
+     * @BelongsProject: openapi-console
+     * @BelongsPackage: top.egon.openapi.console
+     * @ClassName: ClientEngine
+     * @Author: atluofu
+     * @CreateTime: 2026Year-05Month-20Day-00:40
+     * @Description: OpenAPI 调试文档控制台 HTTP 客户端引擎
+     * @Version: 1.0
+     */
+    public enum ClientEngine {
+        AUTO,
+        REACTIVE,
+        VIRTUAL_THREAD
     }
 
     /**
@@ -141,6 +158,40 @@ public class ApiDocConsoleProperties {
     /**
      * @BelongsProject: openapi-console
      * @BelongsPackage: top.egon.openapi.console
+     * @ClassName: Client
+     * @Author: atluofu
+     * @CreateTime: 2026Year-05Month-20Day-00:40
+     * @Description: 控制台代理 HTTP 客户端配置
+     * @Version: 1.0
+     */
+    @Getter
+    @Setter
+    public static class Client {
+
+        private ClientEngine engine = ClientEngine.AUTO;
+
+        private int maxConnections = 200;
+
+        private int pendingAcquireMaxCount = 500;
+
+        private Duration pendingAcquireTimeout = Duration.ofSeconds(5);
+
+        private Duration connectTimeout = Duration.ofSeconds(3);
+
+        private Duration responseTimeout = Duration.ofSeconds(30);
+
+        private Duration maxIdleTime = Duration.ofSeconds(30);
+
+        private Duration maxLifeTime = Duration.ofMinutes(5);
+
+        private boolean compressionEnabled = true;
+
+        private boolean wiretap = false;
+    }
+
+    /**
+     * @BelongsProject: openapi-console
+     * @BelongsPackage: top.egon.openapi.console
      * @ClassName: LoadTest
      * @Author: atluofu
      * @CreateTime: 2026Year-05Month-19Day-17:20
@@ -156,6 +207,12 @@ public class ApiDocConsoleProperties {
         private int maxRequests = 200;
 
         private int maxConcurrency = 20;
+
+        private int maxActiveRuns = 2;
+
+        private int maxActiveConcurrency = 50;
+
+        private boolean rejectWhenBusy = true;
     }
 
     /**

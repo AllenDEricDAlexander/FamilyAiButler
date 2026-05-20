@@ -1,18 +1,22 @@
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.core
  * @FileName: ApiDocConsoleSessionService.java
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:25
  * @Description: OpenAPI 调试文档控制台会话服务文件
  * @Version: 1.0
  */
-package top.egon.openapi.console;
+package top.egon.openapi.console.core;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseCookie;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
+import top.egon.openapi.console.ApiDocConsolePayloads;
+import top.egon.openapi.console.ApiDocConsoleProperties;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -29,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.core
  * @ClassName: ApiDocConsoleSessionService
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:25
@@ -187,6 +191,25 @@ public class ApiDocConsoleSessionService {
             return Optional.empty();
         }
         return parseToken(cookie.getValue());
+    }
+
+    /**
+     * 从 Servlet 请求中解析登录会话
+     *
+     * @param request Servlet 请求
+     * @return Optional<UserSession> 返回登录会话
+     */
+    public Optional<ApiDocConsolePayloads.UserSession> resolveSession(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null || cookies.length == 0) {
+            return Optional.empty();
+        }
+        for (Cookie cookie : cookies) {
+            if (properties.getAuth().getCookieName().equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
+                return parseToken(cookie.getValue());
+            }
+        }
+        return Optional.empty();
     }
 
     /**
@@ -421,7 +444,7 @@ public class ApiDocConsoleSessionService {
 
     /**
      * @BelongsProject: openapi-console
-     * @BelongsPackage: top.egon.openapi.console
+     * @BelongsPackage: top.egon.openapi.console.core
      * @ClassName: LoginFailure
      * @Author: atluofu
      * @CreateTime: 2026Year-05Month-19Day-23:15

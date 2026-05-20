@@ -1,13 +1,13 @@
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.core
  * @FileName: ApiDocConsoleService.java
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:40
  * @Description: OpenAPI 调试文档控制台核心服务文件
  * @Version: 1.0
  */
-package top.egon.openapi.console;
+package top.egon.openapi.console.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,16 +17,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.StringUtils;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import top.egon.openapi.console.ApiDocConsolePayloads;
+import top.egon.openapi.console.ApiDocConsoleProperties;
+import top.egon.openapi.console.client.ApiDocConsoleHttpClient;
+import top.egon.openapi.console.client.ApiDocConsoleHttpRequest;
+import top.egon.openapi.console.client.ApiDocConsoleHttpResponse;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -42,11 +46,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
  * @BelongsProject: openapi-console
- * @BelongsPackage: top.egon.openapi.console
+ * @BelongsPackage: top.egon.openapi.console.core
  * @ClassName: ApiDocConsoleService
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-19Day-17:40
@@ -67,11 +73,19 @@ public class ApiDocConsoleService {
 
     private final ObjectMapper objectMapper;
 
-    private final WebClient.Builder webClientBuilder;
+    private final ApiDocConsoleHttpClient httpClient;
 
     private final ApiDocConsoleDocumentRenderer documentRenderer;
 
-    private final ObjectProvider<ReactiveDiscoveryClient> discoveryClients;
+    private final ObjectProvider<ReactiveDiscoveryClient> reactiveDiscoveryClients;
+
+    private final ObjectProvider<DiscoveryClient> discoveryClients;
+
+    private final Map<String, AtomicInteger> discoveryIndexes = new ConcurrentHashMap<>();
+
+    private final AtomicInteger activeLoadRuns = new AtomicInteger();
+
+    private final AtomicInteger activeLoadConcurrency = new AtomicInteger();
 
     /**
      * 查询服务目录
@@ -108,14 +122,19 @@ public class ApiDocConsoleService {
             return Mono.error(new IllegalArgumentException("服务不存在: " + serviceId));
         }
         return resolveTargetUri(URI.create(service.get().getOpenApiUrl()))
-                .flatMap(uri -> webClient()
-                        .get()
-                        .uri(uri)
-                        .headers(headers -> fillOpenApiRequestHeaders(headers, service.get()))
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .timeout(properties.getRequestTimeout()))
-                .map(raw -> readOpenApi(service.get(), raw))
+                .flatMap(uri -> {
+                    HttpHeaders headers = new HttpHeaders();
+                    fillOpenApiRequestHeaders(headers, service.get());
+                    ApiDocConsoleHttpRequest request = new ApiDocConsoleHttpRequest();
+                    request.setMethod(HttpMethod.GET);
+                    request.setUri(uri);
+                    request.setHeaders(headers);
+                    request.setTimeout(properties.getRequestTimeout());
+                    request.setMaxResponseSize((int) properties.getMaxResponseSize().toBytes());
+                    request.setReadResponseBody(true);
+                    return httpClient.execute(request);
+                })
+                .map(response -> readOpenApi(service.get(), response.getBody()))
                 .doOnError(error -> log.warn("OpenAPI 文档拉取失败 serviceId={}", serviceId, error));
     }
 
@@ -126,6 +145,20 @@ public class ApiDocConsoleService {
      * @return Mono<ExecuteResponse> 返回调试响应
      */
     public Mono<ApiDocConsolePayloads.ExecuteResponse> execute(ApiDocConsolePayloads.ExecuteRequest request) {
+        return execute(request, true, true);
+    }
+
+    /**
+     * 代理执行调试请求
+     *
+     * @param request          调试请求
+     * @param readResponseBody 是否读取响应体
+     * @param includeCurl      是否生成 cURL
+     * @return Mono<ExecuteResponse> 返回调试响应
+     */
+    private Mono<ApiDocConsolePayloads.ExecuteResponse> execute(ApiDocConsolePayloads.ExecuteRequest request,
+                                                                boolean readResponseBody,
+                                                                boolean includeCurl) {
         Optional<ApiDocConsoleProperties.ServiceRoute> service = findService(request.getServiceId());
         if (service.isEmpty()) {
             return Mono.error(new IllegalArgumentException("服务不存在: " + request.getServiceId()));
@@ -135,17 +168,8 @@ public class ApiDocConsoleService {
         HttpMethod method = HttpMethod.valueOf(request.getMethod().toUpperCase(Locale.ROOT));
         String body = request.getBody() == null ? "" : request.getBody();
         return resolveTargetUri(targetUri)
-                .flatMap(uri -> {
-                    WebClient.RequestBodySpec requestSpec = webClient()
-                            .method(method)
-                            .uri(uri)
-                            .headers(headers -> fillRequestHeaders(headers, request, uri, body));
-                    long startTime = System.currentTimeMillis();
-                    Mono<ApiDocConsolePayloads.ExecuteResponse> exchange = StringUtils.hasText(body) && methodWithBody(method)
-                            ? requestSpec.body(BodyInserters.fromValue(body)).exchangeToMono(response -> toExecuteResponse(response, startTime, request, uri))
-                            : requestSpec.exchangeToMono(response -> toExecuteResponse(response, startTime, request, uri));
-                    return exchange.timeout(properties.getRequestTimeout());
-                });
+                .flatMap(uri -> httpClient.execute(buildHttpRequest(request, uri, method, body, readResponseBody))
+                        .map(response -> toExecuteResponse(response, request, uri, includeCurl)));
     }
 
     /**
@@ -157,12 +181,14 @@ public class ApiDocConsoleService {
     public Mono<ApiDocConsolePayloads.LoadTestResult> loadTest(ApiDocConsolePayloads.LoadTestRequest request) {
         int totalRequests = Math.max(1, Math.min(request.getTotalRequests(), properties.getLoadTest().getMaxRequests()));
         int concurrency = Math.max(1, Math.min(request.getConcurrency(), properties.getLoadTest().getMaxConcurrency()));
+        if (!acquireLoadRun()) {
+            return Mono.error(new IllegalStateException("当前压测任务数已达到上限"));
+        }
         return Flux.range(0, totalRequests)
-                .flatMap(index -> execute(request.getRequest())
-                        .map(response -> loadTestSample(index, response.getStatus(), response.getDurationMillis(), null))
-                        .onErrorResume(error -> Mono.just(loadTestSample(index, 0, 0, error.getMessage()))), concurrency)
+                .flatMap(index -> executeLoadSample(index, request.getRequest()), concurrency)
                 .collectList()
-                .map(this::summarizeLoadTest);
+                .map(this::summarizeLoadTest)
+                .doFinally(signal -> releaseLoadRun());
     }
 
     /**
@@ -284,14 +310,38 @@ public class ApiDocConsoleService {
      * @return Mono<URI> 返回可访问的请求地址
      */
     private Mono<URI> resolveTargetUri(URI uri) {
-        ReactiveDiscoveryClient discoveryClient = discoveryClients.getIfAvailable();
-        if (discoveryClient == null || uri.getHost() == null || uri.getPort() != -1 || uri.getHost().contains(".")) {
+        if (uri.getHost() == null || uri.getPort() != -1 || uri.getHost().contains(".")) {
             return Mono.just(uri);
         }
-        return discoveryClient.getInstances(uri.getHost())
-                .next()
-                .switchIfEmpty(Mono.error(new IllegalStateException("未发现服务实例: " + uri.getHost())))
-                .map(instance -> buildInstanceUri(uri, instance));
+        ReactiveDiscoveryClient reactiveDiscoveryClient = reactiveDiscoveryClients.getIfAvailable();
+        if (reactiveDiscoveryClient != null) {
+            return reactiveDiscoveryClient.getInstances(uri.getHost())
+                    .collectList()
+                    .filter(instances -> !instances.isEmpty())
+                    .switchIfEmpty(Mono.error(new IllegalStateException("未发现服务实例: " + uri.getHost())))
+                    .map(instances -> buildInstanceUri(uri, chooseInstance(uri.getHost(), instances)));
+        }
+        DiscoveryClient discoveryClient = discoveryClients.getIfAvailable();
+        if (discoveryClient == null) {
+            return Mono.just(uri);
+        }
+        List<ServiceInstance> instances = discoveryClient.getInstances(uri.getHost());
+        if (instances.isEmpty()) {
+            return Mono.error(new IllegalStateException("未发现服务实例: " + uri.getHost()));
+        }
+        return Mono.just(buildInstanceUri(uri, chooseInstance(uri.getHost(), instances)));
+    }
+
+    /**
+     * 选择服务实例
+     *
+     * @param serviceId 服务 ID
+     * @param instances 服务实例列表
+     * @return ServiceInstance 返回服务实例
+     */
+    private ServiceInstance chooseInstance(String serviceId, List<ServiceInstance> instances) {
+        AtomicInteger index = discoveryIndexes.computeIfAbsent(serviceId, key -> new AtomicInteger());
+        return instances.get(Math.floorMod(index.getAndIncrement(), instances.size()));
     }
 
     /**
@@ -331,6 +381,34 @@ public class ApiDocConsoleService {
             headers.set(HttpHeaders.CONTENT_TYPE, request.getContentType());
         }
         fillSignatureHeaders(headers, request, targetUri, body);
+    }
+
+    /**
+     * 创建 HTTP 客户端请求
+     *
+     * @param request          调试请求
+     * @param uri              目标 URI
+     * @param method           HTTP 方法
+     * @param body             请求体
+     * @param readResponseBody 是否读取响应体
+     * @return ApiDocConsoleHttpRequest 返回 HTTP 请求
+     */
+    private ApiDocConsoleHttpRequest buildHttpRequest(ApiDocConsolePayloads.ExecuteRequest request,
+                                                      URI uri,
+                                                      HttpMethod method,
+                                                      String body,
+                                                      boolean readResponseBody) {
+        HttpHeaders headers = new HttpHeaders();
+        fillRequestHeaders(headers, request, uri, body);
+        ApiDocConsoleHttpRequest httpRequest = new ApiDocConsoleHttpRequest();
+        httpRequest.setMethod(method);
+        httpRequest.setUri(uri);
+        httpRequest.setHeaders(headers);
+        httpRequest.setBody(body);
+        httpRequest.setTimeout(properties.getRequestTimeout());
+        httpRequest.setMaxResponseSize((int) properties.getMaxResponseSize().toBytes());
+        httpRequest.setReadResponseBody(readResponseBody);
+        return httpRequest;
     }
 
     /**
@@ -413,27 +491,23 @@ public class ApiDocConsoleService {
     /**
      * 转换调试响应
      *
-     * @param response  WebClient 响应
-     * @param startTime 开始时间
-     * @param request   调试请求
-     * @param targetUri 目标 URI
-     * @return Mono<ExecuteResponse> 返回调试响应
+     * @param response    HTTP 客户端响应
+     * @param request     调试请求
+     * @param targetUri   目标 URI
+     * @param includeCurl 是否生成 cURL
+     * @return ExecuteResponse 返回调试响应
      */
-    private Mono<ApiDocConsolePayloads.ExecuteResponse> toExecuteResponse(ClientResponse response,
-                                                                          long startTime,
-                                                                          ApiDocConsolePayloads.ExecuteRequest request,
-                                                                          URI targetUri) {
-        return response.bodyToMono(String.class)
-                .defaultIfEmpty("")
-                .map(body -> {
-                    ApiDocConsolePayloads.ExecuteResponse result = new ApiDocConsolePayloads.ExecuteResponse();
-                    result.setStatus(response.statusCode().value());
-                    result.setDurationMillis(System.currentTimeMillis() - startTime);
-                    result.setBody(limitBody(body));
-                    response.headers().asHttpHeaders().forEach((key, value) -> result.getHeaders().put(key, String.join(",", value)));
-                    result.setCurl(buildCurl(request, targetUri));
-                    return result;
-                });
+    private ApiDocConsolePayloads.ExecuteResponse toExecuteResponse(ApiDocConsoleHttpResponse response,
+                                                                    ApiDocConsolePayloads.ExecuteRequest request,
+                                                                    URI targetUri,
+                                                                    boolean includeCurl) {
+        ApiDocConsolePayloads.ExecuteResponse result = new ApiDocConsolePayloads.ExecuteResponse();
+        result.setStatus(response.getStatus());
+        result.setDurationMillis(response.getDurationMillis());
+        result.setBody(response.getBody());
+        result.getHeaders().putAll(response.getHeaders());
+        result.setCurl(includeCurl ? buildCurl(request, targetUri) : "");
+        return result;
     }
 
     /**
@@ -451,43 +525,6 @@ public class ApiDocConsoleService {
         } catch (Exception e) {
             throw new IllegalStateException("调试请求签名失败", e);
         }
-    }
-
-    /**
-     * 限制响应体大小
-     *
-     * @param body 响应体
-     * @return String 返回截断后的响应体
-     */
-    private String limitBody(String body) {
-        int maxSize = (int) properties.getMaxResponseSize().toBytes();
-        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length <= maxSize) {
-            return body;
-        }
-        return new String(bytes, 0, maxSize, StandardCharsets.UTF_8) + "\n... response truncated by openapi debug console ...";
-    }
-
-    /**
-     * 判断请求方法是否支持请求体
-     *
-     * @param method HTTP 方法
-     * @return boolean 返回 true 表示支持请求体
-     */
-    private boolean methodWithBody(HttpMethod method) {
-        return HttpMethod.POST.equals(method) || HttpMethod.PUT.equals(method) || HttpMethod.PATCH.equals(method);
-    }
-
-    /**
-     * 创建 WebClient 实例
-     *
-     * @return WebClient 返回 WebClient 实例
-     */
-    private WebClient webClient() {
-        int maxSize = (int) properties.getMaxResponseSize().toBytes();
-        return webClientBuilder.clone()
-                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(maxSize))
-                .build();
     }
 
     /**
@@ -529,6 +566,88 @@ public class ApiDocConsoleService {
         sample.setDurationMillis(durationMillis);
         sample.setError(error);
         return sample;
+    }
+
+    /**
+     * 执行压测样本
+     *
+     * @param index   请求序号
+     * @param request 调试请求
+     * @return Mono<LoadTestSample> 返回压测样本
+     */
+    private Mono<ApiDocConsolePayloads.LoadTestSample> executeLoadSample(int index, ApiDocConsolePayloads.ExecuteRequest request) {
+        return acquireLoadConcurrency()
+                .flatMap(acquired -> {
+                    if (!acquired) {
+                        return Mono.just(loadTestSample(index, 0, 0, "当前压测并发已达到上限"));
+                    }
+                    return execute(request, false, false)
+                            .map(response -> loadTestSample(index, response.getStatus(), response.getDurationMillis(), null))
+                            .onErrorResume(error -> Mono.just(loadTestSample(index, 0, 0, error.getMessage())))
+                            .doFinally(signal -> releaseLoadConcurrency());
+                });
+    }
+
+    /**
+     * 获取压测任务令牌
+     *
+     * @return boolean 返回是否获取成功
+     */
+    private boolean acquireLoadRun() {
+        int current = activeLoadRuns.incrementAndGet();
+        if (current <= Math.max(1, properties.getLoadTest().getMaxActiveRuns())) {
+            return true;
+        }
+        activeLoadRuns.decrementAndGet();
+        return false;
+    }
+
+    /**
+     * 释放压测任务令牌
+     */
+    private void releaseLoadRun() {
+        activeLoadRuns.decrementAndGet();
+    }
+
+    /**
+     * 获取压测并发令牌
+     *
+     * @return Mono<Boolean> 返回是否获取成功
+     */
+    private Mono<Boolean> acquireLoadConcurrency() {
+        if (tryAcquireLoadConcurrency()) {
+            return Mono.just(true);
+        }
+        if (properties.getLoadTest().isRejectWhenBusy()) {
+            return Mono.just(false);
+        }
+        return Mono.fromCallable(() -> {
+            while (!tryAcquireLoadConcurrency()) {
+                Thread.sleep(10);
+            }
+            return true;
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    /**
+     * 尝试获取压测并发令牌
+     *
+     * @return boolean 返回是否获取成功
+     */
+    private boolean tryAcquireLoadConcurrency() {
+        int current = activeLoadConcurrency.incrementAndGet();
+        if (current <= Math.max(1, properties.getLoadTest().getMaxActiveConcurrency())) {
+            return true;
+        }
+        activeLoadConcurrency.decrementAndGet();
+        return false;
+    }
+
+    /**
+     * 释放压测并发令牌
+     */
+    private void releaseLoadConcurrency() {
+        activeLoadConcurrency.decrementAndGet();
     }
 
     /**

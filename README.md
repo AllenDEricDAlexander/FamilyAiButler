@@ -25,7 +25,7 @@ frontend/
     api-client/                      # 前端接口客户端
 
 ops/
-  docker-compose/                    # 本地 Docker Compose 和 Nginx 前端镜像
+  docker-compose/                    # 本地 Docker Compose 依赖服务和容器样例
   k8s/                               # Kubernetes 基础资源和环境覆盖
   nginx/                             # 本机 Nginx 代理配置样例
   scripts/                           # 构建、启动和部署脚本
@@ -81,7 +81,8 @@ JDK/Maven 启动应用，不会启动 Docker。
 
 大前端使用 pnpm workspace 管理。Web 端基于 Expo + React Native Web，桌面端通过 Tauri 包装同一套 Web 构建产物。
 
-如果后端通过 IDEA 启动，先启动 `family-gateway`，默认网关地址为 `http://localhost:9527`。
+如果后端通过 IDEA 启动，先启动 `family-gateway`，前端统一请求本机 Nginx `http://localhost/api`，由 Nginx 代理到后端网关
+`http://127.0.0.1:9527`。
 
 ```bash
 ./ops/scripts/frontend-web-dev.sh
@@ -96,27 +97,30 @@ JDK/Maven 启动应用，不会启动 Docker。
 ./ops/scripts/frontend-web-dev.sh stop dev
 ```
 
-脚本会在缺少依赖时执行 `corepack pnpm install`，然后按需构建 Expo Web 并后台托管 `frontend/apps/web/dist`。`dev` 默认把接口指向
-`http://localhost:9527`，`prod` 默认把接口指向本机 Nginx `http://localhost:8090`，运行日志位于 `ops/.runtime/`。需要热更新开发时仍可在
-`frontend` 下直接执行 `corepack pnpm dev:web`。
+脚本会在缺少依赖时执行 `corepack pnpm install`，然后按需构建 Expo Web 并后台托管 `frontend/apps/web/dist`。`dev` 和 `prod`
+默认都把接口指向本机 Nginx `http://localhost/api`，运行日志位于 `ops/.runtime/`。需要热更新开发时仍可在 `frontend` 下直接执行
+`corepack pnpm dev:web`，该命令默认也请求 `http://localhost/api`。
 
-本地开发可以不走 Nginx，直接打开 Expo 地址测试。需要本机 Nginx 做前后端分离代理时，可以参考：
+本地开发的后端请求也走 Nginx 的 `/api` 统一前缀。需要用本机 Nginx 托管静态资源时，脚本会读取下面的 server 模板：
 
 ```bash
 ops/nginx/family-ai-butler.local.conf
 ```
 
-该配置默认监听 `http://localhost:8090`，把页面代理到 Expo `http://127.0.0.1:8081`，把 `/base`、`/uaa`、`/ai` 代理到后端网关
-`http://127.0.0.1:9527`。
+该模板会被渲染到 `ops/.runtime/nginx/<env>/conf.d/default.conf`，页面目录是 `frontend/apps/web/dist`，把 `/api/**` 代理到后端网关
+`http://127.0.0.1:9527`，并在 Nginx 层去掉 `/api` 前缀后再交给 gateway。顶层 Nginx 主配置模板是
+`ops/nginx/nginx.local.conf`。
 
-使用容器 Nginx 验证前后端分离镜像：
+使用本机 Nginx 验证前端静态资源和网关代理：
 
 ```bash
 ./ops/scripts/frontend-nginx-up.sh
 ```
 
-默认访问地址为 `http://localhost:8080`。Nginx 托管前端静态资源，并把 `/base`、`/uaa`、`/ai` 代理到 `.env` 中的
-`NGINX_API_PROXY`，默认是 `http://host.docker.internal:9527`。
+默认访问地址为 `http://localhost`。脚本会按需构建 `frontend/apps/web/dist`，用本机 Nginx 托管静态资源，并把前端接口地址构建为
+`/api`。Nginx 只把 `/api/**` 代理到后端网关 `NGINX_GATEWAY_PROXY`，默认是 `http://127.0.0.1:9527`，再 rewrite 掉 `/api` 后交给
+gateway 处理 `/base`、`/uaa`、`/ai` 路由。该脚本不启动 Docker；如果本机没有 `nginx`，会优先使用 Homebrew、`apt-get`、`dnf`
+或 `yum` 安装。`80` 端口需要管理员权限，脚本会在启动或停止 Nginx 时使用 `sudo`。
 
 桌面端开发：
 

@@ -57,10 +57,24 @@ egon:
         algorithm: HmacSHA256
         access-key-id: ${OPENAPI_CONSOLE_SIGNING_ACCESS_KEY:family-ai-butler}
         secret: ${OPENAPI_CONSOLE_SIGNING_SECRET:FamilyAiButlerOpenApiSigningSecretChangeMe}
+      client:
+        engine: ${OPENAPI_CONSOLE_CLIENT_ENGINE:AUTO}
+        max-connections: ${OPENAPI_CONSOLE_CLIENT_MAX_CONNECTIONS:200}
+        pending-acquire-max-count: ${OPENAPI_CONSOLE_CLIENT_PENDING_ACQUIRE_MAX_COUNT:500}
+        pending-acquire-timeout: ${OPENAPI_CONSOLE_CLIENT_PENDING_ACQUIRE_TIMEOUT:5s}
+        connect-timeout: ${OPENAPI_CONSOLE_CLIENT_CONNECT_TIMEOUT:3s}
+        response-timeout: ${OPENAPI_CONSOLE_CLIENT_RESPONSE_TIMEOUT:30s}
+        max-idle-time: ${OPENAPI_CONSOLE_CLIENT_MAX_IDLE_TIME:30s}
+        max-life-time: ${OPENAPI_CONSOLE_CLIENT_MAX_LIFE_TIME:5m}
+        compression-enabled: ${OPENAPI_CONSOLE_CLIENT_COMPRESSION_ENABLED:true}
+        wiretap: ${OPENAPI_CONSOLE_CLIENT_WIRETAP:false}
       load-test:
         enabled: ${OPENAPI_CONSOLE_LOAD_TEST_ENABLED:true}
         max-requests: ${OPENAPI_CONSOLE_LOAD_TEST_MAX_REQUESTS:50}
         max-concurrency: ${OPENAPI_CONSOLE_LOAD_TEST_MAX_CONCURRENCY:5}
+        max-active-runs: ${OPENAPI_CONSOLE_LOAD_TEST_MAX_ACTIVE_RUNS:2}
+        max-active-concurrency: ${OPENAPI_CONSOLE_LOAD_TEST_MAX_ACTIVE_CONCURRENCY:50}
+        reject-when-busy: ${OPENAPI_CONSOLE_LOAD_TEST_REJECT_WHEN_BUSY:true}
       export:
         enabled: ${OPENAPI_CONSOLE_EXPORT_ENABLED:true}
       services:
