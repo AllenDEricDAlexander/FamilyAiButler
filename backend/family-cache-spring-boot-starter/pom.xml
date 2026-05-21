@@ -11,12 +11,6 @@
 
     <artifactId>family-cache-spring-boot-starter</artifactId>
     <description>自定义缓存实现</description>
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <dependencies>
         <!-- Spring Boot -->
         <dependency>

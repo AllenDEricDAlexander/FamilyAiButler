@@ -15,7 +15,6 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>uaa-facade</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
@@ -44,11 +43,11 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>openapi-debug-console-spring-boot-starter</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba.cloud</groupId>

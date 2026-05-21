@@ -11,17 +11,11 @@
 
     <artifactId>pg-ddd-codegen</artifactId>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.yaml</groupId>
@@ -55,7 +49,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.5.0</version>
                 <configuration>
                     <mainClass>top.egon.familyaibutler.codegen.bootstrap.CodegenApplication</mainClass>
                 </configuration>

@@ -16,7 +16,6 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>family-log-core</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -25,7 +24,6 @@
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo</artifactId>
-            <version>${dubbo.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>

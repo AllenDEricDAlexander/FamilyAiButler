@@ -12,11 +12,6 @@
 
     <artifactId>qwen-ai</artifactId>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
@@ -25,12 +20,10 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>openapi-debug-console-spring-boot-starter</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>uaa-resource-server-spring-boot-starter</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
@@ -44,7 +37,6 @@
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
             <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
-            <version>${spring-ai-alibaba.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.ai</groupId>

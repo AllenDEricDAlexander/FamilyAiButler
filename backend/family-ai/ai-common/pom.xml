@@ -11,11 +11,6 @@
 
     <artifactId>ai-common</artifactId>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
@@ -24,6 +19,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

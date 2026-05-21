@@ -48,6 +48,9 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-cloud.version>2025.0.2</spring-cloud.version>
         <spring-ai.version>1.1.6</spring-ai.version>
         <spring-ai-alibaba.version>1.1.2.3</spring-ai-alibaba.version>
@@ -55,12 +58,17 @@
         <dubbo.version>3.3.4</dubbo.version>
         <grpc.version>1.69.0</grpc.version>
         <mybatis-plus.version>3.5.12</mybatis-plus.version>
+        <postgresql.version>42.7.7</postgresql.version>
+        <zxcvbn.version>1.9.0</zxcvbn.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
         <guava.version>33.4.8-jre</guava.version>
         <jjwt.version>0.11.5</jjwt.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok.version>1.18.38</lombok.version>
+        <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <springdoc.version>2.8.14</springdoc.version>
         <swagger-annotations.version>2.2.47</swagger-annotations.version>
+        <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -82,6 +90,16 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>family-common-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>family-cache-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>openapi-debug-console-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -112,6 +130,26 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>family-log-grpc-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>ai-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>uaa-facade</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>uaa-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>uaa-resource-server-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -160,17 +198,17 @@
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>42.7.7</version>
+                <version>${postgresql.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.nulab-inc</groupId>
                 <artifactId>zxcvbn</artifactId>
-                <version>1.9.0</version>
+                <version>${zxcvbn.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.20.0</version>
+                <version>${commons-lang3.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -212,29 +250,63 @@
                 <version>${springdoc.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-api</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.swagger.core.v3</groupId>
                 <artifactId>swagger-annotations-jakarta</artifactId>
                 <version>${swagger-annotations.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.dubbo</groupId>
+                <artifactId>dubbo</artifactId>
+                <version>${dubbo.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-api</artifactId>
+                <version>${grpc.version}</version>
             </dependency>
             <!-- lombok mapstruct -->
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok-mapstruct-binding</artifactId>
-                <version>0.2.0</version>
+                <version>${lombok-mapstruct-binding.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>21</source>
-                    <target>21</target>
-                    <encoding>UTF-8</encoding>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>

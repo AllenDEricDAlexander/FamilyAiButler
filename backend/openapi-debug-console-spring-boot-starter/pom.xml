@@ -12,12 +12,6 @@
     <artifactId>openapi-debug-console-spring-boot-starter</artifactId>
     <description>OpenAPI 文档聚合、调试、导出与轻量压测 Starter</description>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <dependencies>
         <!-- Spring Boot 自动装配 -->
         <dependency>
@@ -56,14 +50,12 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
-            <version>${springdoc.version}</version>
         </dependency>
 
         <!-- WebFlux 网关或响应式模块生成 /v3/api-docs -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webflux-api</artifactId>
-            <version>${springdoc.version}</version>
         </dependency>
 
         <!-- Jackson OpenAPI JSON 处理 -->

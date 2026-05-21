@@ -11,12 +11,6 @@
 
     <artifactId>family-gateway</artifactId>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
@@ -29,12 +23,10 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>uaa-facade</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>openapi-debug-console-spring-boot-starter</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
@@ -82,6 +74,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
