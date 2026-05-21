@@ -53,8 +53,10 @@ class CodegenApplicationTest {
 
         assertThat(demoDir.resolve("generator.yml")).exists();
         assertThat(demoDir.resolve("schema.sql")).exists();
-        assertThat(demoDir.resolve("generated-src/src/main/java/com/example/codegen/demo/domain/gateway/OrderGateway.java")).exists();
-        assertThat(demoDir.resolve("generated-src/src/main/java/com/example/codegen/demo/infrastructure/gatewayimpl/OrderGatewayImpl.java")).exists();
+        assertThat(demoDir.resolve("generated-src/src/main/java/com/example/codegen/demo/DemoOrderApplication.java")).exists();
+        assertThat(demoDir.resolve("generated-src/src/main/java/com/example/codegen/demo/Demo-orderApplication.java")).doesNotExist();
+        assertThat(demoDir.resolve("generated-src/src/main/java/com/example/codegen/demo/domain/order/gateway/OrderGateway.java")).exists();
+        assertThat(demoDir.resolve("generated-src/src/main/java/com/example/codegen/demo/infrastructure/gateway/impl/OrderGatewayImpl.java")).exists();
         assertThat(demoDir.resolve("generated-src/src/main/resources/application.yml")).exists();
         assertThat(Files.readString(demoDir.resolve("generated-src/generation-report.md"))).contains("Order", "OrderStatus");
     }

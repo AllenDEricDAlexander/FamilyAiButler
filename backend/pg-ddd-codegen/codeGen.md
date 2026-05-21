@@ -803,7 +803,7 @@ enums:
 生成：
 
 ```text
-domain.model.enums.OrderStatus
+domain.order.model.enums.OrderStatus
 trade_order.status 在领域模型中使用 OrderStatus
 OrderJpaEntity.status 使用 String
 OrderDO.status 使用 String
@@ -933,19 +933,31 @@ com.acme.trade
 ├── TradeApplication.java
 │
 ├── adapter
-│   ├── OrderController.java
-│   └── assembler
-│       └── OrderWebAssembler.java
+│   └── web
+│       ├── OrderController.java
+│       ├── dto
+│       │   ├── CreateOrderRequestDTO.java
+│       │   ├── CreateOrderVO.java
+│       │   ├── PageOrderRequestDTO.java
+│       │   └── OrderPageVO.java
+│       └── assembler
+│           └── OrderWebAssembler.java
 │
 ├── application
-│   ├── OrderServiceI.java
-│   ├── OrderServiceImpl.java
-│   ├── dto
+│   ├── manage
+│   │   ├── OrderManage.java
+│   │   └── impl
+│   │       └── OrderManageImpl.java
+│   ├── command
 │   │   ├── CreateOrderCommand.java
-│   │   ├── CancelOrderCommand.java
-│   │   ├── OrderPageQuery.java
-│   │   ├── OrderDetailResponse.java
-│   │   └── OrderPageResponse.java
+│   │   └── CancelOrderCommand.java
+│   ├── query
+│   │   └── OrderPageQuery.java
+│   ├── result
+│   │   ├── OrderDetailResult.java
+│   │   └── OrderPageResult.java
+│   ├── assembler
+│   │   └── OrderApplicationAssembler.java
 │   └── executor
 │       ├── command
 │       │   ├── CreateOrderCmdExe.java
@@ -954,21 +966,28 @@ com.acme.trade
 │           └── OrderPageQryExe.java
 │
 ├── domain
-│   ├── model
-│   │   ├── aggregate
-│   │   │   └── Order.java
-│   │   ├── entity
-│   │   │   └── OrderItem.java
-│   │   ├── valueobject
-│   │   │   ├── OrderId.java
-│   │   │   ├── OrderNo.java
-│   │   │   ├── BuyerId.java
-│   │   │   └── Money.java
-│   │   └── enums
-│   │       └── OrderStatus.java
-│   └── gateway
-│       ├── OrderGateway.java
-│       └── OrderQueryGateway.java
+│   └── order
+│       ├── model
+│       │   ├── aggregate
+│       │   │   └── Order.java
+│       │   ├── entity
+│       │   │   └── OrderItem.java
+│       │   ├── valueobject
+│       │   │   ├── OrderId.java
+│       │   │   ├── OrderNo.java
+│       │   │   ├── BuyerId.java
+│       │   │   └── Money.java
+│       │   └── enums
+│       │       └── OrderStatus.java
+│       ├── gateway
+│       │   ├── query
+│       │   │   └── OrderPageCriteria.java
+│       │   ├── OrderGateway.java
+│       │   └── OrderQueryGateway.java
+│       ├── service
+│       │   └── OrderDomainService.java
+│       └── event
+│           └── OrderCreatedEvent.java
 │
 └── infrastructure
     ├── persistence
@@ -990,9 +1009,10 @@ com.acme.trade
     │   │   │   └── OrderMapper.xml
     │   │   └── converter
     │   │       └── OrderMpConverter.java
-    └── gatewayimpl
-        ├── OrderGatewayImpl.java
-        └── OrderQueryGatewayImpl.java
+    └── gateway
+        └── impl
+            ├── OrderGatewayImpl.java
+            └── OrderQueryGatewayImpl.java
 ```
 
 ---
@@ -1005,8 +1025,8 @@ com.acme.trade
 
 ```text
 Controller
-  -> application.OrderServiceI
-    -> application.OrderServiceImpl
+  -> application.manage.OrderManage
+    -> application.manage.impl.OrderManageImpl
     -> CmdExe
       -> Domain Aggregate
         -> Domain Gateway
@@ -1066,8 +1086,8 @@ public class OrderGatewayImpl implements OrderGateway {
 
 ```text
 Controller
-  -> application.OrderServiceI
-    -> application.OrderServiceImpl
+  -> application.manage.OrderManage
+    -> application.manage.impl.OrderManageImpl
     -> QryExe
       -> Domain Gateway Interface
         -> MP QueryGatewayImpl
@@ -1079,7 +1099,7 @@ Controller
 ```java
 public interface OrderQueryGateway {
 
-    PageResponse<OrderPageResponse> page(OrderPageQuery query);
+    List<Order> pageOrder(OrderPageCriteria criteria);
 }
 ```
 
@@ -1094,10 +1114,8 @@ public class OrderQueryGatewayImpl implements OrderQueryGateway {
     private final OrderMapper orderMapper;
 
     @Override
-    public PageResponse<OrderPageResponse> page(OrderPageQuery query) {
-        Page<OrderPageResponse> page = new Page<>(query.pageNo(), query.pageSize());
-        IPage<OrderPageResponse> result = orderMapper.pageOrders(page, query);
-        return PageResponse.of(result.getRecords(), result.getTotal());
+    public List<Order> pageOrder(OrderPageCriteria criteria) {
+        return List.of();
     }
 }
 ```
@@ -1109,7 +1127,7 @@ Mapper：
 @Mapper
 public interface OrderMapper extends BaseMapper<OrderDO> {
 
-    IPage<OrderPageResponse> pageOrders(
+    IPage<OrderPageResult> pageOrders(
             Page<?> page,
             @Param("query") OrderPageQuery query
     );
@@ -1120,7 +1138,7 @@ XML：
 
 ```xml
 
-<select id="pageOrders" resultType="com.acme.trade.application.dto.OrderPageResponse">
+<select id="pageOrders" resultType="com.acme.trade.application.result.OrderPageResult">
     SELECT
     o.id,
     o.order_no,
@@ -1272,14 +1290,15 @@ trade_order_item 是 Order 聚合内实体候选
 ## 14.1 application
 
 ```text
-OrderServiceI.java
-OrderServiceImpl.java
-dto/CreateOrderCommand.java
-dto/CreateOrderItemCommand.java
-dto/CancelOrderCommand.java
-dto/OrderPageQuery.java
-dto/OrderDetailResponse.java
-dto/OrderPageResponse.java
+manage/OrderManage.java
+manage/impl/OrderManageImpl.java
+command/CreateOrderCommand.java
+command/CreateOrderItemCommand.java
+command/CancelOrderCommand.java
+query/OrderPageQuery.java
+result/OrderDetailResult.java
+result/OrderPageResult.java
+assembler/OrderApplicationAssembler.java
 executor/command/CreateOrderCmdExe.java
 executor/command/CancelOrderCmdExe.java
 executor/query/GetOrderDetailQryExe.java
@@ -1289,8 +1308,12 @@ executor/query/OrderPageQryExe.java
 ## 14.2 adapter
 
 ```text
-OrderController.java
-assembler/OrderWebAssembler.java
+web/OrderController.java
+web/dto/CreateOrderRequestDTO.java
+web/dto/CreateOrderVO.java
+web/dto/PageOrderRequestDTO.java
+web/dto/OrderPageVO.java
+web/assembler/OrderWebAssembler.java
 ```
 
 ## 14.3 domain
@@ -1305,6 +1328,7 @@ Money.java
 OrderStatus.java
 OrderGateway.java
 OrderQueryGateway.java
+query/OrderPageCriteria.java
 OrderDomainService.java
 OrderCreatedEvent.java
 ```
@@ -1335,7 +1359,7 @@ OrderQueryGatewayImpl.java
 ```text
 ArchitectureTest.java
 OrderDomainTest.java
-OrderServiceTest.java
+OrderManageTest.java
 OrderRepositoryJpaIntegrationTest.java
 OrderMapperIntegrationTest.java
 ```
@@ -1345,6 +1369,7 @@ OrderMapperIntegrationTest.java
 ```text
 生成工程根目录还需要输出 pom.xml。
 src/main/java/com/acme/trade 下需要输出 TradeApplication.java。
+如果 project.moduleName 包含连字符、下划线或其他非 Java 标识符字符，启动类名需要规范化为合法 Java 类名，例如 demo-order -> DemoOrderApplication。
 如果 aggregate 配置了 entityTables，子实体表也要生成对应的 JpaEntity 和 DO。
 Command 对象需要按 DDL 字段补充 Jakarta Validation 注解。
 JPA Entity 需要按审计字段补充 @CreatedDate / @LastModifiedDate。
@@ -1358,15 +1383,16 @@ JPA Entity 需要按审计字段补充 @CreatedDate / @LastModifiedDate。
 src/main/resources/templates
 ├── adapter
 │   ├── Controller.ftl
-│   └── WebAssembler.ftl
+│   ├── WebAssembler.ftl
+│   └── WebDto.ftl
 │
 ├── application
-│   ├── ApplicationService.ftl
-│   ├── ApplicationServiceImpl.ftl
+│   ├── Manage.ftl
+│   ├── ManageImpl.ftl
+│   ├── ApplicationAssembler.ftl
 │   ├── Command.ftl
 │   ├── Query.ftl
-│   ├── Response.ftl
-│   ├── PageResponse.ftl
+│   ├── Result.ftl
 │   ├── CmdExe.ftl
 │   └── QryExe.ftl
 │
@@ -1422,6 +1448,9 @@ backend/pg-ddd-codegen/src/main/resources/templates/project
 ---
 
 # 15.1 Spring Data JPA DDL 安全配置
+
+当前 v1 生成的是 HTTP-only 单模块脚手架的基础 `application.yml`，只包含应用名和 JPA 安全 DDL 策略。暂不生成 Nacos、Dubbo、
+RPC Provider/Consumer、Sentinel、Seata 等运行时配置；目标业务模块需要 RPC 或服务治理能力时，应按项目现有配置规范自行补充。
 
 因为这个生成器是 DDL-first，数据库结构应该由 DDL / Flyway / Liquibase 管理，不能让 Spring Data JPA / Hibernate
 在启动时自动刷新数据库结构。
@@ -1524,7 +1553,7 @@ DO
 Mapper
 Mapper.xml 的基础片段
 基础 Converter
-Command / Query / Response
+Command / Query / Result
 枚举
 ArchUnit Test
 ```
@@ -1539,7 +1568,7 @@ DomainService
 CmdExe
 QryExe
 Controller
-ServiceImpl
+ManageImpl
 QueryGatewayImpl 自定义 SQL 逻辑
 ```
 
@@ -1563,7 +1592,7 @@ QueryGatewayImpl 自定义 SQL 逻辑
       "rootTable": "trade_order",
       "files": [
         {
-          "path": "domain/model/aggregate/Order.java",
+          "path": "domain/order/model/aggregate/Order.java",
           "policy": "CREATE_ONLY",
           "checksum": "abc"
         },
@@ -1602,7 +1631,7 @@ QueryGatewayImpl 自定义 SQL 逻辑
     <!-- AUTO-GENERATED-END: base-columns -->
 
     <!-- AUTO-GENERATED-START: page-query -->
-    <select id="pageOrders" resultType="com.acme.trade.application.dto.OrderPageResponse">
+    <select id="pageOrders" resultType="com.acme.trade.application.result.OrderPageResult">
         ...
     </select>
     <!-- AUTO-GENERATED-END: page-query -->

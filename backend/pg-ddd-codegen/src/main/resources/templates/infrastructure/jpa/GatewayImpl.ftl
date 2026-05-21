@@ -11,7 +11,7 @@ public class ${className} implements ${aggregateName}Gateway {
 * @return 聚合对象
 */
 @Override
-public Optional<${aggregateName}> find(${idType} id) {
+public Optional<${aggregateName}> findById(${idType} id) {
 return Optional.empty();
 }
 

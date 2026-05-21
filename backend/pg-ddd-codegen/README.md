@@ -67,14 +67,18 @@ mvn -pl pg-ddd-codegen -DskipTests -Dexec.args="--config /path/to/generator.yml"
 - `parse` 离线模式解析常见 DDL 子集。
 - `catalog` 模式在配置 `ddl.postgres.jdbcUrl` 时执行 DDL 并读取 PostgreSQL 元数据。
 - 按聚合配置生成 COLA 风格的 adapter、application、domain、infrastructure 分层代码。
-- application 层输出 `*ServiceI`、`*ServiceImpl`、`dto/*` 和 executor，adapter 只依赖 application 接口，不直接依赖实现类。
+- adapter 层输出 `adapter.web`、Web DTO/VO 和 WebAssembler，不把 Web DTO 传入 application。
+- application 层输出 `manage`、`command`、`query`、`result`、`assembler` 和 executor，不生成旧 `application.dto` /
+  `*ServiceI` / `*ServiceImpl`。
+- domain 层按聚合小写分包输出 `model`、`gateway`、`service`、`event`，不生成 `domain.repository`。
+- infrastructure 网关实现输出到 `infrastructure.gateway.impl`。
 - 生成 Mapper XML 自动分区、`generation-report.md`、`.generated/codegen-index.json`。
 - 支持 `enums` 显式定义领域枚举，并用 `columns` 绑定数据库字段。
 - 生成 `pom.xml`、Spring Boot 启动类、DomainService、DomainEvent、测试骨架和子实体持久化对象。
+- Spring Boot 启动类会把 `project.moduleName` 规范化为合法 Java 类名，例如 `demo-order` 生成 `DemoOrderApplication`。
 - 生成 `application.yml`，默认 `spring.jpa.hibernate.ddl-auto=validate`，避免 Hibernate 自动更新数据库结构。
-- 模板文件位于 `src/main/resources/templates`，v1 使用 Freemarker 渲染 Controller、Application
-  Service、Executor、领域对象和持久化对象。
-- Command record 会根据 DDL 补充 `@NotNull`、`@Size`、`@Digits` 等 Jakarta Validation 注解。
+- 模板文件位于 `src/main/resources/templates`，v1 使用 Freemarker 渲染 Controller、Manage、Executor、领域对象和持久化对象。
+- Web Request DTO 和 Command 会根据 DDL 补充 `@NotNull`、`@Size`、`@Digits` 等 Jakarta Validation 注解。
 - JPA Entity 会根据 `created_at` / `updated_at` 补充 `@CreatedDate` / `@LastModifiedDate` 和 `@EntityListeners`。
 
 ## 自定义枚举
@@ -98,11 +102,14 @@ enums:
 
 生成规则：
 
-- `domain.model.enums.OrderStatus` 使用 Java enum。
-- 领域模型、Command、Query、Response 使用 `OrderStatus`。
+- `domain.order.model.enums.OrderStatus` 使用 Java enum。
+- 领域模型、Command、Query、Result 使用 `OrderStatus`。
 - JPA Entity 和 MyBatis Plus DO 使用 `String` 承接，避免 PostgreSQL enum / Hibernate 映射带来的数据库刷新和类型兼容问题。
 
 ## JPA DDL 策略
+
+当前生成的 `application.yml` 只覆盖 HTTP-only 单模块脚手架的本地基础配置：应用名和 JPA 安全 DDL 策略。生成器暂不生成
+Nacos、Dubbo、RPC Provider/Consumer、Sentinel、Seata 等运行时配置；需要接入 RPC 或服务治理时，应由目标业务模块按项目现有配置规范补充。
 
 生成项目默认输出：
 
@@ -139,95 +146,61 @@ spring:
 └── src
     ├── main
     │   ├── java
-    │   │   └── com
-    │   │       └── huawei
-    │   │           └── charging
-    │   │               ├── adapter
-    │   │               │   └── ChargeController.java
-    │   │               ├── application
-    │   │               │   ├── ChargeServiceI.java
-    │   │               │   ├── ChargeServiceImpl.java
-    │   │               │   └── dto
-    │   │               │       ├── BeginSessionRequest.java
-    │   │               │       ├── ChargeRecordDto.java
-    │   │               │       ├── ChargeRequest.java
-    │   │               │       ├── EndSessionRequest.java
-    │   │               │       ├── MultiResponse.java
-    │   │               │       ├── Response.java
-    │   │               │       └── SingleResponse.java
-    │   │               ├── Application.java
-    │   │               ├── domain
-    │   │               │   ├── account
-    │   │               │   │   ├── Account.java
-    │   │               │   │   └── AccountDomainService.java
-    │   │               │   ├── ApplicationContextHelper.java
-    │   │               │   ├── BizException.java
-    │   │               │   ├── charge
-    │   │               │   │   ├── CallType.java
-    │   │               │   │   ├── ChargeContext.java
-    │   │               │   │   ├── chargeplan
-    │   │               │   │   │   ├── BasicChargePlan.java
-    │   │               │   │   │   ├── ChargePlan.java
-    │   │               │   │   │   ├── ChargePlanType.java
-    │   │               │   │   │   ├── FamilyChargePlan.java
-    │   │               │   │   │   ├── FixedTimeChangePlan.java
-    │   │               │   │   │   └── Resource.java
-    │   │               │   │   ├── ChargeRecord.java
-    │   │               │   │   ├── chargerule
-    │   │               │   │   │   ├── AbstractChargeRule.java
-    │   │               │   │   │   ├── BasicChargeRule.java
-    │   │               │   │   │   ├── ChargeRule.java
-    │   │               │   │   │   ├── ChargeRuleFactory.java
-    │   │               │   │   │   ├── CompositeChargeRule.java
-    │   │               │   │   │   ├── FamilyChargeRule.java
-    │   │               │   │   │   └── FixedTimeChargeRule.java
-    │   │               │   │   ├── Money.java
-    │   │               │   │   ├── MoneyConverter.java
-    │   │               │   │   └── Session.java
-    │   │               │   ├── DomainFactory.java
-    │   │               │   ├── Entity.java
-    │   │               │   └── gateway
-    │   │               │       ├── AccountGateway.java
-    │   │               │       ├── ChargeGateway.java
-    │   │               │       └── SessionGateway.java
-    │   │               └── infrastructure
-    │   │                   ├── AccountGatewayImpl.java
-    │   │                   ├── RestClientBean.java
-    │   │                   └── SessionGatewayImpl.java
+    │   │   └── com/acme/trade
+    │   │       ├── TradeApplication.java
+    │   │       ├── adapter
+    │   │       │   └── web
+    │   │       │       ├── OrderController.java
+    │   │       │       ├── assembler
+    │   │       │       │   └── OrderWebAssembler.java
+    │   │       │       └── dto
+    │   │       │           ├── CreateOrderRequestDTO.java
+    │   │       │           ├── CreateOrderVO.java
+    │   │       │           ├── PageOrderRequestDTO.java
+    │   │       │           └── OrderPageVO.java
+    │   │       ├── application
+    │   │       │   ├── assembler
+    │   │       │   │   └── OrderApplicationAssembler.java
+    │   │       │   ├── command
+    │   │       │   │   └── CreateOrderCommand.java
+    │   │       │   ├── executor
+    │   │       │   │   ├── command
+    │   │       │   │   │   └── CreateOrderCmdExe.java
+    │   │       │   │   └── query
+    │   │       │   │       └── PageOrderQryExe.java
+    │   │       │   ├── manage
+    │   │       │   │   ├── OrderManage.java
+    │   │       │   │   └── impl
+    │   │       │   │       └── OrderManageImpl.java
+    │   │       │   ├── query
+    │   │       │   │   └── OrderPageQuery.java
+    │   │       │   └── result
+    │   │       │       ├── CreateOrderResult.java
+    │   │       │       └── OrderPageResult.java
+    │   │       ├── domain
+    │   │       │   └── order
+    │   │       │       ├── event
+    │   │       │       ├── gateway
+    │   │       │       │   └── query
+    │   │       │       ├── model
+    │   │       │       └── service
+    │   │       └── infrastructure
+    │   │           ├── gateway
+    │   │           │   └── impl
+    │   │           └── persistence
+    │   │               ├── jpa
+    │   │               └── mp
     │   └── resources
     │       ├── application.yml
     │       └── logback.xml
     └── test
-        ├── charge.http
         ├── java
-        │   └── com
-        │       └── huawei
-        │           └── charging
-        │               ├── application
-        │               │   └── ChargeServiceTest.java
-        │               ├── CleanArchTest.java
-        │               ├── domain
-        │               │   ├── ChargeRecordPlanTest.java
-        │               │   ├── ChargeRecordRuleTest.java
-        │               │   └── CompositeChargeRuleTestRecord.java
-        │               ├── infrastructure
-        │               │   ├── AccountGatewayTest.java
-        │               │   ├── ChargeRecordRepoTest.java
-        │               │   ├── FixtureLoader.java
-        │               │   ├── JSONTest.java
-        │               │   ├── SpingBootConfTest.java
-        │               │   ├── WireMockBasicTest.java
-        │               │   └── WireMockRegister.java
-        │               └── TestsContainerBoot.java
+        │   └── com/acme/trade
+        │       ├── architecture
+        │       ├── application
+        │       ├── domain
+        │       └── infrastructure
         └── resources
-            ├── application-test.yml
-            ├── application.yml
-            ├── fixture
-            │   └── wiremock
-            │       ├── stub_account.json
-            │       ├── stub_insufficient_account.json
-            │       └── stub_wire_mock_basic.json
-            └── logback-test.xml
 ```
 
 ## v1 边界

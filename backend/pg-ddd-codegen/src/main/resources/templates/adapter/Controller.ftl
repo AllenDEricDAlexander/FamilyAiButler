@@ -13,6 +13,9 @@ ${classComment}@RestController
 @RequestMapping("${requestMapping}")
 @RequiredArgsConstructor
 public class ${className} {
-private final ${serviceInterfaceName} ${serviceFieldName};
+
+private final ${manageInterfaceName} ${manageFieldName};
+private final ${webAssemblerName} ${webAssemblerFieldName};
+
 ${methods}
 }

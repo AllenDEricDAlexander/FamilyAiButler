@@ -1,7 +1,9 @@
 package ${packageName};
 
-${imports!""}${classComment}
-public record ${className}(
+${imports!""}import lombok.Data;
+
+${classComment}@Data
+public class ${className} {
+
 ${fields}
-) {
 }

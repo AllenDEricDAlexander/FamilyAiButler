@@ -102,8 +102,8 @@ class CodeGenerationServiceTest {
 
         GenerationSummary summary = new CodeGenerationService().generate(config);
 
-        Path aggregate = outputDir.resolve("src/main/java/com/acme/trade/domain/model/aggregate/Order.java");
-        Path valueObject = outputDir.resolve("src/main/java/com/acme/trade/domain/model/valueobject/OrderNo.java");
+        Path aggregate = outputDir.resolve("src/main/java/com/acme/trade/domain/order/model/aggregate/Order.java");
+        Path valueObject = outputDir.resolve("src/main/java/com/acme/trade/domain/order/model/valueobject/OrderNo.java");
         Path jpaEntity = outputDir.resolve("src/main/java/com/acme/trade/infrastructure/persistence/jpa/entity/OrderJpaEntity.java");
         Path dataObject = outputDir.resolve("src/main/java/com/acme/trade/infrastructure/persistence/mp/dataobject/OrderDO.java");
         Path mapperXml = outputDir.resolve("src/main/resources/mapper/OrderMapper.xml");
@@ -115,7 +115,7 @@ class CodeGenerationServiceTest {
         assertThat(mapperXml).exists();
         assertThat(Files.readString(jpaEntity)).contains("@Version", "@CreatedDate", "@LastModifiedDate", "private String orderNo;");
         assertThat(Files.readString(dataObject)).contains("@TableLogic", "@Version");
-        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/dto/CreateOrderCommand.java")))
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/command/CreateOrderCommand.java")))
                 .contains("@NotNull", "@Size(max = 64)", "@Digits(integer = 16, fraction = 2)");
         assertThat(Files.readString(outputDir.resolve("generation-report.md"))).contains("Order", "order_status", "total_amount");
         assertThat(Files.readString(outputDir.resolve(".generated/codegen-index.json"))).contains("CREATE_ONLY", "OVERWRITE");
@@ -183,8 +183,8 @@ class CodeGenerationServiceTest {
 
         new CodeGenerationService().generate(config);
 
-        Path enumFile = outputDir.resolve("src/main/java/com/acme/trade/domain/model/enums/OrderStatus.java");
-        Path aggregateFile = outputDir.resolve("src/main/java/com/acme/trade/domain/model/aggregate/Order.java");
+        Path enumFile = outputDir.resolve("src/main/java/com/acme/trade/domain/order/model/enums/OrderStatus.java");
+        Path aggregateFile = outputDir.resolve("src/main/java/com/acme/trade/domain/order/model/aggregate/Order.java");
         Path jpaEntity = outputDir.resolve("src/main/java/com/acme/trade/infrastructure/persistence/jpa/entity/OrderJpaEntity.java");
         Path dataObject = outputDir.resolve("src/main/java/com/acme/trade/infrastructure/persistence/mp/dataobject/OrderDO.java");
         assertThat(Files.readString(enumFile)).contains("CREATED(\"CREATED\", \"已创建\")", "getByCode");
@@ -245,7 +245,8 @@ class CodeGenerationServiceTest {
     @Test
     void shouldProvideVisibleTemplateFiles() {
         assertThat(Path.of("src/main/resources/templates/domain/Enum.ftl")).exists();
-        assertThat(Path.of("src/main/resources/templates/application/PageResponse.ftl")).exists();
+        assertThat(Path.of("src/main/resources/templates/application/Result.ftl")).exists();
+        assertThat(Path.of("src/main/resources/templates/adapter/WebDto.ftl")).exists();
         assertThat(Path.of("src/main/resources/templates/infrastructure/jpa/JpaEntity.ftl")).exists();
         assertThat(Path.of("src/main/resources/templates/infrastructure/mp/MapperXml.ftl")).exists();
         assertThat(Path.of("src/main/resources/templates/project/ApplicationYml.ftl")).exists();
@@ -261,13 +262,13 @@ class CodeGenerationServiceTest {
         Path renderer = Path.of("src/main/java/top/egon/familyaibutler/codegen/generator/DddSourceRenderer.java");
         String rendererContent = Files.readString(renderer);
         assertThat(Files.readString(Path.of("src/main/resources/templates/adapter/Controller.ftl")))
-                .contains("@RestController", "@RequestMapping", "${serviceInterfaceName}", "${methods}");
-        assertThat(Files.readString(Path.of("src/main/resources/templates/application/ApplicationServiceImpl.ftl")))
+                .contains("@RestController", "@RequestMapping", "${manageInterfaceName}", "${webAssemblerName}", "${methods}");
+        assertThat(Files.readString(Path.of("src/main/resources/templates/application/ManageImpl.ftl")))
                 .contains("@Service", "implements ${interfaceName}", "${executorFields}", "${methods}");
-        assertThat(Files.readString(Path.of("src/main/resources/templates/application/ApplicationService.ftl")))
+        assertThat(Files.readString(Path.of("src/main/resources/templates/application/Manage.ftl")))
                 .contains("public interface ${className}", "${methods}");
         assertThat(Files.readString(Path.of("src/main/resources/templates/application/CmdExe.ftl")))
-                .contains("@Component", "execute(${commandClassName} command)");
+                .contains("@Component", "${resultClassName} execute(${commandClassName} command)");
         assertThat(Files.readString(Path.of("src/main/resources/templates/domain/Gateway.ftl")))
                 .contains("Optional<${aggregateName}> find", "${aggregateName} save");
         assertThat(Files.readString(Path.of("src/main/resources/templates/infrastructure/jpa/JpaEntity.ftl")))
@@ -278,8 +279,8 @@ class CodeGenerationServiceTest {
                 .contains("@AnalyzeClasses", "ArchRule");
         assertThat(rendererContent)
                 .contains("TemplateRegistry.ADAPTER_CONTROLLER")
-                .contains("TemplateRegistry.APPLICATION_SERVICE_IMPL")
-                .contains("TemplateRegistry.APPLICATION_SERVICE")
+                .contains("TemplateRegistry.APPLICATION_MANAGE_IMPL")
+                .contains("TemplateRegistry.APPLICATION_MANAGE")
                 .contains("TemplateRegistry.DOMAIN_GATEWAY")
                 .contains("TemplateRegistry.INFRA_JPA_ENTITY")
                 .contains("TemplateRegistry.TEST_ARCHITECTURE");
@@ -362,36 +363,77 @@ class CodeGenerationServiceTest {
         assertThat(Files.readString(outputDir.resolve("pom.xml")))
                 .contains("spring-boot-starter-data-jpa", "mybatis-plus-spring-boot3-starter", "archunit-junit5");
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/TradeApplication.java")).exists();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/OrderServiceI.java")).exists();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/dto/CreateOrderItemCommand.java")).exists();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/dto/OrderPageQuery.java")).exists();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/dto/OrderDetailResponse.java")).exists();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/dto/OrderPageResponse.java")).exists();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/domain/gateway/OrderGateway.java")).exists();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/domain/service/OrderDomainService.java")).exists();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/domain/event/OrderCreatedEvent.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/manage/OrderManage.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/manage/impl/OrderManageImpl.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/command/CreateOrderItemCommand.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/query/OrderPageQuery.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/result/OrderDetailResult.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/result/OrderPageResult.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/assembler/OrderApplicationAssembler.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/domain/order/gateway/OrderGateway.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/domain/order/service/OrderDomainService.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/domain/order/event/OrderCreatedEvent.java")).exists();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/infrastructure/persistence/jpa/entity/OrderItemJpaEntity.java")).exists();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/infrastructure/persistence/mp/dataobject/OrderItemDO.java")).exists();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/infrastructure/gatewayimpl/OrderGatewayImpl.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/infrastructure/gateway/impl/OrderGatewayImpl.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/infrastructure/gateway/impl/OrderQueryGatewayImpl.java")).exists();
         assertThat(outputDir.resolve("src/test/java/com/acme/trade/domain/OrderDomainTest.java")).exists();
-        assertThat(outputDir.resolve("src/test/java/com/acme/trade/application/OrderServiceTest.java")).exists();
+        assertThat(outputDir.resolve("src/test/java/com/acme/trade/application/OrderManageTest.java")).exists();
         assertThat(outputDir.resolve("src/test/java/com/acme/trade/infrastructure/OrderRepositoryJpaIntegrationTest.java")).exists();
         assertThat(outputDir.resolve("src/test/java/com/acme/trade/infrastructure/OrderMapperIntegrationTest.java")).exists();
-        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/OrderServiceImpl.java")))
-                .contains("@Service", "implements OrderServiceI");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/manage/impl/OrderManageImpl.java")))
+                .contains("@Service", "implements OrderManage")
+                .doesNotContain("public Object ");
         assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/executor/command/CreateOrderCmdExe.java")))
-                .contains("@Component", "CreateOrderCommand");
+                .contains("@Component", "CreateOrderCommand", "CreateOrderResult execute");
         assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/executor/query/PageOrderQryExe.java")))
-                .contains("@Component", "OrderPageQuery");
-        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/adapter/OrderController.java")))
-                .contains("OrderServiceI", "@PostMapping", "@GetMapping")
+                .contains("@Component", "OrderPageQuery", "OrderPageResult execute",
+                        "OrderPageCriteria criteria = orderApplicationAssembler.toOrderPageCriteria(query);",
+                        "pageOrder(criteria)");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/domain/order/gateway/OrderQueryGateway.java")))
+                .contains("import com.acme.trade.domain.order.gateway.query.OrderPageCriteria;",
+                        "import com.acme.trade.domain.order.model.aggregate.Order;",
+                        "import java.util.List;",
+                        "List<Order> pageOrder(OrderPageCriteria criteria);")
+                .doesNotContain("application.query");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/domain/order/gateway/query/OrderPageCriteria.java")))
+                .contains("@Data", "private String orderNo;", "private Instant createdAtStart;", "private Instant createdAtEnd;")
+                .doesNotContain("application.query");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/domain/order/service/OrderDomainService.java")))
+                .contains("import org.springframework.stereotype.Service;", "@Service");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/infrastructure/gateway/impl/OrderQueryGatewayImpl.java")))
+                .contains("import com.acme.trade.domain.order.gateway.query.OrderPageCriteria;",
+                        "public List<Order> pageOrder(OrderPageCriteria criteria)")
+                .doesNotContain("application.query");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/assembler/OrderApplicationAssembler.java")))
+                .contains("import com.acme.trade.domain.order.gateway.query.OrderPageCriteria;",
+                        "OrderPageCriteria toOrderPageCriteria(OrderPageQuery query)");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/OrderController.java")))
+                .contains("OrderManage", "OrderWebAssembler", "CreateOrderRequestDTO", "CreateOrderCommand", "CreateOrderVO", "@PostMapping", "@GetMapping")
+                .doesNotContain("application.manage.impl")
                 .doesNotContain("com.acme.trade.application.OrderServiceImpl");
-        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/adapter/assembler/OrderWebAssembler.java"))).contains("@Component");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/assembler/OrderWebAssembler.java")))
+                .contains("@Component", "toCreateOrderCommand", "toCreateOrderVO", "toOrderDetailVO", "toOrderPageVO")
+                .doesNotContain("com.acme.trade.infrastructure");
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/dto/CreateOrderRequestDTO.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/dto/CreateOrderVO.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/dto/OrderDetailVO.java")).exists();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/dto/OrderPageVO.java")).exists();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/client")).doesNotExist();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/app")).doesNotExist();
-        assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/web")).doesNotExist();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/dto")).doesNotExist();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/OrderServiceI.java")).doesNotExist();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/OrderServiceImpl.java")).doesNotExist();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/OrderController.java")).doesNotExist();
+        assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/assembler")).doesNotExist();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/domain/repository")).doesNotExist();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/infrastructure/persistence/impl")).doesNotExist();
-        assertThat(Files.readString(outputDir.resolve("src/main/resources/mapper/OrderMapper.xml"))).contains("OrderPageResponse");
+        assertThat(Files.readString(outputDir.resolve("src/main/resources/mapper/OrderMapper.xml"))).contains("OrderPageResult");
+        assertThat(Files.readString(outputDir.resolve("src/test/java/com/acme/trade/architecture/ArchitectureTest.java")))
+                .contains("adapter.web", "domain.repository", "infrastructure.persistence.impl",
+                        "CONTROLLER_SHOULD_ONLY_RESIDE_IN_ADAPTER_WEB",
+                        "\"..application..\"",
+                        "com.acme.trade.service..", "com.acme.trade.mapper..", "com.acme.trade.po..",
+                        "com.acme.trade.do..", "com.acme.trade.repository..", "..adapter.rpc.grpc..");
     }
 }

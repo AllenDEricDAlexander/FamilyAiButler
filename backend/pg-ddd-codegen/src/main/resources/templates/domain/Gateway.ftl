@@ -9,7 +9,7 @@ public interface ${className} {
 * @param id 聚合主键
 * @return 聚合对象
 */
-Optional<${aggregateName}> find(${idType} id);
+Optional<${aggregateName}> findById(${idType} id);
 
 /**
 * 保存聚合。
