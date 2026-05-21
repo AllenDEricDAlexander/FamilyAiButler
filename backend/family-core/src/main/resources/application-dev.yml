@@ -1,6 +1,4 @@
 spring:
-  jpa:
-    defer-datasource-initialization: true
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:5432}/${POSTGRES_DB:familyaibutler}
     username: ${POSTGRES_USER:postgres}

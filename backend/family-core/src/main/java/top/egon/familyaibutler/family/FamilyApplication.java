@@ -24,7 +24,7 @@ import java.net.UnknownHostException;
 @Slf4j
 @SpringBootApplication
 @EnableDiscoveryClient
-@MapperScan("top.egon.familyaibutler.family.mapper")
+@MapperScan("top.egon.familyaibutler.family.infrastructure.persistence.mp.mapper")
 @ComponentScan(basePackages = {"top.egon.familyaibutler.family", "top.egon.familyaibutler.common"})
 public class FamilyApplication {
 

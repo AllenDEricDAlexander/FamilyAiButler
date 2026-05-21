@@ -47,7 +47,7 @@ spring:
                 - Path=/base/**
               filters:
                 - StripPrefix=1
-            - id: familyUaa
+            - id: family-uaa
               uri: lb://family-uaa
               predicates:
                 - Path=/uaa/**
@@ -68,9 +68,15 @@ spring:
 family-gateway:
   jwt:
     ignoreUrlSet:
-      - /uaa/user/login
-      - /uaa/user/register
-      - /uaa/user/refresh
+      - /uaa/auth/login/password
+      - /uaa/auth/login/email-code
+      - /uaa/auth/login/sms-code
+      - /uaa/account/register
+      - /uaa/auth/password/recovery
+      - /uaa/auth/password/reset
+      - /base/v3/api-docs/**
+      - /uaa/v3/api-docs/**
+      - /ai/v3/api-docs/**
       - /openapi-console/**
 
 family:
@@ -94,9 +100,13 @@ egon:
       environment: dev
       auth:
         username: admin
-        password: "{sha256}7bb2941643fcee3a190d402136de9b3b8f650a58e76177681bf74e990ddf833b"
+        # dev 明文登录密码: HomeLab666
+        password: "{plain}HomeLab666"
         session-secret: 2b51b70dd6c7275cecb23dc2f9ac49a9b3e327dbb1cfc2857a45ab156120031c
         secure-cookie: false
+        challenge-ttl: 2m
+        request-signature-ttl: 5m
+        request-signing-enabled: true
         ttl: 8h
       producer:
         enabled: false
@@ -106,7 +116,7 @@ egon:
         access-key-id: family-ai-butler
         secret: FamilyAiButlerOpenApiSigningSecretChangeMe
       client:
-        engine: AUTO
+        engine: VIRTUAL_THREAD
         max-connections: 200
         pending-acquire-max-count: 500
         pending-acquire-timeout: 5s
@@ -129,23 +139,26 @@ egon:
         - id: family-core
           name: 家庭核心服务
           group: 业务服务
-          open-api-url: http://family-core/v3/api-docs
+          open-api-url: http://127.0.0.1:9527/base/v3/api-docs
+          open-api-access-header: X-OpenAPI-Console-Token
           open-api-access-token: 656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45
-          base-url: http://family-core
+          base-url: http://127.0.0.1:9527/base
           order: 10
         - id: family-uaa
           name: 用户认证服务
           group: 基础服务
-          open-api-url: http://family-uaa/v3/api-docs
+          open-api-url: http://127.0.0.1:9527/uaa/v3/api-docs
+          open-api-access-header: X-OpenAPI-Console-Token
           open-api-access-token: 656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45
-          base-url: http://family-uaa
+          base-url: http://127.0.0.1:9527/uaa
           order: 20
         - id: family-ai-qwen
           name: Qwen AI 服务
           group: AI 服务
-          open-api-url: http://family-ai-qwen/v3/api-docs
+          open-api-url: http://127.0.0.1:9527/ai/v3/api-docs
+          open-api-access-header: X-OpenAPI-Console-Token
           open-api-access-token: 656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45
-          base-url: http://family-ai-qwen
+          base-url: http://127.0.0.1:9527/ai
           order: 30
 
 logging:

@@ -21,7 +21,6 @@ import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.web.reactive.DispatcherHandler;
-import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import top.egon.openapi.console.ApiDocConsoleProperties;
 import top.egon.openapi.console.client.ApiDocConsoleHttpClient;
@@ -51,18 +50,12 @@ public class ApiDocConsoleAutoConfiguration {
     /**
      * 创建 WebClient 构造器
      *
-     * @param exchangeFilterFunctions WebClient 过滤器
      * @return WebClient.Builder 返回 WebClient 构造器
      */
     @Bean
     @ConditionalOnMissingBean
-    public WebClient.Builder apiDocConsoleWebClientBuilder(ObjectProvider<ExchangeFilterFunction> exchangeFilterFunctions) {
-        WebClient.Builder builder = WebClient.builder();
-        exchangeFilterFunctions.stream()
-                .filter(filter -> filter.getClass().getName().contains("LoadBalancerExchangeFilterFunction"))
-                .findFirst()
-                .ifPresent(builder::filter);
-        return builder;
+    public WebClient.Builder apiDocConsoleWebClientBuilder() {
+        return WebClient.builder();
     }
 
     /**
@@ -76,10 +69,21 @@ public class ApiDocConsoleAutoConfiguration {
     @ConditionalOnMissingBean
     public ApiDocConsoleHttpClient apiDocConsoleHttpClient(ApiDocConsoleProperties properties,
                                                            WebClient.Builder webClientBuilder) {
-        if (properties.getClient().getEngine() == ApiDocConsoleProperties.ClientEngine.VIRTUAL_THREAD) {
+        if (useVirtualThreadClient(properties)) {
             return new ApiDocConsoleVirtualThreadHttpClient(properties);
         }
         return new ApiDocConsoleReactiveHttpClient(properties, webClientBuilder);
+    }
+
+    /**
+     * 判断是否使用虚拟线程 HTTP 客户端
+     *
+     * @param properties 接口文档平台配置
+     * @return boolean 返回 true 表示使用虚拟线程客户端
+     */
+    private boolean useVirtualThreadClient(ApiDocConsoleProperties properties) {
+        return properties.getClient().getEngine() == ApiDocConsoleProperties.ClientEngine.AUTO
+                || properties.getClient().getEngine() == ApiDocConsoleProperties.ClientEngine.VIRTUAL_THREAD;
     }
 
     /**
@@ -135,14 +139,16 @@ public class ApiDocConsoleAutoConfiguration {
      * @param properties     接口文档平台配置
      * @param sessionService 会话服务
      * @param consoleService 核心服务
+     * @param objectMapper   Jackson 映射器
      * @return ApiDocConsoleController 返回控制器
      */
     @Bean
     @ConditionalOnMissingBean
     public ApiDocConsoleController apiDocConsoleController(ApiDocConsoleProperties properties,
                                                            ApiDocConsoleSessionService sessionService,
-                                                           ApiDocConsoleService consoleService) {
-        return new ApiDocConsoleController(properties, sessionService, consoleService);
+                                                           ApiDocConsoleService consoleService,
+                                                           ObjectMapper objectMapper) {
+        return new ApiDocConsoleController(properties, sessionService, consoleService, objectMapper);
     }
 
     /**

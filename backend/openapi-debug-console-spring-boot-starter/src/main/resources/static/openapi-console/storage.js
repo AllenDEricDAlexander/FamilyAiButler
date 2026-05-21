@@ -165,6 +165,19 @@
             return saveState(snapshot.data);
         }
 
+        /**
+         * 清除本地状态
+         *
+         * @returns {object} 返回清除后的空状态
+         */
+        function clearState() {
+            const state = emptyState();
+            if (targetStorage) {
+                targetStorage.removeItem(STORAGE_KEY);
+            }
+            return state;
+        }
+
         return {
             loadState,
             saveState,
@@ -175,6 +188,7 @@
             removePreset,
             exportState,
             importState,
+            clearState,
         };
     }
 

@@ -1,0 +1,122 @@
+server:
+  port: 39092
+  http2:
+    enabled: true
+  servlet:
+    context-path: /
+  tomcat:
+    uri-encoding: UTF-8
+    max-swallow-size: -1
+    max-connections: 10000
+    accept-count: 1000
+    threads:
+      max: 200
+      min-spare: 10
+    connection-timeout: 20000
+    max-keep-alive-requests: 100
+    keep-alive-timeout: 10000
+    accesslog:
+      enabled: true
+      directory: ${FAMILY_AI_BUTLER_LOG_PATH:./logs}/${spring.application.name}
+      prefix: access_log
+      suffix: .log
+      encoding: utf-8
+
+spring:
+  main:
+    banner-mode: off
+  profiles:
+    active: dev
+  application:
+    name: family-uaa
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    hikari:
+      connection-timeout: 2000
+      minimum-idle: 10
+      maximum-pool-size: 50
+      idle-timeout: 200000
+      auto-commit: true
+      max-lifetime: 1800000
+      connection-test-query: select 1
+      pool-name: FamilyHikariCP
+      validation-timeout: 3000
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: always
+    deserialization:
+      fail-on-unknown-properties: false
+    serialization:
+      indent-output: true
+    time-zone: GMT+8
+  cloud:
+    nacos:
+      username: ${NACOS_USERNAME:test}
+      password: ${NACOS_PASSWORD:HomeLab666}
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:d11babcf-8ebf-47fb-90a6-3fb6a7eb85dc}
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+  global-config:
+    banner: false
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: true
+      logic-not-delete-value: false
+  type-aliases-package: top.egon.familyaibutler.uaa.infrastructure.persistence.mp.dataobject
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: top.egon.familyaibutler.uaa
+
+egon:
+  openapi:
+    console:
+      producer:
+        enabled: true
+        title: FamilyAiButler UAA API
+        description: 用户认证与授权服务接口
+        version: v0.0.1
+        contact-name: Egon
+        contact-url: https://github.com/AllenDEricDAlexander/FamilyAiButler
+        contact-email: mqa010225@gmail.com
+        license-name: MIT License
+        license-url: https://opensource.org/licenses/MIT
+        access-control:
+          enabled: true
+          token: ${OPENAPI_DOCS_ACCESS_TOKEN:656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45}
+
+family:
+  security:
+    jwt:
+      enabled: true
+      authorization-header: ${JWT_AUTHORIZATION_HEADER:Authorization}
+      token-prefix: ${JWT_TOKEN_PREFIX:}
+      access-key: ${JWT_ACCESS_KEY:BWvIZZhY5+IKEcZRkEKz8Pf8qnZO+4FVpCRPKMy+vVgvqmN9ZxEWi7I2iuFdWdG1OePjAp4ih7IQpedEhj1IVg==}
+      refresh-key: ${JWT_REFRESH_KEY:RXnNs+kEjjl+eaypNkK7QKb5i/mbpi2vi5VBUeor7GrlLBV/XcEsoOtHqqtLq4no8FZPOObT49l1gqMui64LoA==}
+      access-token-expire-time: ${JWT_ACCESS_TOKEN_EXPIRE_TIME:300000}
+      refresh-token-expire-time: ${JWT_REFRESH_TOKEN_EXPIRE_TIME:2592000000}
+
+logging:
+  file:
+    path: ${FAMILY_AI_BUTLER_LOG_PATH:./logs}/${spring.application.name}
+  config: classpath:log/logback-spring.xml

@@ -20,6 +20,8 @@ x-backend-common-environment: &backend-common-environment
   NACOS_USERNAME: ${NACOS_USERNAME:-test}
   NACOS_PASSWORD: ${NACOS_PASSWORD:-HomeLab666}
   NACOS_NAMESPACE: ${NACOS_NAMESPACE:-d11babcf-8ebf-47fb-90a6-3fb6a7eb85dc}
+  FAMILY_AI_BUTLER_ENV: ${FAMILY_AI_BUTLER_ENV:-dev}
+  UAA_AUTHORIZATION_BASE_URL: ${UAA_AUTHORIZATION_BASE_URL:-http://family-uaa:39092}
 
 services:
   family-web:
@@ -100,7 +102,7 @@ services:
       context: ../../backend
       dockerfile: ../ops/docker-compose/Dockerfile.backend
       args:
-        JAR_FILE: family-uaa/target/family-uaa-0.0.1-SNAPSHOT.jar
+        JAR_FILE: family-uaa/uaa-core/target/uaa-core-0.0.1-SNAPSHOT.jar
     image: family-ai-butler/family-uaa:local
     environment:
       <<: *backend-common-environment

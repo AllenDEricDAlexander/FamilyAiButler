@@ -4,25 +4,76 @@ PostgreSQL DDL 到 DDD/COLA 分层 Java 代码的 v1 生成器。
 
 ## 使用方式
 
-```bash
-mvn -pl pg-ddd-codegen -DskipTests compile
-mvn -pl pg-ddd-codegen \
-  -Dexec.mainClass=top.egon.familyaibutler.codegen.bootstrap.CodegenApplication \
-  -Dexec.args="--config generator.yml" \
-  org.codehaus.mojo:exec-maven-plugin:3.5.0:java
+### IDEA 直接运行
+
+在 IDEA 里新增普通 Java Application：
+
+```text
+Main class: top.egon.familyaibutler.codegen.bootstrap.CodegenApplication
+Module classpath: pg-ddd-codegen
+Working directory: backend/pg-ddd-codegen
+Program arguments: 留空
 ```
 
-`generator.yml` 结构参考仓库根目录的 `codeGen.md`。v1 支持：
+参数留空时会自动运行内置 demo：
+
+```text
+target/codegen-demo
+├── generator.yml
+├── schema.sql
+└── generated-src
+```
+
+也可以显式指定 demo 目录：
+
+```text
+Program arguments: --demo target/codegen-demo
+```
+
+命令行运行同一个 demo：
+
+```bash
+cd backend
+mvn -pl pg-ddd-codegen -DskipTests compile exec:java
+```
+
+### 初始化 YAML 模板
+
+如果要复制一份可改的模板：
+
+```bash
+cd backend
+mvn -pl pg-ddd-codegen -DskipTests -Dexec.args="--init pg-ddd-codegen/codegen-starter" compile exec:java
+```
+
+内置模板文件也可以直接查看：
+
+```text
+src/main/resources/examples/generator-example.yml
+src/main/resources/examples/schema-example.sql
+```
+
+### 使用自己的 DDL 生成
+
+```bash
+cd backend
+mvn -pl pg-ddd-codegen -DskipTests -Dexec.args="--config /path/to/generator.yml" compile exec:java
+```
+
+`generator.yml` 可以从 `src/main/resources/examples/generator-example.yml` 复制后修改；完整结构参考仓库根目录的
+`codeGen.md`。v1 支持：
 
 - PostgreSQL DDL 文件或 Flyway migration 目录输入。
 - `parse` 离线模式解析常见 DDL 子集。
 - `catalog` 模式在配置 `ddl.postgres.jdbcUrl` 时执行 DDL 并读取 PostgreSQL 元数据。
-- 按聚合配置生成 client、adapter、app、domain、infrastructure 分层代码。
+- 按聚合配置生成 COLA 风格的 adapter、application、domain、infrastructure 分层代码。
+- application 层输出 `*ServiceI`、`*ServiceImpl`、`dto/*` 和 executor，adapter 只依赖 application 接口，不直接依赖实现类。
 - 生成 Mapper XML 自动分区、`generation-report.md`、`.generated/codegen-index.json`。
 - 支持 `enums` 显式定义领域枚举，并用 `columns` 绑定数据库字段。
 - 生成 `pom.xml`、Spring Boot 启动类、DomainService、DomainEvent、测试骨架和子实体持久化对象。
 - 生成 `application.yml`，默认 `spring.jpa.hibernate.ddl-auto=validate`，避免 Hibernate 自动更新数据库结构。
-- 模板文件位于 `src/main/resources/templates`，v1 使用 Freemarker 渲染枚举和项目配置模板。
+- 模板文件位于 `src/main/resources/templates`，v1 使用 Freemarker 渲染 Controller、Application
+  Service、Executor、领域对象和持久化对象。
 - Command record 会根据 DDL 补充 `@NotNull`、`@Size`、`@Digits` 等 Jakarta Validation 注解。
 - JPA Entity 会根据 `created_at` / `updated_at` 补充 `@CreatedDate` / `@LastModifiedDate` 和 `@EntityListeners`。
 
@@ -79,6 +130,105 @@ spring:
 - Lombok
 - Spring Boot Test
 - ArchUnit JUnit5
+
+## 项目结构
+
+```shell
+├── pom.xml
+├── README.md
+└── src
+    ├── main
+    │   ├── java
+    │   │   └── com
+    │   │       └── huawei
+    │   │           └── charging
+    │   │               ├── adapter
+    │   │               │   └── ChargeController.java
+    │   │               ├── application
+    │   │               │   ├── ChargeServiceI.java
+    │   │               │   ├── ChargeServiceImpl.java
+    │   │               │   └── dto
+    │   │               │       ├── BeginSessionRequest.java
+    │   │               │       ├── ChargeRecordDto.java
+    │   │               │       ├── ChargeRequest.java
+    │   │               │       ├── EndSessionRequest.java
+    │   │               │       ├── MultiResponse.java
+    │   │               │       ├── Response.java
+    │   │               │       └── SingleResponse.java
+    │   │               ├── Application.java
+    │   │               ├── domain
+    │   │               │   ├── account
+    │   │               │   │   ├── Account.java
+    │   │               │   │   └── AccountDomainService.java
+    │   │               │   ├── ApplicationContextHelper.java
+    │   │               │   ├── BizException.java
+    │   │               │   ├── charge
+    │   │               │   │   ├── CallType.java
+    │   │               │   │   ├── ChargeContext.java
+    │   │               │   │   ├── chargeplan
+    │   │               │   │   │   ├── BasicChargePlan.java
+    │   │               │   │   │   ├── ChargePlan.java
+    │   │               │   │   │   ├── ChargePlanType.java
+    │   │               │   │   │   ├── FamilyChargePlan.java
+    │   │               │   │   │   ├── FixedTimeChangePlan.java
+    │   │               │   │   │   └── Resource.java
+    │   │               │   │   ├── ChargeRecord.java
+    │   │               │   │   ├── chargerule
+    │   │               │   │   │   ├── AbstractChargeRule.java
+    │   │               │   │   │   ├── BasicChargeRule.java
+    │   │               │   │   │   ├── ChargeRule.java
+    │   │               │   │   │   ├── ChargeRuleFactory.java
+    │   │               │   │   │   ├── CompositeChargeRule.java
+    │   │               │   │   │   ├── FamilyChargeRule.java
+    │   │               │   │   │   └── FixedTimeChargeRule.java
+    │   │               │   │   ├── Money.java
+    │   │               │   │   ├── MoneyConverter.java
+    │   │               │   │   └── Session.java
+    │   │               │   ├── DomainFactory.java
+    │   │               │   ├── Entity.java
+    │   │               │   └── gateway
+    │   │               │       ├── AccountGateway.java
+    │   │               │       ├── ChargeGateway.java
+    │   │               │       └── SessionGateway.java
+    │   │               └── infrastructure
+    │   │                   ├── AccountGatewayImpl.java
+    │   │                   ├── RestClientBean.java
+    │   │                   └── SessionGatewayImpl.java
+    │   └── resources
+    │       ├── application.yml
+    │       └── logback.xml
+    └── test
+        ├── charge.http
+        ├── java
+        │   └── com
+        │       └── huawei
+        │           └── charging
+        │               ├── application
+        │               │   └── ChargeServiceTest.java
+        │               ├── CleanArchTest.java
+        │               ├── domain
+        │               │   ├── ChargeRecordPlanTest.java
+        │               │   ├── ChargeRecordRuleTest.java
+        │               │   └── CompositeChargeRuleTestRecord.java
+        │               ├── infrastructure
+        │               │   ├── AccountGatewayTest.java
+        │               │   ├── ChargeRecordRepoTest.java
+        │               │   ├── FixtureLoader.java
+        │               │   ├── JSONTest.java
+        │               │   ├── SpingBootConfTest.java
+        │               │   ├── WireMockBasicTest.java
+        │               │   └── WireMockRegister.java
+        │               └── TestsContainerBoot.java
+        └── resources
+            ├── application-test.yml
+            ├── application.yml
+            ├── fixture
+            │   └── wiremock
+            │       ├── stub_account.json
+            │       ├── stub_insufficient_account.json
+            │       └── stub_wire_mock_basic.json
+            └── logback-test.xml
+```
 
 ## v1 边界
 

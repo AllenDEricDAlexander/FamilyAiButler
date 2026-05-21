@@ -51,8 +51,10 @@ spring:
       indent-output: true
     time-zone: GMT+8
   jpa:
+    generate-ddl: false
+    open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -89,7 +91,7 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: true
       logic-not-delete-value: false
-  type-aliases-package: top.egon.familyaibutler.family.enums
+  type-aliases-package: top.egon.familyaibutler.family.domain.model.enums
 
 springdoc:
   api-docs:
@@ -121,6 +123,18 @@ egon:
         access-control:
           enabled: true
           token: ${OPENAPI_DOCS_ACCESS_TOKEN:656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45}
+
+family:
+  uaa:
+    resource-server:
+      enabled: ${UAA_RESOURCE_SERVER_ENABLED:true}
+      service-name: family-core
+      authorization-base-url: ${UAA_AUTHORIZATION_BASE_URL:http://127.0.0.1:39092}
+      permit-patterns:
+        - /actuator/**
+        - /v3/api-docs/**
+        - /swagger-ui/**
+        - /openapi-console/**
 
 logging:
   file:

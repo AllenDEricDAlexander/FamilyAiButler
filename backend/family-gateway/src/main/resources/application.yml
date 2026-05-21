@@ -20,9 +20,15 @@ spring:
 family-gateway:
   jwt:
     ignoreUrlSet:
-      - /uaa/user/login
-      - /uaa/user/register
-      - /uaa/user/refresh
+      - /uaa/auth/login/password
+      - /uaa/auth/login/email-code
+      - /uaa/auth/login/sms-code
+      - /uaa/account/register
+      - /uaa/auth/password/recovery
+      - /uaa/auth/password/reset
+      - /base/v3/api-docs/**
+      - /uaa/v3/api-docs/**
+      - /ai/v3/api-docs/**
       - /openapi-console/**
 
 family:
@@ -45,10 +51,6 @@ egon:
       title: FamilyAiButler API Debug Console
       environment: ${FAMILY_AI_BUTLER_ENV:dev}
       auth:
-        username: ${OPENAPI_CONSOLE_USERNAME:admin}
-        password: ${OPENAPI_CONSOLE_PASSWORD:{sha256}7bb2941643fcee3a190d402136de9b3b8f650a58e76177681bf74e990ddf833b}
-        session-secret: ${OPENAPI_CONSOLE_SESSION_SECRET:2b51b70dd6c7275cecb23dc2f9ac49a9b3e327dbb1cfc2857a45ab156120031c}
-        secure-cookie: ${OPENAPI_CONSOLE_SECURE_COOKIE:false}
         ttl: 8h
       producer:
         enabled: false
@@ -56,9 +58,8 @@ egon:
         enabled: ${OPENAPI_CONSOLE_SIGNING_ENABLED:false}
         algorithm: HmacSHA256
         access-key-id: ${OPENAPI_CONSOLE_SIGNING_ACCESS_KEY:family-ai-butler}
-        secret: ${OPENAPI_CONSOLE_SIGNING_SECRET:FamilyAiButlerOpenApiSigningSecretChangeMe}
       client:
-        engine: ${OPENAPI_CONSOLE_CLIENT_ENGINE:AUTO}
+        engine: ${OPENAPI_CONSOLE_CLIENT_ENGINE:VIRTUAL_THREAD}
         max-connections: ${OPENAPI_CONSOLE_CLIENT_MAX_CONNECTIONS:200}
         pending-acquire-max-count: ${OPENAPI_CONSOLE_CLIENT_PENDING_ACQUIRE_MAX_COUNT:500}
         pending-acquire-timeout: ${OPENAPI_CONSOLE_CLIENT_PENDING_ACQUIRE_TIMEOUT:5s}
@@ -81,21 +82,24 @@ egon:
         - id: family-core
           name: 家庭核心服务
           group: 业务服务
-          open-api-url: http://family-core/v3/api-docs
+          open-api-url: ${OPENAPI_FAMILY_CORE_DOC_URL:http://127.0.0.1:9527/base/v3/api-docs}
+          open-api-access-header: ${OPENAPI_DOCS_ACCESS_HEADER:X-OpenAPI-Console-Token}
           open-api-access-token: ${OPENAPI_DOCS_ACCESS_TOKEN:656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45}
-          base-url: http://family-core
+          base-url: ${OPENAPI_FAMILY_CORE_BASE_URL:http://127.0.0.1:9527/base}
           order: 10
         - id: family-uaa
           name: 用户认证服务
           group: 基础服务
-          open-api-url: http://family-uaa/v3/api-docs
+          open-api-url: ${OPENAPI_FAMILY_UAA_DOC_URL:http://127.0.0.1:9527/uaa/v3/api-docs}
+          open-api-access-header: ${OPENAPI_DOCS_ACCESS_HEADER:X-OpenAPI-Console-Token}
           open-api-access-token: ${OPENAPI_DOCS_ACCESS_TOKEN:656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45}
-          base-url: http://family-uaa
+          base-url: ${OPENAPI_FAMILY_UAA_BASE_URL:http://127.0.0.1:9527/uaa}
           order: 20
         - id: family-ai-qwen
           name: Qwen AI 服务
           group: AI 服务
-          open-api-url: http://family-ai-qwen/v3/api-docs
+          open-api-url: ${OPENAPI_FAMILY_AI_QWEN_DOC_URL:http://127.0.0.1:9527/ai/v3/api-docs}
+          open-api-access-header: ${OPENAPI_DOCS_ACCESS_HEADER:X-OpenAPI-Console-Token}
           open-api-access-token: ${OPENAPI_DOCS_ACCESS_TOKEN:656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45}
-          base-url: http://family-ai-qwen
+          base-url: ${OPENAPI_FAMILY_AI_QWEN_BASE_URL:http://127.0.0.1:9527/ai}
           order: 30

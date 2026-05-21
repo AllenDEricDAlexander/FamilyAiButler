@@ -4,7 +4,6 @@
 # Logs
 *.log
 logs/
-~/log/
 
 # Local environment
 .env
@@ -20,6 +19,7 @@ logs/
 *.zip
 *.tar.gz
 *.rar
+*.iml
 
 # Java / Maven
 target/

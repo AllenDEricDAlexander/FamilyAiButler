@@ -134,7 +134,7 @@ public class ApiDocConsoleService {
                     request.setReadResponseBody(true);
                     return httpClient.execute(request);
                 })
-                .map(response -> readOpenApi(service.get(), response.getBody()))
+                .map(response -> readOpenApi(service.get(), response))
                 .doOnError(error -> log.warn("OpenAPI 文档拉取失败 serviceId={}", serviceId, error));
     }
 
@@ -265,13 +265,26 @@ public class ApiDocConsoleService {
      * 读取 OpenAPI JSON
      *
      * @param route 服务配置
-     * @param raw   OpenAPI 原始 JSON
+     * @param response OpenAPI 原始响应
      * @return JsonNode 返回标准化 OpenAPI JSON
      */
-    private JsonNode readOpenApi(ApiDocConsoleProperties.ServiceRoute route, String raw) {
+    private JsonNode readOpenApi(ApiDocConsoleProperties.ServiceRoute route, ApiDocConsoleHttpResponse response) {
+        if (response.getStatus() < 200 || response.getStatus() >= 300) {
+            throw new IllegalArgumentException("OpenAPI JSON 请求失败 status=" + response.getStatus());
+        }
         try {
+            String raw = response.getBody();
+            if (!StringUtils.hasText(raw)) {
+                throw new IllegalArgumentException("OpenAPI JSON 响应为空");
+            }
             JsonNode node = objectMapper.readTree(raw);
-            if (node instanceof ObjectNode objectNode && StringUtils.hasText(route.getBaseUrl())) {
+            if (!(node instanceof ObjectNode objectNode)) {
+                throw new IllegalArgumentException("OpenAPI JSON 不是对象结构");
+            }
+            if (!node.has("paths") || !node.get("paths").isObject()) {
+                throw new IllegalArgumentException("OpenAPI JSON 缺少 paths 对象");
+            }
+            if (StringUtils.hasText(route.getBaseUrl())) {
                 ArrayNode servers = objectMapper.createArrayNode();
                 ObjectNode server = objectMapper.createObjectNode();
                 server.put("url", route.getBaseUrl());
@@ -279,6 +292,8 @@ public class ApiDocConsoleService {
                 objectNode.set("servers", servers);
             }
             return node;
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalArgumentException("OpenAPI JSON 解析失败", e);
         }
@@ -317,10 +332,24 @@ public class ApiDocConsoleService {
         if (reactiveDiscoveryClient != null) {
             return reactiveDiscoveryClient.getInstances(uri.getHost())
                     .collectList()
-                    .filter(instances -> !instances.isEmpty())
-                    .switchIfEmpty(Mono.error(new IllegalStateException("未发现服务实例: " + uri.getHost())))
-                    .map(instances -> buildInstanceUri(uri, chooseInstance(uri.getHost(), instances)));
+                    .flatMap(instances -> {
+                        if (!instances.isEmpty()) {
+                            return Mono.just(buildInstanceUri(uri, chooseInstance(uri.getHost(), instances)));
+                        }
+                        return resolveBlockingDiscoveryUri(uri);
+                    })
+                    .onErrorResume(error -> resolveBlockingDiscoveryUri(uri));
         }
+        return resolveBlockingDiscoveryUri(uri);
+    }
+
+    /**
+     * 通过阻塞式服务发现解析目标请求地址
+     *
+     * @param uri 原始请求地址
+     * @return Mono<URI> 返回可访问的请求地址
+     */
+    private Mono<URI> resolveBlockingDiscoveryUri(URI uri) {
         DiscoveryClient discoveryClient = discoveryClients.getIfAvailable();
         if (discoveryClient == null) {
             return Mono.just(uri);

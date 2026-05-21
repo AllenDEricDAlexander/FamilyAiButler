@@ -14,9 +14,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -26,9 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import top.egon.openapi.console.autoconfigure.ApiDocConsoleAutoConfiguration;
 import top.egon.openapi.console.client.ApiDocConsoleHttpClient;
 import top.egon.openapi.console.client.ApiDocConsoleHttpRequest;
 import top.egon.openapi.console.client.ApiDocConsoleHttpResponse;
+import top.egon.openapi.console.client.ApiDocConsoleReactiveHttpClient;
 import top.egon.openapi.console.client.ApiDocConsoleVirtualThreadHttpClient;
 import top.egon.openapi.console.core.ApiDocConsoleDocumentRenderer;
 import top.egon.openapi.console.core.ApiDocConsoleService;
@@ -87,6 +91,54 @@ class ApiDocConsoleClientTest {
     }
 
     /**
+     * 测试响应式服务发现为空时降级到阻塞式服务发现
+     */
+    @Test
+    void testReactiveDiscoveryEmptyFallbackToBlockingDiscovery() {
+        RecordingHttpClient httpClient = new RecordingHttpClient();
+        StaticDiscoveryClient reactiveDiscoveryClient = new StaticDiscoveryClient(List.of());
+        StaticBlockingDiscoveryClient blockingDiscoveryClient = new StaticBlockingDiscoveryClient(List.of(
+                new SimpleServiceInstance("demo", URI.create("http://127.0.0.1:19090"))));
+        ApiDocConsoleService consoleService = consoleService(properties("http://demo"), httpClient, reactiveDiscoveryClient, blockingDiscoveryClient);
+
+        consoleService.execute(executeRequest("demo", "/users")).block(Duration.ofSeconds(3));
+
+        Assertions.assertEquals(19090, httpClient.requests.getFirst().getUri().getPort());
+    }
+
+    /**
+     * 测试 OpenAPI 聚合拒绝空规范响应
+     */
+    @Test
+    void testFetchOpenApiRejectsNullPayload() {
+        ApiDocConsoleHttpClient httpClient = request -> {
+            ApiDocConsoleHttpResponse response = new ApiDocConsoleHttpResponse();
+            response.setStatus(200);
+            response.setBody("null");
+            return Mono.just(response);
+        };
+        ApiDocConsoleService consoleService = consoleService(properties("http://demo"), httpClient, null);
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> consoleService.fetchOpenApi("demo").block(Duration.ofSeconds(3)));
+    }
+
+    /**
+     * 测试 OpenAPI 聚合拒绝非成功响应
+     */
+    @Test
+    void testFetchOpenApiRejectsFailedStatus() {
+        ApiDocConsoleHttpClient httpClient = request -> {
+            ApiDocConsoleHttpResponse response = new ApiDocConsoleHttpResponse();
+            response.setStatus(404);
+            response.setBody("{\"status\":404}");
+            return Mono.just(response);
+        };
+        ApiDocConsoleService consoleService = consoleService(properties("http://demo"), httpClient, null);
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> consoleService.fetchOpenApi("demo").block(Duration.ofSeconds(3)));
+    }
+
+    /**
      * 测试虚拟线程 HTTP 客户端可以创建并关闭
      */
     @Test
@@ -94,6 +146,38 @@ class ApiDocConsoleClientTest {
         ApiDocConsoleVirtualThreadHttpClient httpClient = new ApiDocConsoleVirtualThreadHttpClient(new ApiDocConsoleProperties());
 
         Assertions.assertDoesNotThrow(httpClient::close);
+    }
+
+    /**
+     * 测试自动客户端模式默认使用虚拟线程客户端
+     */
+    @Test
+    void testAutoEngineUsesVirtualThreadHttpClient() throws Exception {
+        ApiDocConsoleAutoConfiguration autoConfiguration = new ApiDocConsoleAutoConfiguration();
+        ApiDocConsoleHttpClient httpClient = autoConfiguration.apiDocConsoleHttpClient(new ApiDocConsoleProperties(), WebClient.builder());
+
+        try {
+            Assertions.assertInstanceOf(ApiDocConsoleVirtualThreadHttpClient.class, httpClient);
+        } finally {
+            httpClient.close();
+        }
+    }
+
+    /**
+     * 测试显式响应式客户端模式使用 WebClient 客户端
+     */
+    @Test
+    void testReactiveEngineUsesReactiveHttpClient() throws Exception {
+        ApiDocConsoleProperties properties = new ApiDocConsoleProperties();
+        properties.getClient().setEngine(ApiDocConsoleProperties.ClientEngine.REACTIVE);
+        ApiDocConsoleAutoConfiguration autoConfiguration = new ApiDocConsoleAutoConfiguration();
+        ApiDocConsoleHttpClient httpClient = autoConfiguration.apiDocConsoleHttpClient(properties, WebClient.builder());
+
+        try {
+            Assertions.assertInstanceOf(ApiDocConsoleReactiveHttpClient.class, httpClient);
+        } finally {
+            httpClient.close();
+        }
     }
 
     /**
@@ -107,9 +191,28 @@ class ApiDocConsoleClientTest {
     private ApiDocConsoleService consoleService(ApiDocConsoleProperties properties,
                                                 ApiDocConsoleHttpClient httpClient,
                                                 ReactiveDiscoveryClient discoveryClient) {
+        return consoleService(properties, httpClient, discoveryClient, null);
+    }
+
+    /**
+     * 创建控制台服务
+     *
+     * @param properties              控制台配置
+     * @param httpClient              HTTP 客户端
+     * @param discoveryClient         响应式服务发现客户端
+     * @param blockingDiscoveryClient 阻塞式服务发现客户端
+     * @return ApiDocConsoleService 返回控制台服务
+     */
+    private ApiDocConsoleService consoleService(ApiDocConsoleProperties properties,
+                                                ApiDocConsoleHttpClient httpClient,
+                                                ReactiveDiscoveryClient discoveryClient,
+                                                DiscoveryClient blockingDiscoveryClient) {
         DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
         if (discoveryClient != null) {
             beanFactory.registerSingleton("reactiveDiscoveryClient", discoveryClient);
+        }
+        if (blockingDiscoveryClient != null) {
+            beanFactory.registerSingleton("blockingDiscoveryClient", blockingDiscoveryClient);
         }
         return new ApiDocConsoleService(
                 properties,
@@ -226,6 +329,49 @@ class ApiDocConsoleClientTest {
         @Override
         public Flux<String> getServices() {
             return Flux.just("demo");
+        }
+    }
+
+    /**
+     * @BelongsProject: openapi-console
+     * @BelongsPackage: top.egon.openapi.console
+     * @ClassName: StaticBlockingDiscoveryClient
+     * @Author: atluofu
+     * @CreateTime: 2026Year-05Month-20Day-17:40
+     * @Description: 固定实例阻塞式服务发现客户端
+     * @Version: 1.0
+     */
+    private record StaticBlockingDiscoveryClient(List<ServiceInstance> instances) implements DiscoveryClient {
+
+        /**
+         * 返回服务说明
+         *
+         * @return String 返回说明
+         */
+        @Override
+        public String description() {
+            return "static-blocking";
+        }
+
+        /**
+         * 查询服务实例
+         *
+         * @param serviceId 服务 ID
+         * @return List<ServiceInstance> 返回固定服务实例
+         */
+        @Override
+        public List<ServiceInstance> getInstances(String serviceId) {
+            return instances;
+        }
+
+        /**
+         * 查询服务列表
+         *
+         * @return List<String> 返回服务列表
+         */
+        @Override
+        public List<String> getServices() {
+            return List.of("demo");
         }
     }
 

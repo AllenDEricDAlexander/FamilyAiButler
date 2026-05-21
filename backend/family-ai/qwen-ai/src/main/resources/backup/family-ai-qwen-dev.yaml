@@ -1,0 +1,55 @@
+family:
+  ai:
+    qwen:
+      api-key: ${AI_QWEN_KEY:sk-432cea23eeb540fcb7966e78f88d06be}
+      models:
+        - name: qwen3.6-plus
+          display-name: 通义千问 Plus
+          enabled: true
+          provider: dashscope
+          model-kind: CHAT
+          modalities:
+            - TEXT
+            - TEXT_GENERATION
+          default-modalities:
+            - TEXT
+            - TEXT_GENERATION
+          aliases:
+            - text-default
+          options:
+            temperature: 0.7
+        - name: qwen-vl-plus
+          display-name: 通义千问 VL-Plus
+          enabled: true
+          provider: dashscope
+          model-kind: MULTIMODAL_CHAT
+          modalities:
+            - MULTIMODAL
+            - VISION
+            - VISION_UNDERSTANDING
+          default-modalities:
+            - VISION_UNDERSTANDING
+          aliases:
+            - qwen-vl
+            - vision-default
+          options:
+            temperature: 0.2
+        - name: Qwen3.5-Omni-Flash
+          display-name: 通义千问 Omni Turbo
+          enabled: true
+          provider: dashscope
+          model-kind: OMNI_CHAT
+          modalities:
+            - OMNI
+            - REALTIME
+            - REALTIME_OMNI
+          default-modalities:
+            - OMNI
+          aliases:
+            - qwen-omni
+            - omni-default
+          options:
+            temperature: 0.7
+            dashscope-modalities:
+              - text
+              - audio

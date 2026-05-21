@@ -1,17 +1,53 @@
 # 统一 UAA / CIAM / RBAC3 / OAuth2 / SSO / ToC 权益平台需求方案
 
+## 0. 当前实现进度（2026-05-20）
+
+本节只记录当前代码相对需求方案的完成情况，不替代后续需求定义。状态依据当前 `backend/family-uaa`、`family-common`、
+`family-gateway`、`family-core`、`family-ai/qwen-ai` 代码和 `plan.md` 执行记录整理。
+
+### 0.1 已完成
+
+| 范围                | 完成情况                                                                                                                                          |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| 模块拆分              | 已拆为 `backend/family-uaa/uaa-facade`、`backend/family-uaa/uaa-core`、`backend/family-uaa/uaa-resource-server-spring-boot-starter`，旧 UAA 单体实现已删除。 |
+| DDD/COLA 结构       | `uaa-core` 已按 `adapter`、`application`、`domain`、`infrastructure` 承载实现。                                                                         |
+| facade 稳定契约       | 已提供 Account、Auth、Token、Profile、Authorization、OAuthClient、Rbac facade 及 DTO / 枚举，供其他模块引入。                                                      |
+| 账号与 Profile 基础能力  | 已完成账号注册、状态变更、注销申请/确认、主 Profile 创建、Profile 更新 / 删除 / 列表等基础用例。                                                                                  |
+| 登录、会话、Token 基础能力  | 已完成密码登录、验证码登录入口、找回/重置入口、Access Token、Refresh Token、Token 校验 / 刷新 / 撤销、会话退出、设备移除。                                                              |
+| JWT / JWK         | JWT 只携带身份声明和版本号，不携带权限集合；已支持 HS512 / RS256，UAA 已发布 `/.well-known/jwks.json`。                                                                   |
+| OAuth Client 基础能力 | 已完成 OAuth Client 领域模型、持久化、默认 `family-web`、创建 / 查询 / 列表接口、Secret 哈希、Grant / Scope / Resource Pattern / TTL。                                    |
+| RBAC 基础能力         | 已支持角色、权限资源、角色资源绑定、账号角色绑定、账号权限查询；资源类型覆盖 `PAGE`、`BUTTON`、`API`。                                                                                 |
+| 动态授权决策            | `/authorization/decide` 已校验 JWT、Token 落库状态、账号状态、authVersion、entitlementVersion、riskLevel、OAuth Client 资源范围和 RBAC API 权限。                      |
+| gateway 接入        | `family-gateway` 已本地校验 JWT 并调用 UAA 决策，拒绝时返回 403，通过后向下游注入可信身份头；gateway 已按 `adapter`、`application`、`domain`、`infrastructure` 分层。                |
+| 资源服务 starter      | 已提供 `uaa-resource-server-spring-boot-starter`，包含通用 Servlet Filter、REST 授权客户端和自动配置；`family-core` 与 `family-ai-qwen` 已接入。                       |
+| PostgreSQL 持久化    | 已建立账号、凭证、Profile、设备、OAuth Client、RBAC、会话、Refresh Token、Access Token、安全挑战等基础表和 MyBatis Plus 持久化实现。                                             |
+
+### 0.2 部分完成
+
+| 范围                  | 当前已完成                                                                                  | 剩余缺口                                                                                  |
+|---------------------|----------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| OAuth2 / OIDC / SSO | 密码模式风格登录、JWT、Refresh Token、JWK、gateway / `family-core` / `family-ai-qwen` 资源服务接入闭环已完成。 | Authorization Code + PKCE、OIDC Discovery、UserInfo、ID Token、Consent、标准 SSO 登录和单点退出未完成。 |
+| RBAC3               | 页面、按钮、接口资源类型和基础绑定 / 查询 / API 决策已完成。                                                    | 角色继承、互斥角色、职责分离、动态角色、组织 / 项目 / 频道 / 租户 / 数据范围约束未完成。                                    |
+| 设备与会话管理             | 登录设备登记、设备移除、会话退出、Token 级撤销已完成。                                                         | 设备列表、当前会话列表、管理员强制下线、可信设备、并发设备限制未完成。                                                   |
+| OAuth Client 管理     | 创建、查询、列表、Secret 哈希、Grant / Scope / Resource Pattern / TTL 已完成。                         | Client 禁用、Secret 轮换、Redirect URI、Allowed Origins、审核和审计日志未完成。                          |
+| 权益与风控               | Token 声明中已有 entitlementVersion、riskLevel，授权决策有版本和高风险拒绝。                                | 套餐、订阅、权益、额度、内容访问、完整风控策略、风险事件和限流未完成。                                                   |
+| 安全加固                | 密码、Client Secret、Refresh Token、Access Token 均避免明文落库，JWT 不携带权限集合。                       | MFA、Passkey、CSRF / XSS 专项策略、暴力破解防护、完整安全审计未完成。                                         |
+
+### 0.3 未完成 / 后续批次
+
+| 范围               | 说明                                                                  |
+|------------------|---------------------------------------------------------------------|
+| 标准 OAuth2 / OIDC | Authorization Code + PKCE、OIDC Discovery、UserInfo、ID Token、Consent。 |
+| 组织 / 项目 / 开放平台   | 组织、项目、开发者应用、API Key、Service Account。                                |
+| 权益 / 额度 / 内容访问   | 套餐、订阅、Quota、Feature Flag、内容访问判断接口。                                  |
+| 完整风控             | 风险事件、风险策略、异常登录、限流、账号封禁联动。                                           |
+| 审计日志             | 登录审计、授权审计、权限审计、权益审计、管理操作审计落库。                                       |
+| 用户自助和管理后台        | 用户自助中心 API、运营管理后台 API、管理员强制操作。                                      |
+| 接入文档             | SSO 接入 Demo、资源服务接入示例、错误码规范、运维说明。                                    |
+
 ## 1. 方案定位
 
-本系统定位为一套面向 **ToB + ToC + 开放平台 + 内容/会员业务** 的统一身份认证、权限控制、单点登录和权益授权平台。
-
-它不是单纯的后台登录系统，也不是普通 RBAC 权限系统，而是类似以下产品形态的统一账号与授权底座：
-
-| 参考形态      | 对应能力                                      |
-|-----------|-------------------------------------------|
-| OpenAI 类  | 账号、组织、项目、API Key、Service Account、额度、开发者权限 |
-| X.com 类   | 账号、公开身份、社交关系、风控、内容发布权限                    |
-| Netflix 类 | 账号、Profile、会员套餐、设备限制、内容观看权益               |
-| YouTube 类 | 账号、频道、创作者、频道团队权限、内容审核、收益权限                |
+本系统定位为一套面向 **ToB + ToC + 开放平台 + 内容/会员业务** 的统一身份认证、权限控制、单点登录。
 
 最终系统应具备：
 
@@ -20,24 +56,11 @@
 统一认证登录
 统一 OAuth2 / OIDC / SSO
 统一 RBAC3 权限
-统一会员权益
 统一内容访问授权
 统一设备会话管理
 统一开放平台授权
 统一风控与审计
 统一管理后台与用户自助中心
-```
-
-推荐产品名称：
-
-```text
-统一身份认证与权益授权平台
-```
-
-英文可称为：
-
-```text
-Unified Identity, Access & Entitlement Platform
 ```
 
 ---
@@ -57,7 +80,6 @@ Unified Identity, Access & Entitlement Platform
 | 统一 SSO         | 所有业务系统接入统一认证中心，实现单点登录和单点退出                       |
 | 统一 OAuth2/OIDC | 支持标准授权、Token 签发、用户授权同意、第三方应用接入                   |
 | 统一 RBAC3       | 支持角色继承、职责分离、互斥角色、动态角色、数据权限                       |
-| 统一权益           | 支持会员套餐、功能权益、内容权益、API 额度、设备限制                     |
 | 统一 Profile     | 支持主 Profile、儿童 Profile、创作者 Profile、品牌 Profile    |
 | 统一设备会话         | 支持设备登录、可信设备、远程登出、并发控制                            |
 | 统一开放平台         | 支持 OAuth Client、API Key、Service Account、Scope 审核 |
@@ -78,7 +100,6 @@ Unified Identity, Access & Entitlement Platform
 | OIDC 登录认证                 | 包含   |
 | SSO 单点登录                  | 包含   |
 | RBAC3 权限管理                | 包含   |
-| 会员权益管理                    | 包含   |
 | 内容访问授权                    | 包含   |
 | 设备与会话管理                   | 包含   |
 | Profile 管理                | 包含   |
@@ -418,25 +439,22 @@ Profile 负责展示身份、内容偏好、年龄分级和使用体验。
 | WEB     | 浏览器     |
 | MOBILE  | 手机 App  |
 | DESKTOP | 桌面客户端   |
-| TV      | 电视 / 大屏 |
-| CLI     | 命令行     |
 | API     | API 调用端 |
 | UNKNOWN | 未识别设备   |
 
 ## 10.2 设备功能
 
-| 编号     | 需求           | 优先级 |
-|--------|--------------|-----|
-| DEV-01 | 自动登记登录设备     | P0  |
-| DEV-02 | 支持设备名称展示     | P0  |
-| DEV-03 | 支持用户查看设备列表   | P0  |
-| DEV-04 | 支持用户移除设备     | P0  |
-| DEV-05 | 支持可信设备标记     | P1  |
-| DEV-06 | 支持设备风险评分     | P1  |
-| DEV-07 | 支持新设备登录验证    | P0  |
-| DEV-08 | 支持套餐限制最大设备数  | P0  |
-| DEV-09 | 支持并发在线限制     | P0  |
-| DEV-10 | 支持 TV 端设备码登录 | P2  |
+| 编号     | 需求          | 优先级 |
+|--------|-------------|-----|
+| DEV-01 | 自动登记登录设备    | P0  |
+| DEV-02 | 支持设备名称展示    | P0  |
+| DEV-03 | 支持用户查看设备列表  | P0  |
+| DEV-04 | 支持用户移除设备    | P0  |
+| DEV-05 | 支持可信设备标记    | P1  |
+| DEV-06 | 支持设备风险评分    | P1  |
+| DEV-07 | 支持新设备登录验证   | P0  |
+| DEV-08 | 支持套餐限制最大设备数 | P0  |
+| DEV-09 | 支持并发在线限制    | P0  |
 
 ## 10.3 设备限制规则
 

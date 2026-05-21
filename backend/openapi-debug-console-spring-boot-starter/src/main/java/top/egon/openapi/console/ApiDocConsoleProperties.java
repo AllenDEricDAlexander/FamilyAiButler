@@ -112,6 +112,12 @@ public class ApiDocConsoleProperties {
 
         private Duration ttl = Duration.ofHours(8);
 
+        private Duration challengeTtl = Duration.ofMinutes(2);
+
+        private Duration requestSignatureTtl = Duration.ofMinutes(5);
+
+        private boolean requestSigningEnabled = true;
+
         private boolean secureCookie = false;
 
         private String sameSite = "Lax";

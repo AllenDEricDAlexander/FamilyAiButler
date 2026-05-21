@@ -113,6 +113,7 @@ public class ApiDocConsoleServletAutoConfiguration {
      * @param properties     接口文档平台配置
      * @param sessionService 会话服务
      * @param consoleService 核心服务
+     * @param objectMapper   Jackson 映射器
      * @return ApiDocConsoleMvcController 返回 MVC 控制器
      */
     @Bean
@@ -120,8 +121,9 @@ public class ApiDocConsoleServletAutoConfiguration {
     @ConditionalOnMissingBean
     public ApiDocConsoleMvcController apiDocConsoleMvcController(ApiDocConsoleProperties properties,
                                                                  ApiDocConsoleSessionService sessionService,
-                                                                 ApiDocConsoleService consoleService) {
-        return new ApiDocConsoleMvcController(properties, sessionService, consoleService);
+                                                                 ApiDocConsoleService consoleService,
+                                                                 ObjectMapper objectMapper) {
+        return new ApiDocConsoleMvcController(properties, sessionService, consoleService, objectMapper);
     }
 
     /**

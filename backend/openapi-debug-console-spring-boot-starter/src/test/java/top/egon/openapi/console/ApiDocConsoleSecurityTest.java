@@ -28,7 +28,12 @@ import top.egon.openapi.console.core.ApiDocConsoleService;
 import top.egon.openapi.console.core.ApiDocConsoleSessionService;
 import top.egon.openapi.console.filter.ApiDocOpenApiAccessServletFilter;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -78,6 +83,35 @@ class ApiDocConsoleSecurityTest {
         ResponseCookie cookie = sessionService.createSessionCookie("admin");
 
         Assertions.assertTrue(cookie.toString().contains("Secure"));
+    }
+
+    /**
+     * 测试登录挑战证明和控制台 API 请求签名
+     */
+    @Test
+    void testLoginProofAndConsoleRequestSignature() throws Exception {
+        ApiDocConsoleSessionService sessionService = new ApiDocConsoleSessionService(secureProperties(), new MockEnvironment());
+        ApiDocConsolePayloads.LoginChallengeResponse challenge = sessionService.createLoginChallenge("admin", "127.0.0.1");
+        long loginTimestamp = System.currentTimeMillis();
+        byte[] passwordDigest = sha256Bytes("SecurePassword@2026");
+        String proofPayload = challenge.getChallengeId() + "\n" + challenge.getNonce() + "\nadmin\n" + loginTimestamp;
+        ApiDocConsolePayloads.LoginRequest loginRequest = new ApiDocConsolePayloads.LoginRequest();
+        loginRequest.setUsername("admin");
+        loginRequest.setChallengeId(challenge.getChallengeId());
+        loginRequest.setTimestamp(loginTimestamp);
+        loginRequest.setProof(hmacSha256Hex(passwordDigest, proofPayload));
+
+        ApiDocConsoleSessionService.LoginValidation validation = sessionService.validateLoginProof(loginRequest, "127.0.0.1").orElseThrow();
+        ResponseCookie cookie = sessionService.createSessionCookie(validation.getUsername(), validation.getRequestSigningSecret());
+        String cookieValue = cookie.getValue();
+        ApiDocConsolePayloads.UserSession session = sessionService.resolveSession(cookieValue).orElseThrow();
+        String requestTimestamp = String.valueOf(System.currentTimeMillis());
+        String nonce = "request-nonce";
+        String canonical = "GET\n/openapi-console/api/catalog\n" + requestTimestamp + "\n" + nonce + "\n" + sha256Hex("");
+        String signature = hmacSha256Hex(Base64.getUrlDecoder().decode(validation.getRequestSigningSecret()), canonical);
+
+        Assertions.assertTrue(sessionService.validateRequestSignature(session, "GET", "/openapi-console/api/catalog", "", requestTimestamp, nonce, signature));
+        Assertions.assertFalse(sessionService.validateRequestSignature(session, "GET", "/openapi-console/api/catalog", "", requestTimestamp, nonce, signature));
     }
 
     /**
@@ -161,5 +195,55 @@ class ApiDocConsoleSecurityTest {
         properties.getProducer().getAccessControl().setEnabled(true);
         properties.getProducer().getAccessControl().setToken("internal-openapi-token");
         return properties;
+    }
+
+    /**
+     * 生成 SHA-256 十六进制摘要
+     *
+     * @param value 原文
+     * @return String 返回十六进制摘要
+     * @throws Exception 加密异常
+     */
+    private String sha256Hex(String value) throws Exception {
+        return bytesToHex(sha256Bytes(value));
+    }
+
+    /**
+     * 生成 SHA-256 摘要字节
+     *
+     * @param value 原文
+     * @return byte[] 返回摘要字节
+     * @throws Exception 加密异常
+     */
+    private byte[] sha256Bytes(String value) throws Exception {
+        return MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * 生成 HmacSHA256 十六进制摘要
+     *
+     * @param key   密钥
+     * @param value 原文
+     * @return String 返回十六进制摘要
+     * @throws Exception 加密异常
+     */
+    private String hmacSha256Hex(byte[] key, String value) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(key, "HmacSHA256"));
+        return bytesToHex(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /**
+     * 字节数组转十六进制字符串
+     *
+     * @param bytes 字节数组
+     * @return String 返回十六进制字符串
+     */
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte item : bytes) {
+            builder.append(String.format("%02x", item));
+        }
+        return builder.toString();
     }
 }

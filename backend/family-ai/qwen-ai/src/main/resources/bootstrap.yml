@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: family-ai-qwen
+  config:
+    import:
+      - optional:nacos:family-ai-qwen-${FAMILY_AI_BUTLER_ENV:dev}.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+  cloud:
+    nacos:
+      username: ${NACOS_USERNAME:test}
+      password: ${NACOS_PASSWORD:HomeLab666}
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:d11babcf-8ebf-47fb-90a6-3fb6a7eb85dc}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:d11babcf-8ebf-47fb-90a6-3fb6a7eb85dc}
+        file-extension: yaml
+
+logging:
+  file:
+    path: ${FAMILY_AI_BUTLER_LOG_PATH:./logs}/${spring.application.name}

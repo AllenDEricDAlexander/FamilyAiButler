@@ -8,6 +8,7 @@
  * @Version: 1.0
  */
 const API_BASE = `${location.pathname.replace(/\/(?:index\.html)?$/, "")}/api`;
+const SIGNING_KEY_STORAGE = "openapi-console-request-signing-key";
 const specTools = window.OpenApiConsoleSpec;
 const localStore = window.OpenApiConsoleStorage.createConsoleStore();
 const state = {
@@ -20,9 +21,16 @@ const state = {
     operations: [],
     operation: null,
     activeTab: "params",
+    responseTab: "response",
+    artifactTab: "curl",
     localPanel: "",
     lastResponseBody: "",
+    lastResponseHeaders: {},
+    lastResponseLog: {},
     lastCurl: "",
+    lastCode: "",
+    lastRequestPayload: null,
+    signingKey: "",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -40,7 +48,8 @@ function bindEvents() {
     $("loginForm").addEventListener("submit", login);
     $("logout").addEventListener("click", logout);
     $("refreshCatalog").addEventListener("click", loadCatalog);
-    $("search").addEventListener("input", renderOperationResults);
+    $("serviceSearch").addEventListener("input", renderServices);
+    $("operationSearch").addEventListener("input", renderCurrentOperationList);
     $("fillExample").addEventListener("click", fillExample);
     $("sendRequest").addEventListener("click", sendRequest);
     $("runLoadTest").addEventListener("click", runLoadTest);
@@ -53,11 +62,12 @@ function bindEvents() {
     $("exportLocalData").addEventListener("click", exportLocalData);
     $("importLocalData").addEventListener("click", () => $("localDataFile").click());
     $("localDataFile").addEventListener("change", importLocalData);
+    $("clearLocalData").addEventListener("click", clearBrowserStorage);
     $("favoriteOperation").addEventListener("click", toggleFavorite);
     $("savePreset").addEventListener("click", saveCurrentPreset);
     $("applyAuth").addEventListener("click", applyAuth);
     $("copyResponse").addEventListener("click", () => copyText(state.lastResponseBody));
-    $("copyCurl").addEventListener("click", () => copyText(state.lastCurl));
+    $("copyCurl").addEventListener("click", () => copyText(state.artifactTab === "code" ? state.lastCode : state.lastCurl));
     $("downloadResponse").addEventListener("click", downloadResponse);
     $("showHistory").addEventListener("click", () => renderLocalPanel("history"));
     $("showFavorites").addEventListener("click", () => renderLocalPanel("favorites"));
@@ -66,25 +76,35 @@ function bindEvents() {
     document.querySelectorAll(".tab").forEach((tab) => {
         tab.addEventListener("click", () => activateTab(tab.dataset.tab));
     });
+    document.querySelectorAll(".response-tab").forEach((tab) => {
+        tab.addEventListener("click", () => activateResponseTab(tab.dataset.responseTab));
+    });
+    document.querySelectorAll(".artifact-tab").forEach((tab) => {
+        tab.addEventListener("click", () => activateArtifactTab(tab.dataset.artifactTab));
+    });
 }
 
 /**
  * 检查登录态
  */
 async function checkLogin() {
-    const response = await fetch(`${API_BASE}/me`, {credentials: "include"});
+    state.signingKey = readSigningKey();
+    const response = await apiFetch("/me", {sign: false});
     if (!response.ok) {
         showLogin();
         return;
     }
     const me = await response.json();
-    if (me.authenticated) {
+    if (me.authenticated && state.signingKey) {
         $("usernameLabel").textContent = me.username || "admin";
         $("userAvatar").textContent = (me.username || "A").slice(0, 1).toUpperCase();
         $("modeLabel").textContent = me.mode || "FULL";
         showConsole();
         await loadCatalog();
         return;
+    }
+    if (me.authenticated) {
+        $("loginMessage").textContent = "登录签名密钥已失效，请重新输入密码";
     }
     showLogin();
 }
@@ -97,28 +117,188 @@ async function checkLogin() {
 async function login(event) {
     event.preventDefault();
     $("loginMessage").textContent = "";
-    const response = await fetch(`${API_BASE}/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({username: $("username").value, password: $("password").value}),
-    });
-    if (!response.ok) {
-        $("loginMessage").textContent = "账号或密码错误";
-        return;
+    const username = $("username").value || "admin";
+    const password = $("password").value;
+    try {
+        const proof = await buildLoginProof(username, password);
+        const response = await apiFetch("/login", {
+            method: "POST",
+            sign: false,
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                username,
+                challengeId: proof.challenge.challengeId,
+                timestamp: proof.timestamp,
+                proof: proof.proof,
+            }),
+        });
+        if (!response.ok) {
+            $("loginMessage").textContent = "账号或密码错误";
+            return;
+        }
+        state.signingKey = proof.requestSigningKey;
+        writeSigningKey(state.signingKey);
+        $("password").value = "";
+        $("usernameLabel").textContent = username;
+        $("userAvatar").textContent = (username || "A").slice(0, 1).toUpperCase();
+        showConsole();
+        await loadCatalog();
+    } catch (error) {
+        $("loginMessage").textContent = error.message || "登录失败";
     }
-    $("usernameLabel").textContent = $("username").value || "admin";
-    $("userAvatar").textContent = ($("username").value || "A").slice(0, 1).toUpperCase();
-    showConsole();
-    await loadCatalog();
 }
 
 /**
  * 退出登录
  */
 async function logout() {
-    await fetch(`${API_BASE}/logout`, {method: "POST", credentials: "include"});
+    try {
+        await apiFetch("/logout", {method: "POST"});
+    } finally {
+        state.signingKey = "";
+        writeSigningKey("");
+    }
     showLogin();
+}
+
+/**
+ * 调用控制台 API
+ *
+ * @param {string} path API 路径
+ * @param {object} options 请求配置
+ * @returns {Promise<Response>} 返回响应
+ */
+async function apiFetch(path, options = {}) {
+    const method = (options.method || "GET").toUpperCase();
+    const headers = {...(options.headers || {})};
+    const body = options.body || "";
+    if (options.sign !== false) {
+        await signConsoleRequest(headers, method, path, body);
+    }
+    const response = await fetch(`${API_BASE}${path}`, {
+        method,
+        credentials: "include",
+        headers,
+        body: body || undefined,
+    });
+    if (response.status === 401 && options.sign !== false) {
+        state.signingKey = "";
+        writeSigningKey("");
+        showLogin();
+    }
+    return response;
+}
+
+/**
+ * 构造登录挑战证明
+ *
+ * @param {string} username 用户名
+ * @param {string} password 密码
+ * @returns {Promise<object>} 返回登录证明
+ */
+async function buildLoginProof(username, password) {
+    if (!window.crypto?.subtle) {
+        throw new Error("当前浏览器环境不支持安全登录，请使用 HTTPS 或 localhost");
+    }
+    const challengeResponse = await apiFetch(`/login-challenge?username=${encodeURIComponent(username)}`, {sign: false});
+    if (!challengeResponse.ok) {
+        throw new Error("登录挑战创建失败");
+    }
+    const challenge = await challengeResponse.json();
+    const timestamp = Date.now();
+    const passwordDigest = await sha256Bytes(password || "");
+    const payload = loginProofPayload(challenge, username, timestamp);
+    const proof = bytesToHex(await hmacSha256Bytes(passwordDigest, payload));
+    const requestSigningKey = base64UrlEncode(await hmacSha256Bytes(passwordDigest, `openapi-console-request-signing\n${payload}`));
+    return {challenge, timestamp, proof, requestSigningKey};
+}
+
+/**
+ * 签名控制台 API 请求
+ *
+ * @param {object} headers 请求头
+ * @param {string} method HTTP 方法
+ * @param {string} path API 路径
+ * @param {string} body 请求体
+ */
+async function signConsoleRequest(headers, method, path, body) {
+    state.signingKey = state.signingKey || readSigningKey();
+    if (!state.signingKey) {
+        throw new Error("登录签名密钥已失效，请重新登录");
+    }
+    const timestamp = String(Date.now());
+    const nonce = randomToken(16);
+    const url = new URL(`${API_BASE}${path}`, location.origin);
+    const canonical = [
+        method.toUpperCase(),
+        `${url.pathname}${url.search}`,
+        timestamp,
+        nonce,
+        await sha256Hex(body || ""),
+    ].join("\n");
+    headers["X-OpenAPI-Console-Timestamp"] = timestamp;
+    headers["X-OpenAPI-Console-Nonce"] = nonce;
+    headers["X-OpenAPI-Console-Signature"] = bytesToHex(await hmacSha256Bytes(base64UrlDecode(state.signingKey), canonical));
+}
+
+/**
+ * 构造登录证明载荷
+ *
+ * @param {object} challenge 登录挑战
+ * @param {string} username 用户名
+ * @param {number} timestamp 时间戳
+ * @returns {string} 返回证明载荷
+ */
+function loginProofPayload(challenge, username, timestamp) {
+    return `${challenge.challengeId}\n${challenge.nonce}\n${username}\n${timestamp}`;
+}
+
+/**
+ * 读取控制台请求签名密钥
+ *
+ * @returns {string} 返回签名密钥
+ */
+function readSigningKey() {
+    try {
+        return sessionStorage.getItem(SIGNING_KEY_STORAGE) || "";
+    } catch (error) {
+        return "";
+    }
+}
+
+/**
+ * 写入控制台请求签名密钥
+ *
+ * @param {string} value 签名密钥
+ */
+function writeSigningKey(value) {
+    try {
+        if (value) {
+            sessionStorage.setItem(SIGNING_KEY_STORAGE, value);
+        } else {
+            sessionStorage.removeItem(SIGNING_KEY_STORAGE);
+        }
+    } catch (error) {
+        // 忽略浏览器隐私模式下的 sessionStorage 写入失败。
+    }
+}
+
+/**
+ * 读取 JSON 响应，失败时抛出错误
+ *
+ * @param {Response} response 响应对象
+ * @returns {Promise<object>} 返回 JSON
+ */
+async function readJsonResult(response) {
+    const text = await response.text();
+    let result = {};
+    if (text) {
+        result = JSON.parse(text);
+    }
+    if (!response.ok) {
+        throw new Error(result.message || "控制台请求失败");
+    }
+    return result;
 }
 
 /**
@@ -141,13 +321,16 @@ function showConsole() {
  * 加载服务目录
  */
 async function loadCatalog() {
-    const response = await fetch(`${API_BASE}/catalog`, {credentials: "include"});
+    const response = await apiFetch("/catalog");
     if (!response.ok) {
         $("serviceList").innerHTML = `<div class="empty-state">服务目录加载失败，请检查控制台配置</div>`;
         disableWorkspace(true);
         return;
     }
     state.catalog = await response.json();
+    state.specs = {};
+    state.serviceOperations = {};
+    state.operationCounts = {};
     $("title").textContent = state.catalog.title || "FamilyAiButler";
     $("environment").textContent = environmentName(state.catalog.environment);
     $("modeLabel").textContent = state.catalog.mode || "FULL";
@@ -157,7 +340,14 @@ async function loadCatalog() {
         $("serviceList").innerHTML = `<div class="empty-state">暂无服务配置，请检查 egon.openapi.console.services</div>`;
         return;
     }
-    await loadService(state.catalog.services[0]);
+    state.service = null;
+    state.spec = null;
+    state.operations = [];
+    state.operation = null;
+    $("currentServiceName").textContent = "请选择服务";
+    $("currentServiceTag").textContent = "服务";
+    renderCurrentOperationList();
+    renderOperationDetail();
     hydrateServiceCounts();
 }
 
@@ -165,15 +355,25 @@ async function loadCatalog() {
  * 后台刷新服务接口数量
  */
 async function hydrateServiceCounts() {
-    await Promise.all((state.catalog?.services || []).map(async (service) => {
+    const catalog = state.catalog;
+    await Promise.all((catalog?.services || []).map(async (service) => {
         try {
             await fetchServiceSpec(service);
         } catch (error) {
             state.operationCounts[service.id] = 0;
+        } finally {
+            if (state.catalog === catalog) {
+                renderServices();
+                if (state.service?.id === service.id) {
+                    renderCurrentOperationList();
+                }
+            }
         }
     }));
-    renderServices();
-    renderOperationResults();
+    if (state.catalog === catalog) {
+        renderServices();
+        renderCurrentOperationList();
+    }
 }
 
 /**
@@ -184,7 +384,11 @@ async function hydrateServiceCounts() {
  * @param {object} snapshot 请求快照
  */
 async function loadService(service, operationKey, snapshot) {
+    const previousServiceId = state.service?.id;
     state.service = service;
+    if (previousServiceId !== service.id) {
+        $("operationSearch").value = "";
+    }
     renderServices();
     $("currentServiceName").textContent = service.name || service.id;
     $("currentServiceTag").textContent = service.group || "服务";
@@ -194,9 +398,10 @@ async function loadService(service, operationKey, snapshot) {
         state.spec = null;
         state.operations = [];
         state.operation = null;
+        $("operationServiceName").textContent = service.name || service.id;
+        $("operationSearch").disabled = true;
         $("currentOperationList").innerHTML = `<div class="empty-state">OpenAPI JSON 加载失败</div>`;
         $("operationCount").textContent = "0";
-        $("operationResults").innerHTML = `<div class="empty-state">OpenAPI JSON 加载失败</div>`;
         renderOperationDetail();
         return;
     }
@@ -204,8 +409,8 @@ async function loadService(service, operationKey, snapshot) {
     state.operation = operationKey
         ? state.operations.find((item) => item.key === operationKey) || state.operations[0] || null
         : state.operations[0] || null;
+    renderServices();
     renderCurrentOperationList();
-    renderOperationResults();
     try {
         renderOperationDetail(snapshot);
     } catch (error) {
@@ -223,11 +428,18 @@ async function fetchServiceSpec(service) {
     if (state.specs[service.id]) {
         return state.specs[service.id];
     }
-    const response = await fetch(`${API_BASE}/openapi/${encodeURIComponent(service.id)}`, {credentials: "include"});
+    const response = await apiFetch(`/openapi/${encodeURIComponent(service.id)}`);
     if (!response.ok) {
-        throw new Error("OpenAPI JSON 加载失败");
+        let message = "OpenAPI JSON 加载失败";
+        try {
+            const payload = await response.json();
+            message = payload.message || message;
+        } catch (error) {
+            message = response.statusText || message;
+        }
+        throw new Error(message);
     }
-    const spec = await response.json();
+    const spec = normalizeOpenApiSpec(await response.json());
     const operations = specTools.collectOperations(spec).map((item) => ({
         ...item,
         serviceId: service.id,
@@ -241,6 +453,19 @@ async function fetchServiceSpec(service) {
 }
 
 /**
+ * 标准化 OpenAPI JSON
+ *
+ * @param {object} spec OpenAPI JSON
+ * @returns {object} 返回有效 OpenAPI JSON
+ */
+function normalizeOpenApiSpec(spec) {
+    if (!spec || typeof spec !== "object" || Array.isArray(spec) || !spec.paths || typeof spec.paths !== "object" || Array.isArray(spec.paths)) {
+        throw new Error("OpenAPI JSON 不是有效规范对象");
+    }
+    return spec;
+}
+
+/**
  * 渲染服务列表
  */
 function renderServices() {
@@ -249,7 +474,18 @@ function renderServices() {
         $("serviceList").innerHTML = `<div class="empty-state">暂无服务配置</div>`;
         return;
     }
-    state.catalog.services.forEach((service) => {
+    const keyword = $("serviceSearch").value.trim().toLowerCase();
+    const services = state.catalog.services.filter((service) => {
+        if (!keyword) {
+            return true;
+        }
+        return `${service.name || ""} ${service.id || ""} ${service.group || ""}`.toLowerCase().includes(keyword);
+    });
+    if (!services.length) {
+        $("serviceList").innerHTML = `<div class="empty-state">暂无匹配服务</div>`;
+        return;
+    }
+    services.forEach((service) => {
         const button = document.createElement("button");
         const count = state.operationCounts[service.id] ?? "-";
         button.className = `service-item${state.service?.id === service.id ? " active" : ""}`;
@@ -267,8 +503,10 @@ function renderServices() {
  * 渲染当前服务接口列表
  */
 function renderCurrentOperationList() {
-    const keyword = $("search").value.trim();
+    const keyword = $("operationSearch").value.trim();
     const operations = specTools.visibleOperationsForService(state.operations, keyword);
+    $("operationServiceName").textContent = state.service ? (state.service.name || state.service.id) : "请选择服务";
+    $("operationSearch").disabled = !state.service || !state.operations.length;
     $("operationCount").textContent = operations.length;
     $("currentOperationList").innerHTML = "";
     if (!state.service) {
@@ -285,28 +523,6 @@ function renderCurrentOperationList() {
 }
 
 /**
- * 渲染搜索结果
- */
-function renderOperationResults() {
-    const keyword = $("search").value.trim().toLowerCase();
-    renderCurrentOperationList();
-    $("searchResults").classList.toggle("hidden", !keyword);
-    $("operationResults").innerHTML = "";
-    if (!keyword) {
-        return;
-    }
-    const operations = Object.values(state.serviceOperations)
-        .flat()
-        .filter((item) => `${item.serviceName} ${item.method} ${item.path} ${item.summary} ${item.tags.join(" ")}`.toLowerCase().includes(keyword))
-        .slice(0, 80);
-    if (!operations.length) {
-        $("operationResults").innerHTML = `<div class="empty-state">暂无接口</div>`;
-        return;
-    }
-    operations.forEach((item) => $("operationResults").appendChild(operationButton(item, () => selectOperationFromAnyService(item), true)));
-}
-
-/**
  * 创建接口按钮
  *
  * @param {object} item 接口条目
@@ -318,7 +534,10 @@ function operationButton(item, clickHandler, showService) {
     const button = document.createElement("button");
     button.className = `operation-item${state.operation?.key === item.key ? " active" : ""}`;
     button.innerHTML = `
-    <strong>${escapeHtml(item.method)} ${escapeHtml(item.path)}</strong>
+    <span class="operation-main">
+      <span class="method-pill method-${escapeHtml(item.method.toLowerCase())}">${escapeHtml(item.method)}</span>
+      <span class="operation-path">${escapeHtml(item.path)}</span>
+    </span>
     <small>${showService ? `${escapeHtml(item.serviceName)} · ` : ""}${escapeHtml(item.summary || item.tags.join(","))}</small>
   `;
     button.addEventListener("click", clickHandler);
@@ -334,7 +553,6 @@ function selectCurrentOperation(operation) {
     state.operation = operation;
     $("requestPath").value = operation.path;
     renderCurrentOperationList();
-    renderOperationResults();
     renderOperationDetail();
 }
 
@@ -365,8 +583,15 @@ function renderOperationDetail(snapshot) {
         $("queryInput").value = "{}";
         $("headersInput").value = "{}";
         $("bodyInput").value = "";
+        $("preRequestInput").value = "";
+        $("testsInput").value = "";
         $("responseOutput").textContent = "请选择服务和接口";
+        $("previewOutput").textContent = "";
+        $("responseHeadersOutput").textContent = "";
+        $("cookiesOutput").textContent = "";
+        $("logsOutput").textContent = "";
         $("curlOutput").textContent = "";
+        $("codeOutput").textContent = "";
         setStatusPills();
         return;
     }
@@ -379,7 +604,12 @@ function renderOperationDetail(snapshot) {
     }
     setStatusPills();
     $("responseOutput").textContent = "";
+    $("previewOutput").textContent = "";
+    $("responseHeadersOutput").textContent = "";
+    $("cookiesOutput").textContent = "";
+    $("logsOutput").textContent = "";
     $("curlOutput").textContent = "";
+    $("codeOutput").textContent = "";
     $("loadResult").classList.add("hidden");
     renderFavoriteState();
 }
@@ -394,6 +624,8 @@ function fillDefaults() {
     $("headersInput").value = JSON.stringify(specTools.defaultHeaders(parameters, state.spec), null, 2);
     $("bodyInput").value = "";
     $("scriptInput").value = "{}";
+    $("preRequestInput").value = "";
+    $("testsInput").value = "";
     refreshHeaderCount();
 }
 
@@ -434,11 +666,36 @@ function activateTab(tabName) {
 }
 
 /**
+ * 激活响应 Tab
+ *
+ * @param {string} tabName Tab 名称
+ */
+function activateResponseTab(tabName) {
+    state.responseTab = tabName;
+    document.querySelectorAll(".response-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.responseTab === tabName));
+    document.querySelectorAll(".response-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `${tabName}Panel`));
+}
+
+/**
+ * 激活请求产物 Tab
+ *
+ * @param {string} tabName Tab 名称
+ */
+function activateArtifactTab(tabName) {
+    state.artifactTab = tabName;
+    document.querySelectorAll(".artifact-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.artifactTab === tabName));
+    document.querySelectorAll(".artifact-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `${tabName}Panel`));
+}
+
+/**
  * 美化当前编辑器
  */
 function formatActiveEditor() {
     const editor = activeJsonEditor();
     if (!editor) {
+        return;
+    }
+    if (["preRequest", "tests"].includes(state.activeTab)) {
         return;
     }
     try {
@@ -454,7 +711,7 @@ function formatActiveEditor() {
 function clearActiveEditor() {
     const editor = activeJsonEditor();
     if (editor) {
-        editor.value = "{}";
+        editor.value = ["preRequest", "tests"].includes(state.activeTab) ? "" : "{}";
         refreshHeaderCount();
     }
 }
@@ -470,7 +727,9 @@ async function importEditorJson() {
     }
     editor.value = await file.text();
     $("editorJsonFile").value = "";
-    formatActiveEditor();
+    if (!["preRequest", "tests"].includes(state.activeTab)) {
+        formatActiveEditor();
+    }
 }
 
 /**
@@ -490,6 +749,12 @@ function activeJsonEditor() {
     }
     if (state.activeTab === "script") {
         return $("scriptInput");
+    }
+    if (state.activeTab === "preRequest") {
+        return $("preRequestInput");
+    }
+    if (state.activeTab === "tests") {
+        return $("testsInput");
     }
     return null;
 }
@@ -529,13 +794,20 @@ async function sendRequest() {
         setResponseError(error.message);
         return;
     }
-    const response = await fetch(`${API_BASE}/execute`, {
-        method: "POST",
-        credentials: "include",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(payload),
-    });
-    const result = await response.json();
+    state.lastRequestPayload = payload;
+    let result;
+    try {
+        const requestBody = JSON.stringify(payload);
+        const response = await apiFetch("/execute", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: requestBody,
+        });
+        result = await readJsonResult(response);
+    } catch (error) {
+        setResponseError(error.message);
+        return;
+    }
     renderExecuteResult(result);
     localStore.addHistory({
         serviceId: state.service.id,
@@ -569,14 +841,24 @@ async function runLoadTest() {
         totalRequests: Number($("totalRequests").value || 10),
         concurrency: Number($("concurrency").value || 2),
     };
-    const response = await fetch(`${API_BASE}/load-test`, {
-        method: "POST",
-        credentials: "include",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(payload),
-    });
-    const result = await response.json();
-    $("curlOutput").textContent = JSON.stringify(result, null, 2);
+    state.lastRequestPayload = executeRequest;
+    let result;
+    try {
+        const requestBody = JSON.stringify(payload);
+        const response = await apiFetch("/load-test", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: requestBody,
+        });
+        result = await readJsonResult(response);
+    } catch (error) {
+        setResponseError(error.message);
+        return;
+    }
+    state.lastCurl = JSON.stringify(result, null, 2);
+    state.lastCode = buildFetchExample(executeRequest);
+    $("curlOutput").textContent = state.lastCurl;
+    $("codeOutput").textContent = state.lastCode;
     renderLoadResult(result);
 }
 
@@ -629,6 +911,8 @@ function snapshotRequest() {
         query: $("queryInput").value,
         body: $("bodyInput").value,
         script: $("scriptInput").value,
+        preRequest: $("preRequestInput").value,
+        tests: $("testsInput").value,
     };
 }
 
@@ -645,6 +929,8 @@ function applyRequestSnapshot(snapshot) {
     $("queryInput").value = snapshot.query || "{}";
     $("bodyInput").value = snapshot.body || "";
     $("scriptInput").value = snapshot.script || "{}";
+    $("preRequestInput").value = snapshot.preRequest || "";
+    $("testsInput").value = snapshot.tests || "";
     refreshHeaderCount();
 }
 
@@ -655,12 +941,77 @@ function applyRequestSnapshot(snapshot) {
  */
 function renderExecuteResult(result) {
     const body = result.body || "";
+    const responseHeaders = result.headers || {};
     state.lastResponseBody = prettyText(body);
+    state.lastResponseHeaders = responseHeaders;
+    state.lastResponseLog = {
+        service: state.service?.name || state.service?.id || "",
+        operation: state.operation ? `${state.operation.method} ${state.operation.path}` : "",
+        status: result.status || 0,
+        durationMillis: result.durationMillis || 0,
+        size: specTools.byteLength(body),
+        completedAt: new Date().toISOString(),
+    };
     state.lastCurl = result.curl || "";
+    state.lastCode = buildFetchExample(state.lastRequestPayload);
     $("responseOutput").textContent = state.lastResponseBody;
+    $("previewOutput").textContent = previewText(body, responseHeaders);
+    $("responseHeadersOutput").textContent = JSON.stringify(responseHeaders, null, 2);
+    $("cookiesOutput").textContent = JSON.stringify(extractCookies(responseHeaders), null, 2);
+    $("logsOutput").textContent = JSON.stringify(state.lastResponseLog, null, 2);
     $("curlOutput").textContent = state.lastCurl;
+    $("codeOutput").textContent = state.lastCode;
     $("loadResult").classList.add("hidden");
     setStatusPills(result.status, result.durationMillis, specTools.byteLength(body));
+}
+
+/**
+ * 构造响应预览文本
+ *
+ * @param {string} body 响应体
+ * @param {object} headers 响应头
+ * @returns {string} 返回预览文本
+ */
+function previewText(body, headers) {
+    const contentType = Object.entries(headers || {}).find(([key]) => key.toLowerCase() === "content-type")?.[1] || "";
+    if (contentType.includes("text/html")) {
+        return body || "";
+    }
+    return prettyText(body);
+}
+
+/**
+ * 提取响应 Cookie
+ *
+ * @param {object} headers 响应头
+ * @returns {Array<string>} 返回 Cookie 集合
+ */
+function extractCookies(headers) {
+    return Object.entries(headers || {})
+        .filter(([key]) => key.toLowerCase() === "set-cookie")
+        .flatMap(([, value]) => String(value || "").split(/,(?=\s*[^;,\s]+=)/g).map((item) => item.trim()).filter(Boolean));
+}
+
+/**
+ * 构造 fetch 代码示例
+ *
+ * @param {object} payload 调试请求
+ * @returns {string} 返回代码示例
+ */
+function buildFetchExample(payload) {
+    if (!payload) {
+        return "";
+    }
+    const query = new URLSearchParams(payload.query || {}).toString();
+    const path = `${payload.path || "/"}${query ? `?${query}` : ""}`;
+    return `const response = await fetch(${JSON.stringify(path)}, {
+  method: ${JSON.stringify(payload.method || "GET")},
+  headers: ${JSON.stringify(payload.headers || {}, null, 2)},
+  body: ${payload.body ? JSON.stringify(payload.body) : "undefined"},
+});
+
+const text = await response.text();
+console.log(response.status, text);`;
 }
 
 /**
@@ -765,7 +1116,7 @@ function toggleFavorite() {
  * 渲染当前收藏状态
  */
 function renderFavoriteState() {
-    $("favoriteOperation").textContent = localStore.isFavorite(currentOperationKey()) ? "已收藏" : "收藏";
+    $("favoriteOperation").textContent = localStore.isFavorite(currentOperationKey()) ? "已收藏" : "收藏接口";
 }
 
 /**
@@ -911,15 +1262,41 @@ async function importLocalData() {
 }
 
 /**
+ * 清除浏览器本地缓存
+ */
+function clearBrowserStorage() {
+    const confirmed = confirm("确认清除当前控制台的浏览器缓存？历史、收藏、预设、设置和登录签名缓存会被清除，此操作不可恢复。");
+    if (!confirmed) {
+        return;
+    }
+    localStore.clearState();
+    state.localPanel = "";
+    state.signingKey = "";
+    writeSigningKey("");
+    $("localPanel").classList.add("hidden");
+    $("localPanel").innerHTML = "";
+    renderLocalBadges();
+    renderFavoriteState();
+    setResponseError("浏览器缓存已清除，请重新登录后继续调试");
+    showLogin();
+}
+
+/**
  * 导出接口文档
  *
  * @param {string} format 导出格式
  */
-function exportDoc(format) {
+async function exportDoc(format) {
     if (!state.service) {
         return;
     }
-    location.href = `${API_BASE}/export/${encodeURIComponent(state.service.id)}?format=${format}`;
+    const response = await apiFetch(`/export/${encodeURIComponent(state.service.id)}?format=${encodeURIComponent(format)}`);
+    if (!response.ok) {
+        setResponseError("接口文档导出失败");
+        return;
+    }
+    const blob = await response.blob();
+    downloadBlob(filenameFromDisposition(response.headers.get("Content-Disposition")) || `${state.service.id}.${format}`, blob);
 }
 
 /**
@@ -959,7 +1336,13 @@ function setStatusPills(status, durationMillis, size) {
  */
 function setResponseError(message) {
     state.lastResponseBody = message;
+    state.lastResponseHeaders = {};
+    state.lastResponseLog = {error: message, completedAt: new Date().toISOString()};
     $("responseOutput").textContent = message;
+    $("previewOutput").textContent = message;
+    $("responseHeadersOutput").textContent = "{}";
+    $("cookiesOutput").textContent = "[]";
+    $("logsOutput").textContent = JSON.stringify(state.lastResponseLog, null, 2);
     setStatusPills(0, 0, 0);
 }
 
@@ -1119,12 +1502,33 @@ function downloadResponse() {
  */
 function downloadText(filename, text, type) {
     const blob = new Blob([text], {type});
+    downloadBlob(filename, blob);
+}
+
+/**
+ * 下载二进制文件
+ *
+ * @param {string} filename 文件名
+ * @param {Blob} blob 文件内容
+ */
+function downloadBlob(filename, blob) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
+}
+
+/**
+ * 从 Content-Disposition 中解析文件名
+ *
+ * @param {string} value 响应头
+ * @returns {string} 返回文件名
+ */
+function filenameFromDisposition(value) {
+    const match = String(value || "").match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+    return match ? decodeURIComponent(match[1] || match[2]) : "";
 }
 
 /**
@@ -1136,6 +1540,96 @@ function copyText(text) {
     if (navigator.clipboard && text) {
         navigator.clipboard.writeText(text);
     }
+}
+
+/**
+ * 计算 SHA-256 十六进制摘要
+ *
+ * @param {string} value 原文
+ * @returns {Promise<string>} 返回十六进制摘要
+ */
+async function sha256Hex(value) {
+    return bytesToHex(await sha256Bytes(value));
+}
+
+/**
+ * 计算 SHA-256 摘要字节
+ *
+ * @param {string} value 原文
+ * @returns {Promise<Uint8Array>} 返回摘要字节
+ */
+async function sha256Bytes(value) {
+    return new Uint8Array(await crypto.subtle.digest("SHA-256", textBytes(value)));
+}
+
+/**
+ * 计算 HmacSHA256 摘要字节
+ *
+ * @param {Uint8Array} key 密钥
+ * @param {string} value 原文
+ * @returns {Promise<Uint8Array>} 返回摘要字节
+ */
+async function hmacSha256Bytes(key, value) {
+    const cryptoKey = await crypto.subtle.importKey("raw", key, {name: "HMAC", hash: "SHA-256"}, false, ["sign"]);
+    return new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, textBytes(value)));
+}
+
+/**
+ * 文本转字节
+ *
+ * @param {string} value 原文
+ * @returns {Uint8Array} 返回字节数组
+ */
+function textBytes(value) {
+    return new TextEncoder().encode(value);
+}
+
+/**
+ * 字节数组转十六进制字符串
+ *
+ * @param {Uint8Array} bytes 字节数组
+ * @returns {string} 返回十六进制字符串
+ */
+function bytesToHex(bytes) {
+    return Array.from(bytes).map((item) => item.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * 字节数组转 URL 安全 Base64
+ *
+ * @param {Uint8Array} bytes 字节数组
+ * @returns {string} 返回 URL 安全 Base64
+ */
+function base64UrlEncode(bytes) {
+    let value = "";
+    bytes.forEach((item) => {
+        value += String.fromCharCode(item);
+    });
+    return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/**
+ * URL 安全 Base64 转字节数组
+ *
+ * @param {string} value URL 安全 Base64
+ * @returns {Uint8Array} 返回字节数组
+ */
+function base64UrlDecode(value) {
+    const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), "=");
+    return Uint8Array.from(atob(padded), (item) => item.charCodeAt(0));
+}
+
+/**
+ * 生成随机 URL 安全令牌
+ *
+ * @param {number} byteLength 字节长度
+ * @returns {string} 返回随机令牌
+ */
+function randomToken(byteLength) {
+    const bytes = new Uint8Array(byteLength);
+    crypto.getRandomValues(bytes);
+    return base64UrlEncode(bytes);
 }
 
 /**

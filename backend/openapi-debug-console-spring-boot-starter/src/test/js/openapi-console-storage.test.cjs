@@ -70,3 +70,22 @@ test("rejects invalid console local data snapshot", () => {
     const store = createConsoleStore(memoryStorage());
     assert.throws(() => store.importState({version: 0, data: null}), /本地数据格式不正确/);
 });
+
+test("clears console local data", () => {
+    const store = createConsoleStore(memoryStorage());
+    store.addHistory({
+        serviceId: "family-core",
+        method: "GET",
+        path: "/password/category",
+        status: 200,
+        durationMillis: 18,
+    });
+
+    const cleared = store.clearState();
+    const current = store.loadState();
+
+    assert.equal(cleared.history.length, 0);
+    assert.equal(current.history.length, 0);
+    assert.equal(current.favorites.length, 0);
+    assert.equal(current.presets.length, 0);
+});

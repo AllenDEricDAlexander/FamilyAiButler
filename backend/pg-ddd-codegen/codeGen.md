@@ -633,7 +633,7 @@ CONSTRAINT uk_trade_order_order_no UNIQUE (order_no)
 
 ```text
 OrderNo 值对象
-OrderRepository.existsByOrderNo(OrderNo orderNo)
+OrderGateway.existsByOrderNo(OrderNo orderNo)
 CreateOrder 前置校验
 JPA Repository existsByOrderNo
 ```
@@ -641,7 +641,7 @@ JPA Repository existsByOrderNo
 示例：
 
 ```java
-public interface OrderRepository {
+public interface OrderGateway {
 
     Optional<Order> find(OrderId orderId);
 
@@ -933,26 +933,19 @@ com.acme.trade
 ├── TradeApplication.java
 │
 ├── adapter
-│   └── web
-│       ├── controller
-│       │   └── OrderController.java
-│       └── assembler
-│           └── OrderWebAssembler.java
+│   ├── OrderController.java
+│   └── assembler
+│       └── OrderWebAssembler.java
 │
-├── client
-│   ├── command
+├── application
+│   ├── OrderServiceI.java
+│   ├── OrderServiceImpl.java
+│   ├── dto
 │   │   ├── CreateOrderCommand.java
-│   │   └── CancelOrderCommand.java
-│   ├── query
-│   │   └── OrderPageQuery.java
-│   └── response
-│       ├── OrderDetailResponse.java
-│       └── OrderPageResponse.java
-│
-├── app
-│   ├── service
-│   │   ├── OrderCommandService.java
-│   │   └── OrderQueryService.java
+│   │   ├── CancelOrderCommand.java
+│   │   ├── OrderPageQuery.java
+│   │   ├── OrderDetailResponse.java
+│   │   └── OrderPageResponse.java
 │   └── executor
 │       ├── command
 │       │   ├── CreateOrderCmdExe.java
@@ -973,9 +966,8 @@ com.acme.trade
 │   │   │   └── Money.java
 │   │   └── enums
 │   │       └── OrderStatus.java
-│   ├── repository
-│   │   └── OrderRepository.java
 │   └── gateway
+│       ├── OrderGateway.java
 │       └── OrderQueryGateway.java
 │
 └── infrastructure
@@ -998,9 +990,8 @@ com.acme.trade
     │   │   │   └── OrderMapper.xml
     │   │   └── converter
     │   │       └── OrderMpConverter.java
-    │   └── impl
-    │       └── OrderRepositoryJpaImpl.java
     └── gatewayimpl
+        ├── OrderGatewayImpl.java
         └── OrderQueryGatewayImpl.java
 ```
 
@@ -1014,18 +1005,19 @@ com.acme.trade
 
 ```text
 Controller
-  -> CommandService
+  -> application.OrderServiceI
+    -> application.OrderServiceImpl
     -> CmdExe
       -> Domain Aggregate
-        -> Domain Repository
-          -> JPA Repository Impl
+        -> Domain Gateway
+          -> JPA Gateway Impl
             -> Spring Data JPA
 ```
 
 生成：
 
 ```java
-public interface OrderRepository {
+public interface OrderGateway {
 
     Optional<Order> find(OrderId orderId);
 
@@ -1041,7 +1033,7 @@ JPA 实现：
 
 @Repository
 @RequiredArgsConstructor
-public class OrderRepositoryJpaImpl implements OrderRepository {
+public class OrderGatewayImpl implements OrderGateway {
 
     private final OrderJpaRepository orderJpaRepository;
     private final OrderJpaConverter orderJpaConverter;
@@ -1074,7 +1066,8 @@ public class OrderRepositoryJpaImpl implements OrderRepository {
 
 ```text
 Controller
-  -> QueryService
+  -> application.OrderServiceI
+    -> application.OrderServiceImpl
     -> QryExe
       -> Domain Gateway Interface
         -> MP QueryGatewayImpl
@@ -1127,7 +1120,7 @@ XML：
 
 ```xml
 
-<select id="pageOrders" resultType="com.acme.trade.client.response.OrderPageResponse">
+<select id="pageOrders" resultType="com.acme.trade.application.dto.OrderPageResponse">
     SELECT
     o.id,
     o.order_no,
@@ -1276,36 +1269,31 @@ trade_order_item 是 Order 聚合内实体候选
 
 以 `Order` 聚合为例。
 
-## 14.1 client
+## 14.1 application
 
 ```text
-CreateOrderCommand.java
-CreateOrderItemCommand.java
-CancelOrderCommand.java
-OrderPageQuery.java
-OrderDetailResponse.java
-OrderPageResponse.java
+OrderServiceI.java
+OrderServiceImpl.java
+dto/CreateOrderCommand.java
+dto/CreateOrderItemCommand.java
+dto/CancelOrderCommand.java
+dto/OrderPageQuery.java
+dto/OrderDetailResponse.java
+dto/OrderPageResponse.java
+executor/command/CreateOrderCmdExe.java
+executor/command/CancelOrderCmdExe.java
+executor/query/GetOrderDetailQryExe.java
+executor/query/OrderPageQryExe.java
 ```
 
 ## 14.2 adapter
 
 ```text
 OrderController.java
-OrderWebAssembler.java
+assembler/OrderWebAssembler.java
 ```
 
-## 14.3 app
-
-```text
-OrderCommandService.java
-OrderQueryService.java
-CreateOrderCmdExe.java
-CancelOrderCmdExe.java
-GetOrderDetailQryExe.java
-OrderPageQryExe.java
-```
-
-## 14.4 domain
+## 14.3 domain
 
 ```text
 Order.java
@@ -1315,23 +1303,23 @@ OrderNo.java
 BuyerId.java
 Money.java
 OrderStatus.java
-OrderRepository.java
+OrderGateway.java
 OrderQueryGateway.java
 OrderDomainService.java
 OrderCreatedEvent.java
 ```
 
-## 14.5 infrastructure / JPA
+## 14.4 infrastructure / JPA
 
 ```text
 OrderJpaEntity.java
 OrderItemJpaEntity.java
 OrderJpaRepository.java
 OrderJpaConverter.java
-OrderRepositoryJpaImpl.java
+OrderGatewayImpl.java
 ```
 
-## 14.6 infrastructure / MP
+## 14.5 infrastructure / MP
 
 ```text
 OrderDO.java
@@ -1342,12 +1330,12 @@ OrderMpConverter.java
 OrderQueryGatewayImpl.java
 ```
 
-## 14.7 test
+## 14.6 test
 
 ```text
 ArchitectureTest.java
 OrderDomainTest.java
-OrderCommandServiceTest.java
+OrderServiceTest.java
 OrderRepositoryJpaIntegrationTest.java
 OrderMapperIntegrationTest.java
 ```
@@ -1372,15 +1360,13 @@ src/main/resources/templates
 │   ├── Controller.ftl
 │   └── WebAssembler.ftl
 │
-├── client
+├── application
+│   ├── ApplicationService.ftl
+│   ├── ApplicationServiceImpl.ftl
 │   ├── Command.ftl
 │   ├── Query.ftl
 │   ├── Response.ftl
-│   └── PageResponse.ftl
-│
-├── app
-│   ├── CommandService.ftl
-│   ├── QueryService.ftl
+│   ├── PageResponse.ftl
 │   ├── CmdExe.ftl
 │   └── QryExe.ftl
 │
@@ -1389,7 +1375,7 @@ src/main/resources/templates
 │   ├── Entity.ftl
 │   ├── ValueObject.ftl
 │   ├── Enum.ftl
-│   ├── Repository.ftl
+│   ├── Gateway.ftl
 │   ├── QueryGateway.ftl
 │   ├── DomainService.ftl
 │   └── DomainEvent.ftl
@@ -1399,7 +1385,7 @@ src/main/resources/templates
 │   │   ├── JpaEntity.ftl
 │   │   ├── JpaRepository.ftl
 │   │   ├── JpaConverter.ftl
-│   │   └── JpaRepositoryImpl.ftl
+│   │   └── GatewayImpl.ftl
 │   └── mp
 │       ├── DataObject.ftl
 │       ├── Mapper.ftl
@@ -1485,7 +1471,7 @@ public class ArchitectureTest {
                     .should().dependOnClassesThat()
                     .resideInAnyPackage(
                             "..adapter..",
-                            "..app..",
+                            "..application..",
                             "..infrastructure.."
                     );
 
@@ -1501,18 +1487,17 @@ public class ArchitectureTest {
                     );
 
     @ArchTest
-    static final ArchRule controller_should_not_access_mapper =
+    static final ArchRule adapter_should_not_depend_on_app_implementation =
             noClasses()
-                    .that().resideInAPackage("..adapter.web.controller..")
+                    .that().resideInAPackage("..adapter..")
                     .should().dependOnClassesThat()
-                    .resideInAnyPackage("..infrastructure.persistence.mp.mapper..");
+                    .resideInAnyPackage("..application.executor..", "..infrastructure.persistence..");
 
     @ArchTest
-    static final ArchRule app_should_not_depend_on_adapter =
+    static final ArchRule controller_should_not_reside_in_legacy_root_package =
             noClasses()
-                    .that().resideInAPackage("..app..")
-                    .should().dependOnClassesThat()
-                    .resideInAnyPackage("..adapter..");
+                    .that().haveSimpleNameEndingWith("Controller")
+                    .should().resideInAnyPackage("..controller..", "..adapter.web..");
 
     @ArchTest
     static final ArchRule mapper_should_only_exist_in_mp_package =
@@ -1554,8 +1539,7 @@ DomainService
 CmdExe
 QryExe
 Controller
-CommandService
-QueryService
+ServiceImpl
 QueryGatewayImpl 自定义 SQL 逻辑
 ```
 
@@ -1618,7 +1602,7 @@ QueryGatewayImpl 自定义 SQL 逻辑
     <!-- AUTO-GENERATED-END: base-columns -->
 
     <!-- AUTO-GENERATED-START: page-query -->
-    <select id="pageOrders" resultType="com.acme.trade.client.response.OrderPageResponse">
+    <select id="pageOrders" resultType="com.acme.trade.application.dto.OrderPageResponse">
         ...
     </select>
     <!-- AUTO-GENERATED-END: page-query -->

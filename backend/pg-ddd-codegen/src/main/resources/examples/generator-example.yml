@@ -1,0 +1,74 @@
+project:
+  basePackage: com.example.codegen.demo
+  moduleName: demo-order
+  outputDir: ./generated-src
+  javaVersion: 21
+
+ddl:
+  input:
+    - schema.sql
+  mode: parse
+  postgres:
+    schema: public
+  naming:
+    tablePrefix:
+      - demo_
+    columnToCamel: true
+
+ddd:
+  boundedContext: demo-order
+
+enums:
+  - name: OrderStatus
+    description: Order status
+    columns:
+      - demo_order.status
+    values:
+      - name: CREATED
+        code: CREATED
+        description: Created
+      - name: PAID
+        code: PAID
+        description: Paid
+      - name: CANCELED
+        code: CANCELED
+        description: Canceled
+
+aggregates:
+  - name: Order
+    rootTable: demo_order
+    entityTables:
+      - demo_order_item
+    repository: jpa
+    queryGateway: mp
+    idValueObject: OrderId
+    businessKeys:
+      - order_no
+    valueObjects:
+      order_no: OrderNo
+      buyer_id: BuyerId
+      total_amount: Money
+    commands:
+      - name: CreateOrder
+        path: /orders
+        method: POST
+      - name: CancelOrder
+        path: /orders/{orderId}/cancel
+        method: POST
+    queries:
+      - name: GetOrderDetail
+        path: /orders/{orderId}
+        method: GET
+        persistence: jpa
+      - name: PageOrder
+        path: /orders
+        method: GET
+        persistence: mp
+        filters:
+          - buyer_id
+          - status
+          - created_at
+
+ignore:
+  tables:
+    - flyway_schema_history

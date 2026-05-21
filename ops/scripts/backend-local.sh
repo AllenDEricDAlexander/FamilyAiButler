@@ -11,17 +11,17 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${ROOT_DIR}/ops/scripts/lib/runtime.sh"
 
-BACKEND_START_MODULES=(core uaa qwen-ai gateway)
-BACKEND_STOP_MODULES=(gateway qwen-ai uaa core)
+BACKEND_START_MODULES=(uaa core qwen-ai gateway)
+BACKEND_STOP_MODULES=(gateway qwen-ai core uaa)
 SELECTED_MODULES=()
 COMMAND_EXIT_CODE=0
 
 # 输出后端脚本参数说明。
 print_backend_usage() {
   cat >&2 <<EOF
-Usage: $0 [all|core|uaa|qwen-ai|gateway] [dev|prod] [status|start|stop|restart]
-       $0 [status|start|stop|restart] [all|core|uaa|qwen-ai|gateway] [dev|prod]
-       $0 [dev|prod] [all|core|uaa|qwen-ai|gateway] [status|start|stop|restart]
+Usage: $0 [all|core|uaa|family-uaa|be-uaa|qwen-ai|gateway] [dev|prod] [status|start|stop|restart]
+       $0 [status|start|stop|restart] [all|core|uaa|family-uaa|be-uaa|qwen-ai|gateway] [dev|prod]
+       $0 [dev|prod] [all|core|uaa|family-uaa|be-uaa|qwen-ai|gateway] [status|start|stop|restart]
 
 Examples:
        $0
@@ -43,7 +43,7 @@ normalize_backend_module() {
     core|family-core)
       echo "core"
       ;;
-    uaa|family-uaa)
+    uaa|uaa-core|family-uaa|be-uaa)
       echo "uaa"
       ;;
     ai|qwen|qwen-ai|family-ai-qwen)
@@ -150,7 +150,7 @@ backend_maven_module() {
       echo "family-core"
       ;;
     uaa)
-      echo "family-uaa"
+      echo "family-uaa/uaa-core"
       ;;
     qwen-ai)
       echo "family-ai/qwen-ai"
@@ -183,7 +183,7 @@ backend_module_port() {
 backend_module_health_path() {
   case "$1" in
     uaa)
-      echo "/"
+      echo "/.well-known/jwks.json"
       ;;
     *)
       echo "/actuator/health"
@@ -241,6 +241,32 @@ find_backend_port_pid() {
   lsof -nP -tiTCP:"${port}" -sTCP:LISTEN 2>/dev/null | head -n 1
 }
 
+# 判断后端脚本托管的进程是否仍在运行。
+is_backend_managed_process_running() {
+  local service_name="$1"
+  local pid_file
+  local session_name
+  local pid
+  pid_file="$(pid_file_path "${service_name}" "${ENVIRONMENT}")"
+  session_name="$(tmux_session_name "${service_name}" "${ENVIRONMENT}")"
+
+  if is_tmux_session_running "${session_name}"; then
+    return 0
+  fi
+
+  if [ ! -f "${pid_file}" ]; then
+    return 1
+  fi
+
+  pid="$(cat "${pid_file}")"
+  if is_pid_running "${pid}"; then
+    return 0
+  fi
+
+  rm -f "${pid_file}"
+  return 1
+}
+
 # 等待后端健康检查可用。
 wait_backend_health() {
   local module="$1"
@@ -262,6 +288,12 @@ wait_backend_health() {
   fi
 
   while [ "${waited}" -lt "${timeout}" ]; do
+    if ! is_backend_managed_process_running "${service_name}"; then
+      echo "${service_name} ${ENVIRONMENT} process exited while waiting for health check, port=${port}, path=${health_path}, log=${log_file}" >&2
+      tail -n "${BACKEND_HEALTH_LOG_TAIL_LINES:-80}" "${log_file}" >&2 || true
+      return 1
+    fi
+
     http_code="$(curl -sS -o /dev/null -w "%{http_code}" --max-time 2 "http://127.0.0.1:${port}${health_path}" 2>/dev/null || true)"
     if is_backend_health_http_code_success "${module}" "${http_code}"; then
       echo "${service_name} ${ENVIRONMENT} health check passed, port=${port}, path=${health_path}, http_code=${http_code}"
@@ -302,10 +334,12 @@ start_backend_module() {
   if ! prepare_backend_module_dependencies "${service_name}" "${maven_module}"; then
     return 1
   fi
-  start_managed_process "${service_name}" "${ENVIRONMENT}" "${ROOT_DIR}/backend" \
+  if ! start_managed_process "${service_name}" "${ENVIRONMENT}" "${ROOT_DIR}/backend" \
     env "SPRING_PROFILES_ACTIVE=${ENVIRONMENT}" "FAMILY_AI_BUTLER_ENV=${ENVIRONMENT}" \
     "FAMILY_AI_BUTLER_LOG_PATH=${ROOT_DIR}/ops/.runtime/logs" "JAVA_TOOL_OPTIONS=${java_tool_options}" \
-    mvn -pl "${maven_module}" spring-boot:run "-Dspring-boot.run.profiles=${ENVIRONMENT}"
+    mvn -pl "${maven_module}" spring-boot:run "-Dspring-boot.run.profiles=${ENVIRONMENT}"; then
+    return 1
+  fi
   wait_backend_health "${module}"
 }
 

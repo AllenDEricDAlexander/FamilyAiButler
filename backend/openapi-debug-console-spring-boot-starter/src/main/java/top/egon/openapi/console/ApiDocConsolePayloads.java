@@ -49,7 +49,33 @@ public final class ApiDocConsolePayloads {
 
         private String username;
 
-        private String password;
+        private String challengeId;
+
+        private long timestamp;
+
+        private String proof;
+    }
+
+    /**
+     * @BelongsProject: openapi-console
+     * @BelongsPackage: top.egon.openapi.console
+     * @ClassName: LoginChallengeResponse
+     * @Author: atluofu
+     * @CreateTime: 2026Year-05Month-20Day-13:35
+     * @Description: 登录挑战响应
+     * @Version: 1.0
+     */
+    @Getter
+    @Setter
+    public static class LoginChallengeResponse {
+
+        private String challengeId;
+
+        private String nonce;
+
+        private String algorithm;
+
+        private long expiresAt;
     }
 
     /**
@@ -297,6 +323,10 @@ public final class ApiDocConsolePayloads {
     public static class UserSession {
 
         private String username;
+
+        private String sessionId;
+
+        private String requestSigningSecret;
 
         private long expiresAt;
     }

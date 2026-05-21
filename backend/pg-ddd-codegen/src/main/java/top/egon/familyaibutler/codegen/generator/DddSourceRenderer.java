@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,8 +38,8 @@ public class DddSourceRenderer {
     public List<GeneratedSourceFile> render(GenerationContext context) {
         List<GeneratedSourceFile> files = new ArrayList<>();
         files.addAll(renderDomain(context));
-        files.addAll(renderClient(context));
-        files.addAll(renderApp(context));
+        files.addAll(renderApplicationContract(context));
+        files.addAll(renderApplicationImplementation(context));
         files.addAll(renderAdapter(context));
         files.addAll(renderJpa(context));
         files.addAll(renderMp(context));
@@ -105,7 +106,7 @@ public class DddSourceRenderer {
             String enumName = enumModel.getJavaName() == null ? context.getNaming().upperCamel(enumModel.getTypeName()) : enumModel.getJavaName();
             files.add(javaFile(context, "domain/model/enums/" + enumName + ".java", renderEnum(context, enumName, enumModel), WritePolicy.OVERWRITE));
         }
-        files.add(javaFile(context, "domain/repository/" + aggregateName + "Repository.java", renderRepository(context), WritePolicy.CREATE_ONLY));
+        files.add(javaFile(context, "domain/gateway/" + aggregateName + "Gateway.java", renderGateway(context), WritePolicy.CREATE_ONLY));
         files.add(javaFile(context, "domain/gateway/" + aggregateName + "QueryGateway.java", renderQueryGateway(context), WritePolicy.CREATE_ONLY));
         files.add(javaFile(context, "domain/service/" + aggregateName + "DomainService.java", renderSimpleComponent(context, "domain.service", aggregateName + "DomainService", aggregateName + " 领域服务"), WritePolicy.CREATE_ONLY));
         files.add(javaFile(context, "domain/event/" + aggregateName + "CreatedEvent.java", renderDomainEvent(context), WritePolicy.CREATE_ONLY));
@@ -113,42 +114,43 @@ public class DddSourceRenderer {
     }
 
     /**
-     * 渲染 client 层文件。
+     * 渲染 application 接口和 DTO 文件。
      *
      * @param context 生成上下文
      * @return 生成文件列表
      */
-    private List<GeneratedSourceFile> renderClient(GenerationContext context) {
+    private List<GeneratedSourceFile> renderApplicationContract(GenerationContext context) {
         List<GeneratedSourceFile> files = new ArrayList<>();
+        String aggregateName = context.getAggregate().getName();
+        files.add(javaFile(context, "application/" + aggregateName + "ServiceI.java", renderApplicationService(context), WritePolicy.OVERWRITE));
         for (GeneratorConfig.UseCaseConfig command : context.getAggregate().getCommands()) {
-            files.add(javaFile(context, "client/command/" + command.getName() + "Command.java", renderCommand(context, command), WritePolicy.OVERWRITE));
+            files.add(javaFile(context, "application/dto/" + command.getName() + "Command.java", renderCommand(context, command), WritePolicy.OVERWRITE));
             files.addAll(renderEntityCommands(context, command));
         }
         for (GeneratorConfig.QueryConfig query : context.getAggregate().getQueries()) {
             String queryClass = queryClassName(query);
             String responseClass = responseClassName(query);
-            files.add(javaFile(context, "client/query/" + queryClass + ".java", renderQuery(context, query, queryClass), WritePolicy.OVERWRITE));
-            files.add(javaFile(context, "client/response/" + responseClass + ".java", renderResponse(context, responseClass), WritePolicy.OVERWRITE));
+            files.add(javaFile(context, "application/dto/" + queryClass + ".java", renderQuery(context, query, queryClass), WritePolicy.OVERWRITE));
+            files.add(javaFile(context, "application/dto/" + responseClass + ".java", renderResponse(context, responseClass), WritePolicy.OVERWRITE));
         }
         return files;
     }
 
     /**
-     * 渲染应用层文件。
+     * 渲染 application 实现和执行器文件。
      *
      * @param context 生成上下文
      * @return 生成文件列表
      */
-    private List<GeneratedSourceFile> renderApp(GenerationContext context) {
+    private List<GeneratedSourceFile> renderApplicationImplementation(GenerationContext context) {
         List<GeneratedSourceFile> files = new ArrayList<>();
         String aggregateName = context.getAggregate().getName();
-        files.add(javaFile(context, "app/service/" + aggregateName + "CommandService.java", renderAppService(context, aggregateName + "CommandService"), WritePolicy.CREATE_ONLY));
-        files.add(javaFile(context, "app/service/" + aggregateName + "QueryService.java", renderAppService(context, aggregateName + "QueryService"), WritePolicy.CREATE_ONLY));
+        files.add(javaFile(context, "application/" + aggregateName + "ServiceImpl.java", renderApplicationServiceImpl(context), WritePolicy.CREATE_ONLY));
         for (GeneratorConfig.UseCaseConfig command : context.getAggregate().getCommands()) {
-            files.add(javaFile(context, "app/executor/command/" + command.getName() + "CmdExe.java", renderExecutor(context, "command", command.getName() + "CmdExe"), WritePolicy.CREATE_ONLY));
+            files.add(javaFile(context, "application/executor/command/" + command.getName() + "CmdExe.java", renderCommandExecutor(context, command), WritePolicy.CREATE_ONLY));
         }
         for (GeneratorConfig.QueryConfig query : context.getAggregate().getQueries()) {
-            files.add(javaFile(context, "app/executor/query/" + query.getName() + "QryExe.java", renderExecutor(context, "query", query.getName() + "QryExe"), WritePolicy.CREATE_ONLY));
+            files.add(javaFile(context, "application/executor/query/" + query.getName() + "QryExe.java", renderQueryExecutor(context, query), WritePolicy.CREATE_ONLY));
         }
         return files;
     }
@@ -162,8 +164,8 @@ public class DddSourceRenderer {
     private List<GeneratedSourceFile> renderAdapter(GenerationContext context) {
         String aggregateName = context.getAggregate().getName();
         List<GeneratedSourceFile> files = new ArrayList<>();
-        files.add(javaFile(context, "adapter/web/controller/" + aggregateName + "Controller.java", renderController(context), WritePolicy.CREATE_ONLY));
-        files.add(javaFile(context, "adapter/web/assembler/" + aggregateName + "WebAssembler.java", renderAssembler(context), WritePolicy.CREATE_ONLY));
+        files.add(javaFile(context, "adapter/" + aggregateName + "Controller.java", renderController(context), WritePolicy.CREATE_ONLY));
+        files.add(javaFile(context, "adapter/assembler/" + aggregateName + "WebAssembler.java", renderAssembler(context), WritePolicy.CREATE_ONLY));
         return files;
     }
 
@@ -183,7 +185,7 @@ public class DddSourceRenderer {
         }
         files.add(javaFile(context, "infrastructure/persistence/jpa/repository/" + aggregateName + "JpaRepository.java", renderJpaRepository(context), WritePolicy.OVERWRITE));
         files.add(javaFile(context, "infrastructure/persistence/jpa/converter/" + aggregateName + "JpaConverter.java", renderComponent(context, "infrastructure.persistence.jpa.converter", aggregateName + "JpaConverter", "JPA Entity 与领域模型转换器"), WritePolicy.OVERWRITE));
-        files.add(javaFile(context, "infrastructure/persistence/impl/" + aggregateName + "RepositoryJpaImpl.java", renderJpaRepositoryImpl(context), WritePolicy.CREATE_ONLY));
+        files.add(javaFile(context, "infrastructure/gatewayimpl/" + aggregateName + "GatewayImpl.java", renderJpaGatewayImpl(context), WritePolicy.CREATE_ONLY));
         return files;
     }
 
@@ -279,16 +281,16 @@ public class DddSourceRenderer {
     }
 
     /**
-     * 渲染领域 Repository 接口。
+     * 渲染领域写模型网关接口。
      *
      * @param context 生成上下文
      * @return Java 源码
      */
-    private String renderRepository(GenerationContext context) {
+    private String renderGateway(GenerationContext context) {
         String basePackage = context.getConfig().getProject().getBasePackage();
         String aggregateName = context.getAggregate().getName();
         String idType = context.getAggregate().getIdValueObject() == null ? "Long" : context.getAggregate().getIdValueObject();
-        String packageName = basePackage + ".domain.repository";
+        String packageName = basePackage + ".domain.gateway";
         Set<String> importSet = new LinkedHashSet<>();
         importSet.add(basePackage + ".domain.model.aggregate." + aggregateName);
         if (!idType.equals("Long")) {
@@ -299,7 +301,7 @@ public class DddSourceRenderer {
         model.put("imports", imports(importSet));
         model.put("aggregateName", aggregateName);
         model.put("idType", idType);
-        return renderTemplate(TemplateRegistry.DOMAIN_REPOSITORY, packageName, aggregateName + "Repository", aggregateName + " 领域仓储接口", model);
+        return renderTemplate(TemplateRegistry.DOMAIN_GATEWAY, packageName, aggregateName + "Gateway", aggregateName + " 写模型网关接口", model);
     }
 
     /**
@@ -315,6 +317,48 @@ public class DddSourceRenderer {
     }
 
     /**
+     * 渲染 COLA application 接口。
+     *
+     * @param context 生成上下文
+     * @return Java 源码
+     */
+    private String renderApplicationService(GenerationContext context) {
+        String basePackage = context.getConfig().getProject().getBasePackage();
+        String aggregateName = context.getAggregate().getName();
+        String packageName = basePackage + ".application";
+        Set<String> importSet = new LinkedHashSet<>();
+        StringBuilder methods = new StringBuilder();
+        for (GeneratorConfig.UseCaseConfig command : context.getAggregate().getCommands()) {
+            String commandClassName = command.getName() + "Command";
+            importSet.add(basePackage + ".application.dto." + commandClassName);
+            methods.append("    /**\n")
+                    .append("     * 执行 ").append(command.getName()).append(" 命令。\n")
+                    .append("     *\n")
+                    .append("     * @param command 命令对象\n")
+                    .append("     * @return 执行结果\n")
+                    .append("     */\n")
+                    .append("    Object ").append(context.getNaming().classToField(command.getName()))
+                    .append("(").append(commandClassName).append(" command);\n\n");
+        }
+        for (GeneratorConfig.QueryConfig query : context.getAggregate().getQueries()) {
+            String queryClassName = queryClassName(query);
+            importSet.add(basePackage + ".application.dto." + queryClassName);
+            methods.append("    /**\n")
+                    .append("     * 执行 ").append(query.getName()).append(" 查询。\n")
+                    .append("     *\n")
+                    .append("     * @param query 查询对象\n")
+                    .append("     * @return 查询结果\n")
+                    .append("     */\n")
+                    .append("    Object ").append(context.getNaming().classToField(query.getName()))
+                    .append("(").append(queryClassName).append(" query);\n\n");
+        }
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importSet));
+        model.put("methods", methods.toString());
+        return renderTemplate(TemplateRegistry.APPLICATION_SERVICE, packageName, aggregateName + "ServiceI", aggregateName + " COLA 应用接口", model);
+    }
+
+    /**
      * 渲染 Command record。
      *
      * @param context 生成上下文
@@ -322,7 +366,7 @@ public class DddSourceRenderer {
      * @return Java 源码
      */
     private String renderCommand(GenerationContext context, GeneratorConfig.UseCaseConfig command) {
-        String packageName = context.getConfig().getProject().getBasePackage() + ".client.command";
+        String packageName = context.getConfig().getProject().getBasePackage() + ".application.dto";
         StringBuilder fields = new StringBuilder();
         for (PgColumnModel column : businessColumns(context.getRootTable())) {
             appendValidatedRecordField(context, fields, column);
@@ -331,7 +375,7 @@ public class DddSourceRenderer {
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("imports", imports(importsFor(context.getRootTable(), context, false), "jakarta.validation.constraints.*"));
         model.put("fields", body);
-        return renderTemplate(TemplateRegistry.CLIENT_COMMAND, packageName, command.getName() + "Command", command.getName() + " 命令对象", model);
+        return renderTemplate(TemplateRegistry.APPLICATION_COMMAND, packageName, command.getName() + "Command", command.getName() + " 命令对象", model);
     }
 
     /**
@@ -343,7 +387,7 @@ public class DddSourceRenderer {
      * @return Java 源码
      */
     private String renderQuery(GenerationContext context, GeneratorConfig.QueryConfig query, String className) {
-        String packageName = context.getConfig().getProject().getBasePackage() + ".client.query";
+        String packageName = context.getConfig().getProject().getBasePackage() + ".application.dto";
         StringBuilder fields = new StringBuilder();
         for (String filter : query.getFilters()) {
             context.getRootTable().getColumn(filter).ifPresent(column -> appendQueryField(context, fields, column));
@@ -352,7 +396,7 @@ public class DddSourceRenderer {
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("imports", imports(importsFor(context.getRootTable(), context, false)));
         model.put("fields", body);
-        return renderTemplate(TemplateRegistry.CLIENT_QUERY, packageName, className, query.getName() + " 查询对象", model);
+        return renderTemplate(TemplateRegistry.APPLICATION_QUERY, packageName, className, query.getName() + " 查询对象", model);
     }
 
     /**
@@ -363,7 +407,7 @@ public class DddSourceRenderer {
      * @return Java 源码
      */
     private String renderResponse(GenerationContext context, String className) {
-        String packageName = context.getConfig().getProject().getBasePackage() + ".client.response";
+        String packageName = context.getConfig().getProject().getBasePackage() + ".application.dto";
         StringBuilder fields = new StringBuilder();
         for (PgColumnModel column : context.getRootTable().getColumns()) {
             fields.append("        ").append(context.getTypeMapper().toJavaType(column, context.getNaming()))
@@ -372,7 +416,7 @@ public class DddSourceRenderer {
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("imports", imports(importsFor(context.getRootTable(), context, false)));
         model.put("fields", trimRecordFields(fields));
-        return renderTemplate(TemplateRegistry.CLIENT_RESPONSE, packageName, className, className + " 响应对象", model);
+        return renderTemplate(TemplateRegistry.APPLICATION_RESPONSE, packageName, className, className + " 响应对象", model);
     }
 
     /**
@@ -390,7 +434,7 @@ public class DddSourceRenderer {
         for (PgTableModel entityTable : context.getEntityTables()) {
             String entityName = context.getNaming().tableToClass(entityTable.getTableName());
             String className = "Create" + entityName + "Command";
-            files.add(javaFile(context, "client/command/" + className + ".java", renderEntityCommand(context, className, entityTable), WritePolicy.OVERWRITE));
+            files.add(javaFile(context, "application/dto/" + className + ".java", renderEntityCommand(context, className, entityTable), WritePolicy.OVERWRITE));
         }
         return files;
     }
@@ -404,7 +448,7 @@ public class DddSourceRenderer {
      * @return Java 源码
      */
     private String renderEntityCommand(GenerationContext context, String className, PgTableModel table) {
-        String packageName = context.getConfig().getProject().getBasePackage() + ".client.command";
+        String packageName = context.getConfig().getProject().getBasePackage() + ".application.dto";
         StringBuilder fields = new StringBuilder();
         for (PgColumnModel column : businessColumns(table)) {
             appendValidatedRecordField(context, fields, column);
@@ -412,34 +456,104 @@ public class DddSourceRenderer {
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("imports", imports(importsFor(table, context, false), "jakarta.validation.constraints.*"));
         model.put("fields", trimRecordFields(fields));
-        return renderTemplate(TemplateRegistry.CLIENT_COMMAND, packageName, className, className + " 子实体命令对象", model);
+        return renderTemplate(TemplateRegistry.APPLICATION_COMMAND, packageName, className, className + " 子实体命令对象", model);
     }
 
     /**
-     * 渲染应用服务骨架。
+     * 渲染 COLA 应用服务。
      *
-     * @param context   生成上下文
-     * @param className 类名
+     * @param context 生成上下文
      * @return Java 源码
      */
-    private String renderAppService(GenerationContext context, String className) {
-        String packageName = context.getConfig().getProject().getBasePackage() + ".app.service";
-        String templateName = className.endsWith("QueryService") ? TemplateRegistry.APP_QUERY_SERVICE : TemplateRegistry.APP_COMMAND_SERVICE;
-        return renderTemplate(templateName, packageName, className, className + " 应用服务", Map.of());
+    private String renderApplicationServiceImpl(GenerationContext context) {
+        String basePackage = context.getConfig().getProject().getBasePackage();
+        String aggregateName = context.getAggregate().getName();
+        String packageName = basePackage + ".application";
+        Set<String> importSet = new LinkedHashSet<>();
+        importSet.add("lombok.RequiredArgsConstructor");
+        importSet.add("org.springframework.stereotype.Service");
+        StringBuilder executorFields = new StringBuilder();
+        StringBuilder methods = new StringBuilder();
+        for (GeneratorConfig.UseCaseConfig command : context.getAggregate().getCommands()) {
+            String commandClassName = command.getName() + "Command";
+            String executorClassName = command.getName() + "CmdExe";
+            String executorFieldName = context.getNaming().classToField(executorClassName);
+            importSet.add(basePackage + ".application.dto." + commandClassName);
+            importSet.add(basePackage + ".application.executor.command." + executorClassName);
+            executorFields.append("    private final ").append(executorClassName).append(" ").append(executorFieldName).append(";\n");
+            methods.append("\n")
+                    .append("    /**\n")
+                    .append("     * 执行 ").append(command.getName()).append(" 命令。\n")
+                    .append("     *\n")
+                    .append("     * @param command 命令对象\n")
+                    .append("     * @return 执行结果\n")
+                    .append("     */\n")
+                    .append("    @Override\n")
+                    .append("    public Object ").append(context.getNaming().classToField(command.getName()))
+                    .append("(").append(commandClassName).append(" command) {\n")
+                    .append("        return ").append(executorFieldName).append(".execute(command);\n")
+                    .append("    }\n");
+        }
+        for (GeneratorConfig.QueryConfig query : context.getAggregate().getQueries()) {
+            String queryClassName = queryClassName(query);
+            String executorClassName = query.getName() + "QryExe";
+            String executorFieldName = context.getNaming().classToField(executorClassName);
+            importSet.add(basePackage + ".application.dto." + queryClassName);
+            importSet.add(basePackage + ".application.executor.query." + executorClassName);
+            executorFields.append("    private final ").append(executorClassName).append(" ").append(executorFieldName).append(";\n");
+            methods.append("\n")
+                    .append("    /**\n")
+                    .append("     * 执行 ").append(query.getName()).append(" 查询。\n")
+                    .append("     *\n")
+                    .append("     * @param query 查询对象\n")
+                    .append("     * @return 查询结果\n")
+                    .append("     */\n")
+                    .append("    @Override\n")
+                    .append("    public Object ").append(context.getNaming().classToField(query.getName()))
+                    .append("(").append(queryClassName).append(" query) {\n")
+                    .append("        return ").append(executorFieldName).append(".execute(query);\n")
+                    .append("    }\n");
+        }
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(importSet));
+        model.put("interfaceName", aggregateName + "ServiceI");
+        model.put("executorFields", executorFields.toString());
+        model.put("methods", methods.toString());
+        return renderTemplate(TemplateRegistry.APPLICATION_SERVICE_IMPL, packageName, aggregateName + "ServiceImpl", aggregateName + " COLA 应用服务实现", model);
     }
 
     /**
-     * 渲染执行器骨架。
+     * 渲染命令执行器骨架。
      *
-     * @param context   生成上下文
-     * @param type      执行器类型
-     * @param className 类名
+     * @param context 生成上下文
+     * @param command 命令配置
      * @return Java 源码
      */
-    private String renderExecutor(GenerationContext context, String type, String className) {
-        String packageName = context.getConfig().getProject().getBasePackage() + ".app.executor." + type;
-        String templateName = "query".equals(type) ? TemplateRegistry.APP_QRY_EXE : TemplateRegistry.APP_CMD_EXE;
-        return renderTemplate(templateName, packageName, className, className + " 用例执行器", Map.of());
+    private String renderCommandExecutor(GenerationContext context, GeneratorConfig.UseCaseConfig command) {
+        String basePackage = context.getConfig().getProject().getBasePackage();
+        String packageName = basePackage + ".application.executor.command";
+        String commandClassName = command.getName() + "Command";
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(new LinkedHashSet<>(List.of(basePackage + ".application.dto." + commandClassName))));
+        model.put("commandClassName", commandClassName);
+        return renderTemplate(TemplateRegistry.APPLICATION_CMD_EXE, packageName, command.getName() + "CmdExe", command.getName() + " 命令执行器", model);
+    }
+
+    /**
+     * 渲染查询执行器骨架。
+     *
+     * @param context 生成上下文
+     * @param query   查询配置
+     * @return Java 源码
+     */
+    private String renderQueryExecutor(GenerationContext context, GeneratorConfig.QueryConfig query) {
+        String basePackage = context.getConfig().getProject().getBasePackage();
+        String packageName = basePackage + ".application.executor.query";
+        String queryClassName = queryClassName(query);
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("imports", imports(new LinkedHashSet<>(List.of(basePackage + ".application.dto." + queryClassName))));
+        model.put("queryClassName", queryClassName);
+        return renderTemplate(TemplateRegistry.APPLICATION_QRY_EXE, packageName, query.getName() + "QryExe", query.getName() + " 查询执行器", model);
     }
 
     /**
@@ -449,10 +563,56 @@ public class DddSourceRenderer {
      * @return Java 源码
      */
     private String renderController(GenerationContext context) {
-        String packageName = context.getConfig().getProject().getBasePackage() + ".adapter.web.controller";
+        String basePackage = context.getConfig().getProject().getBasePackage();
+        String packageName = basePackage + ".adapter";
         String aggregateName = context.getAggregate().getName();
+        String serviceInterfaceName = aggregateName + "ServiceI";
+        String requestMapping = controllerBasePath(context);
+        Set<String> importSet = new LinkedHashSet<>();
+        importSet.add(basePackage + ".application." + serviceInterfaceName);
+        StringBuilder methods = new StringBuilder();
+        for (GeneratorConfig.UseCaseConfig command : context.getAggregate().getCommands()) {
+            String commandClassName = command.getName() + "Command";
+            importSet.add(basePackage + ".application.dto." + commandClassName);
+            methods.append("\n")
+                    .append("    /**\n")
+                    .append("     * 执行 ").append(command.getName()).append(" 命令。\n")
+                    .append("     *\n")
+                    .append("     * @param command 命令对象\n")
+                    .append("     * @return 执行结果\n")
+                    .append("     */\n")
+                    .append("    @").append(mappingAnnotation(command.getMethod(), "PostMapping"))
+                    .append("(\"").append(relativeUseCasePath(requestMapping, command.getPath())).append("\")\n")
+                    .append("    public ResponseEntity<Object> ").append(context.getNaming().classToField(command.getName()))
+                    .append("(@Valid @RequestBody ").append(commandClassName).append(" command) {\n")
+                    .append("        return ResponseEntity.ok(").append(context.getNaming().classToField(serviceInterfaceName))
+                    .append(".").append(context.getNaming().classToField(command.getName())).append("(command));\n")
+                    .append("    }\n");
+        }
+        for (GeneratorConfig.QueryConfig query : context.getAggregate().getQueries()) {
+            String queryClassName = queryClassName(query);
+            importSet.add(basePackage + ".application.dto." + queryClassName);
+            methods.append("\n")
+                    .append("    /**\n")
+                    .append("     * 执行 ").append(query.getName()).append(" 查询。\n")
+                    .append("     *\n")
+                    .append("     * @param query 查询对象\n")
+                    .append("     * @return 查询结果\n")
+                    .append("     */\n")
+                    .append("    @").append(mappingAnnotation(query.getMethod(), "GetMapping"))
+                    .append("(\"").append(relativeUseCasePath(requestMapping, query.getPath())).append("\")\n")
+                    .append("    public ResponseEntity<Object> ").append(context.getNaming().classToField(query.getName()))
+                    .append("(@Valid ").append(queryClassName).append(" query) {\n")
+                    .append("        return ResponseEntity.ok(").append(context.getNaming().classToField(serviceInterfaceName))
+                    .append(".").append(context.getNaming().classToField(query.getName())).append("(query));\n")
+                    .append("    }\n");
+        }
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("requestMapping", "/" + context.getNaming().classToField(aggregateName) + "s");
+        model.put("imports", imports(importSet));
+        model.put("requestMapping", requestMapping);
+        model.put("serviceInterfaceName", serviceInterfaceName);
+        model.put("serviceFieldName", context.getNaming().classToField(serviceInterfaceName));
+        model.put("methods", methods.toString());
         return renderTemplate(TemplateRegistry.ADAPTER_CONTROLLER, packageName, aggregateName + "Controller", aggregateName + " Web 控制层", model);
     }
 
@@ -464,7 +624,7 @@ public class DddSourceRenderer {
      */
     private String renderAssembler(GenerationContext context) {
         String aggregateName = context.getAggregate().getName();
-        String packageName = context.getConfig().getProject().getBasePackage() + ".adapter.web.assembler";
+        String packageName = context.getConfig().getProject().getBasePackage() + ".adapter.assembler";
         return renderTemplate(TemplateRegistry.ADAPTER_WEB_ASSEMBLER, packageName, aggregateName + "WebAssembler", aggregateName + " Web 装配器", Map.of());
     }
 
@@ -524,22 +684,22 @@ public class DddSourceRenderer {
     }
 
     /**
-     * 渲染 JPA Repository 实现骨架。
+     * 渲染 JPA 写模型网关实现骨架。
      *
      * @param context 生成上下文
      * @return Java 源码
      */
-    private String renderJpaRepositoryImpl(GenerationContext context) {
+    private String renderJpaGatewayImpl(GenerationContext context) {
         String basePackage = context.getConfig().getProject().getBasePackage();
         String aggregateName = context.getAggregate().getName();
         String idType = context.getAggregate().getIdValueObject() == null ? "Long" : context.getAggregate().getIdValueObject();
-        String packageName = basePackage + ".infrastructure.persistence.impl";
+        String packageName = basePackage + ".infrastructure.gatewayimpl";
         Set<String> importSet = new LinkedHashSet<>();
         importSet.add(basePackage + ".domain.model.aggregate." + aggregateName);
         if (!idType.equals("Long")) {
             importSet.add(basePackage + ".domain.model.valueobject." + idType);
         }
-        importSet.add(basePackage + ".domain.repository." + aggregateName + "Repository");
+        importSet.add(basePackage + ".domain.gateway." + aggregateName + "Gateway");
         importSet.add("lombok.RequiredArgsConstructor");
         importSet.add("org.springframework.stereotype.Repository");
         importSet.add("java.util.Optional");
@@ -547,7 +707,7 @@ public class DddSourceRenderer {
         model.put("imports", imports(importSet));
         model.put("aggregateName", aggregateName);
         model.put("idType", idType);
-        return renderTemplate(TemplateRegistry.INFRA_JPA_REPOSITORY_IMPL, packageName, aggregateName + "RepositoryJpaImpl", aggregateName + " JPA 仓储实现", model);
+        return renderTemplate(TemplateRegistry.INFRA_JPA_GATEWAY_IMPL, packageName, aggregateName + "GatewayImpl", aggregateName + " JPA 写模型网关实现", model);
     }
 
     /**
@@ -616,7 +776,7 @@ public class DddSourceRenderer {
         model.put("mapperNamespace", basePackage + ".infrastructure.persistence.mp.mapper." + aggregateName + "Mapper");
         model.put("baseColumns", columns);
         model.put("pageQueryId", "page" + aggregateName + "s");
-        model.put("resultType", basePackage + ".client.response." + responseClass);
+        model.put("resultType", basePackage + ".application.dto." + responseClass);
         model.put("tableName", context.getRootTable().getTableName());
         model.put("logicDeleteSql", logicDeleteSql(context));
         return templateEngine.render(TemplateRegistry.INFRA_MP_MAPPER_XML, model);
@@ -653,7 +813,7 @@ public class DddSourceRenderer {
         String aggregateName = context.getAggregate().getName();
         List<GeneratedSourceFile> files = new ArrayList<>();
         files.add(javaTestFile(context, "domain/" + aggregateName + "DomainTest.java", renderTestClass(context, "domain", aggregateName + "DomainTest", aggregateName + " 领域模型测试"), WritePolicy.CREATE_ONLY));
-        files.add(javaTestFile(context, "app/" + aggregateName + "CommandServiceTest.java", renderTestClass(context, "app", aggregateName + "CommandServiceTest", aggregateName + " 命令服务测试"), WritePolicy.CREATE_ONLY));
+        files.add(javaTestFile(context, "application/" + aggregateName + "ServiceTest.java", renderTestClass(context, "application", aggregateName + "ServiceTest", aggregateName + " 应用服务测试"), WritePolicy.CREATE_ONLY));
         files.add(javaTestFile(context, "infrastructure/" + aggregateName + "RepositoryJpaIntegrationTest.java", renderTestClass(context, "infrastructure", aggregateName + "RepositoryJpaIntegrationTest", aggregateName + " JPA 仓储集成测试"), WritePolicy.CREATE_ONLY));
         files.add(javaTestFile(context, "infrastructure/" + aggregateName + "MapperIntegrationTest.java", renderTestClass(context, "infrastructure", aggregateName + "MapperIntegrationTest", aggregateName + " Mapper 集成测试"), WritePolicy.CREATE_ONLY));
         return files;
@@ -930,6 +1090,76 @@ public class DddSourceRenderer {
             return query.getName().substring("List".length()) + "Response";
         }
         return query.getName() + "Response";
+    }
+
+    /**
+     * 获取 Controller 根路径。
+     *
+     * @param context 生成上下文
+     * @return Controller 根路径
+     */
+    private String controllerBasePath(GenerationContext context) {
+        return context.getAggregate().getCommands().stream()
+                .map(GeneratorConfig.UseCaseConfig::getPath)
+                .filter(path -> path != null && !path.isBlank())
+                .findFirst()
+                .or(() -> context.getAggregate().getQueries().stream()
+                        .map(GeneratorConfig.QueryConfig::getPath)
+                        .filter(path -> path != null && !path.isBlank())
+                        .findFirst())
+                .map(this::firstPathSegment)
+                .orElse("/" + context.getNaming().classToField(context.getAggregate().getName()) + "s");
+    }
+
+    /**
+     * 截取用例路径的第一段作为 Controller 根路径。
+     *
+     * @param path 用例路径
+     * @return 第一段路径
+     */
+    private String firstPathSegment(String path) {
+        String normalized = path.startsWith("/") ? path : "/" + path;
+        int nextSlash = normalized.indexOf('/', 1);
+        return nextSlash < 0 ? normalized : normalized.substring(0, nextSlash);
+    }
+
+    /**
+     * 获取方法级路径。
+     *
+     * @param basePath    Controller 根路径
+     * @param useCasePath 用例完整路径
+     * @return 方法级路径
+     */
+    private String relativeUseCasePath(String basePath, String useCasePath) {
+        if (useCasePath == null || useCasePath.isBlank()) {
+            return "";
+        }
+        String normalized = useCasePath.startsWith("/") ? useCasePath : "/" + useCasePath;
+        if (normalized.equals(basePath)) {
+            return "";
+        }
+        if (normalized.startsWith(basePath + "/")) {
+            return normalized.substring(basePath.length());
+        }
+        return normalized;
+    }
+
+    /**
+     * 获取 Spring Mapping 注解名称。
+     *
+     * @param method            HTTP 方法
+     * @param defaultAnnotation 默认注解
+     * @return Mapping 注解名称
+     */
+    private String mappingAnnotation(String method, String defaultAnnotation) {
+        if (method == null) {
+            return defaultAnnotation;
+        }
+        return switch (method.toUpperCase(Locale.ROOT)) {
+            case "GET" -> "GetMapping";
+            case "POST" -> "PostMapping";
+            default -> defaultAnnotation;
+        };
     }
 
     /**

@@ -31,8 +31,6 @@ spring:
     banner-mode: off
   profiles:
     active: dev
-  application:
-    name: family-ai-qwen
   datasource:
     hikari:
       connection-timeout: 2000
@@ -113,6 +111,72 @@ egon:
         access-control:
           enabled: true
           token: ${OPENAPI_DOCS_ACCESS_TOKEN:656fe343d39f0ff1236c40b81a787258a4f633fd348fe04a9b2c77eabb652f45}
+
+family:
+  uaa:
+    resource-server:
+      enabled: ${UAA_RESOURCE_SERVER_ENABLED:true}
+      service-name: family-ai-qwen
+      authorization-base-url: ${UAA_AUTHORIZATION_BASE_URL:http://127.0.0.1:39092}
+      permit-patterns:
+        - /actuator/**
+        - /v3/api-docs/**
+        - /swagger-ui/**
+        - /openapi-console/**
+  ai:
+    qwen:
+      api-key: ${AI_QWEN_KEY:replace-with-your-key}
+      models:
+        - name: qwen-plus
+          display-name: 通义千问 Plus
+          enabled: true
+          provider: dashscope
+          model-kind: CHAT
+          modalities:
+            - TEXT
+            - TEXT_GENERATION
+          default-modalities:
+            - TEXT
+            - TEXT_GENERATION
+          aliases:
+            - text-default
+          options:
+            temperature: 0.7
+        - name: qwen-vl-plus
+          display-name: 通义千问 VL-Plus
+          enabled: true
+          provider: dashscope
+          model-kind: MULTIMODAL_CHAT
+          modalities:
+            - MULTIMODAL
+            - VISION
+            - VISION_UNDERSTANDING
+          default-modalities:
+            - VISION_UNDERSTANDING
+          aliases:
+            - qwen-vl
+            - vision-default
+          options:
+            temperature: 0.2
+        - name: qwen-omni-turbo
+          display-name: 通义千问 Omni Turbo
+          enabled: true
+          provider: dashscope
+          model-kind: OMNI_CHAT
+          modalities:
+            - OMNI
+            - REALTIME
+            - REALTIME_OMNI
+          default-modalities:
+            - OMNI
+          aliases:
+            - qwen-omni
+            - omni-default
+          options:
+            temperature: 0.7
+            dashscope-modalities:
+              - text
+              - audio
 
 knife4j:
   enable: true

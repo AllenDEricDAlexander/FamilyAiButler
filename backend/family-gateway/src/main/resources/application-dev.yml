@@ -1,0 +1,14 @@
+egon:
+  openapi:
+    console:
+      auth:
+        username: admin
+        # dev 明文登录密码: OpenApiDev@2026
+        password: "{plain}OpenApiDev@2026"
+        session-secret: 2b51b70dd6c7275cecb23dc2f9ac49a9b3e327dbb1cfc2857a45ab156120031c
+        secure-cookie: false
+        challenge-ttl: 2m
+        request-signature-ttl: 5m
+        request-signing-enabled: true
+      signing:
+        secret: FamilyAiButlerOpenApiSigningSecretChangeMe

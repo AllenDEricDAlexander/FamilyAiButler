@@ -51,30 +51,15 @@
 
             <label class="search-wrap">
                 <span class="search-icon">⌕</span>
-                <input id="search" class="search" placeholder="搜索接口 / 路径 / 标签"/>
+                <input id="serviceSearch" class="search" placeholder="搜索服务 / 分组"/>
             </label>
 
-            <div class="side-section">
+            <div class="side-section service-section">
                 <div class="side-title">
                     <span>服务分组</span>
                     <button id="refreshCatalog" class="icon-button" type="button" title="刷新">↻</button>
                 </div>
                 <div id="serviceList" class="service-list"></div>
-            </div>
-
-            <div class="side-section operation-section">
-                <div class="side-title">
-                    <span>接口列表</span>
-                    <small id="operationCount">0</small>
-                </div>
-                <div id="currentOperationList" class="operation-results"></div>
-            </div>
-
-            <div id="searchResults" class="side-section hidden">
-                <div class="side-title">
-                    <span>搜索结果</span>
-                </div>
-                <div id="operationResults" class="operation-results"></div>
             </div>
 
             <nav class="side-nav">
@@ -97,6 +82,25 @@
             </div>
         </aside>
 
+        <aside class="operation-sidebar">
+            <div class="operation-sidebar-head">
+                <div>
+                    <span>接口列表</span>
+                    <strong id="operationServiceName">请选择服务</strong>
+                </div>
+                <small id="operationCount">0</small>
+            </div>
+
+            <label class="search-wrap">
+                <span class="search-icon">⌕</span>
+                <input id="operationSearch" class="search" placeholder="搜索接口 / 路径 / 标签" disabled/>
+            </label>
+
+            <div class="side-section operation-section">
+                <div id="currentOperationList" class="operation-results"></div>
+            </div>
+        </aside>
+
         <section class="content">
             <header class="toolbar">
                 <div class="service-heading">
@@ -106,10 +110,13 @@
                 <div class="toolbar-actions">
                     <button id="environmentButton" class="ghost-button status-button" type="button"><span></span><strong
                             id="environment">dev</strong></button>
-                    <button id="exportLocalData" class="ghost-button" type="button">导出数据</button>
-                    <button id="importLocalData" class="ghost-button" type="button">导入数据</button>
                     <button id="exportMd" class="ghost-button" type="button">导出 MD</button>
                     <button id="exportPdf" class="ghost-button" type="button">导出 PDF</button>
+                    <button id="favoriteOperation" class="ghost-button" type="button">收藏接口</button>
+                    <button id="savePreset" class="ghost-button" type="button">保存接口</button>
+                    <button id="exportLocalData" class="ghost-button" type="button">导出数据</button>
+                    <button id="importLocalData" class="ghost-button" type="button">导入数据</button>
+                    <button id="clearLocalData" class="ghost-button danger-button" type="button">清除缓存</button>
                     <button id="logout" class="ghost-button" type="button">退出</button>
                 </div>
             </header>
@@ -125,8 +132,6 @@
                             <option>DELETE</option>
                         </select>
                         <input id="requestPath" placeholder="选择接口后自动填充 URL" readonly/>
-                        <button id="favoriteOperation" class="ghost-button" type="button">收藏</button>
-                        <button id="savePreset" class="ghost-button" type="button">保存接口</button>
                         <button id="sendRequest" type="button">发送请求</button>
                     </div>
 
@@ -135,8 +140,10 @@
                         <button class="tab" data-tab="headers" type="button">Headers <span id="headerCount">(0)</span>
                         </button>
                         <button class="tab" data-tab="body" type="button">Body</button>
-                        <button class="tab" data-tab="auth" type="button">认证</button>
-                        <button class="tab" data-tab="script" type="button">预设脚本</button>
+                        <button class="tab" data-tab="auth" type="button">Auth</button>
+                        <button class="tab" data-tab="script" type="button">Scripts</button>
+                        <button class="tab" data-tab="preRequest" type="button">Pre-request</button>
+                        <button class="tab" data-tab="tests" type="button">Tests</button>
                     </div>
 
                     <div id="paramsPanel" class="tab-panel active">
@@ -204,6 +211,20 @@
                         </label>
                     </div>
 
+                    <div id="preRequestPanel" class="tab-panel">
+                        <label class="editor-label full">
+                            <span>Pre-request (JavaScript)</span>
+                            <textarea id="preRequestInput" spellcheck="false"></textarea>
+                        </label>
+                    </div>
+
+                    <div id="testsPanel" class="tab-panel">
+                        <label class="editor-label full">
+                            <span>Tests (JavaScript)</span>
+                            <textarea id="testsInput" spellcheck="false"></textarea>
+                        </label>
+                    </div>
+
                     <div class="request-actions">
                         <button id="formatEditor" class="ghost-button" type="button">美化</button>
                         <button id="clearEditor" class="ghost-button" type="button">清空</button>
@@ -219,9 +240,18 @@
                 </section>
 
                 <section class="result-grid">
-                    <section class="result-card">
+                    <section class="result-card response-card">
                         <div class="result-head">
-                            <h3>Response 响应结果</h3>
+                            <div class="response-tabs" role="tablist">
+                                <button class="response-tab active" data-response-tab="response" type="button">
+                                    Response
+                                </button>
+                                <button class="response-tab" data-response-tab="preview" type="button">Preview</button>
+                                <button class="response-tab" data-response-tab="responseHeaders" type="button">Headers
+                                </button>
+                                <button class="response-tab" data-response-tab="cookies" type="button">Cookies</button>
+                                <button class="response-tab" data-response-tab="logs" type="button">Logs</button>
+                            </div>
                             <div class="status-pills">
                                 <span id="statusPill">-</span>
                                 <span id="durationPill">-</span>
@@ -232,18 +262,40 @@
                             <button id="copyResponse" class="icon-button" type="button" title="复制">⧉</button>
                             <button id="downloadResponse" class="icon-button" type="button" title="下载">⇩</button>
                         </div>
-                        <pre id="responseOutput"></pre>
+                        <div id="responsePanel" class="response-panel active">
+                            <pre id="responseOutput"></pre>
+                        </div>
+                        <div id="previewPanel" class="response-panel">
+                            <pre id="previewOutput"></pre>
+                        </div>
+                        <div id="responseHeadersPanel" class="response-panel">
+                            <pre id="responseHeadersOutput"></pre>
+                        </div>
+                        <div id="cookiesPanel" class="response-panel">
+                            <pre id="cookiesOutput"></pre>
+                        </div>
+                        <div id="logsPanel" class="response-panel">
+                            <pre id="logsOutput"></pre>
+                        </div>
                     </section>
 
-                    <section class="result-card">
+                    <section class="result-card artifact-card">
                         <div class="result-head">
-                            <h3>cURL / Load Result</h3>
-                            <button id="copyCurl" class="ghost-button" type="button">复制 cURL</button>
+                            <div class="response-tabs" role="tablist">
+                                <button class="artifact-tab active" data-artifact-tab="curl" type="button">cURL</button>
+                                <button class="artifact-tab" data-artifact-tab="code" type="button">代码示例</button>
+                            </div>
+                            <button id="copyCurl" class="ghost-button" type="button">复制</button>
                         </div>
-                        <pre id="curlOutput"></pre>
+                        <div id="curlPanel" class="artifact-panel active">
+                            <pre id="curlOutput"></pre>
+                        </div>
+                        <div id="codePanel" class="artifact-panel">
+                            <pre id="codeOutput"></pre>
+                        </div>
                         <div id="loadResult" class="load-result hidden">
                             <div class="load-head">
-                                <strong>Load Test Result</strong>
+                                <strong>压测结果</strong>
                                 <span id="loadSummary">-</span>
                             </div>
                             <div id="loadMetrics" class="metric-grid"></div>

@@ -10,6 +10,8 @@
 package top.egon.openapi.console.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -56,6 +58,24 @@ public class ApiDocConsoleMvcController {
 
     private final ApiDocConsoleService consoleService;
 
+    private final ObjectMapper objectMapper;
+
+    /**
+     * 创建登录挑战
+     *
+     * @param username       用户名
+     * @param servletRequest Servlet 请求
+     * @return ResponseEntity<LoginChallengeResponse> 返回登录挑战
+     */
+    @GetMapping("/login-challenge")
+    public ResponseEntity<ApiDocConsolePayloads.LoginChallengeResponse> loginChallenge(@RequestParam(required = false) String username,
+                                                                                       HttpServletRequest servletRequest) {
+        if (!sessionService.isConsoleOpen()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(sessionService.createLoginChallenge(username, clientId(servletRequest)));
+    }
+
     /**
      * 登录控制台
      *
@@ -69,26 +89,35 @@ public class ApiDocConsoleMvcController {
         if (!sessionService.isConsoleOpen()) {
             return ResponseEntity.notFound().build();
         }
-        if (!sessionService.validateLogin(request.getUsername(), request.getPassword(), clientId(servletRequest))) {
+        Optional<ApiDocConsoleSessionService.LoginValidation> validation = sessionService.validateLoginProof(request, clientId(servletRequest));
+        if (validation.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         ApiDocConsolePayloads.LoginResponse response = new ApiDocConsolePayloads.LoginResponse();
-        response.setUsername(request.getUsername());
+        response.setUsername(validation.get().getUsername());
         response.setMode(sessionService.currentMode().name());
         response.setReadOnly(sessionService.isReadOnly());
         response.setExpiresAt(sessionService.nextExpiresAt());
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, sessionService.createSessionCookie(request.getUsername()).toString())
+                .header(HttpHeaders.SET_COOKIE, sessionService.createSessionCookie(validation.get().getUsername(), validation.get().getRequestSigningSecret()).toString())
                 .body(response);
     }
 
     /**
      * 退出登录
      *
+     * @param servletRequest Servlet 请求
      * @return ResponseEntity<Void> 返回退出登录结果
      */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
+    public ResponseEntity<Void> logout(HttpServletRequest servletRequest) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(servletRequest);
+        if (session.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!validateConsoleSignature(session.get(), servletRequest, "")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, sessionService.createLogoutCookie().toString())
                 .build();
@@ -106,7 +135,7 @@ public class ApiDocConsoleMvcController {
         response.setMode(sessionService.currentMode().name());
         response.setReadOnly(sessionService.isReadOnly());
         response.setCapabilities(consoleService.catalog(sessionService.currentMode()).getCapabilities());
-        sessionService.resolveSession(servletRequest).ifPresent(session -> {
+        resolveServletSession(servletRequest).ifPresent(session -> {
             response.setAuthenticated(true);
             response.setUsername(session.getUsername());
         });
@@ -121,7 +150,11 @@ public class ApiDocConsoleMvcController {
      */
     @GetMapping("/catalog")
     public ResponseEntity<ApiDocConsolePayloads.CatalogResponse> catalog(HttpServletRequest servletRequest) {
-        if (requireSession(servletRequest).isEmpty()) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(servletRequest);
+        if (session.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!validateConsoleSignature(session.get(), servletRequest, "")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ResponseEntity.ok(consoleService.catalog(sessionService.currentMode()));
@@ -136,13 +169,17 @@ public class ApiDocConsoleMvcController {
      */
     @GetMapping("/openapi/{serviceId}")
     public ResponseEntity<JsonNode> openApi(@PathVariable String serviceId, HttpServletRequest servletRequest) {
-        if (requireSession(servletRequest).isEmpty()) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(servletRequest);
+        if (session.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!validateConsoleSignature(session.get(), servletRequest, "")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         try {
             return ResponseEntity.ok(block(consoleService.fetchOpenApi(serviceId)));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(errorBody(e));
         }
     }
 
@@ -154,13 +191,23 @@ public class ApiDocConsoleMvcController {
      * @return ResponseEntity<Object> 返回调试响应
      */
     @PostMapping("/execute")
-    public ResponseEntity<Object> execute(@RequestBody ApiDocConsolePayloads.ExecuteRequest request,
+    public ResponseEntity<Object> execute(@RequestBody(required = false) String requestBody,
                                           HttpServletRequest servletRequest) {
-        if (requireSession(servletRequest).isEmpty()) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(servletRequest);
+        if (session.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!validateConsoleSignature(session.get(), servletRequest, requestBody)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         if (sessionService.isReadOnly()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "当前环境只读，禁止执行调试请求"));
+        }
+        ApiDocConsolePayloads.ExecuteRequest request;
+        try {
+            request = objectMapper.readValue(StringUtils.hasText(requestBody) ? requestBody : "{}", ApiDocConsolePayloads.ExecuteRequest.class);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "请求体不是合法 JSON"));
         }
         try {
             return ResponseEntity.ok(block(consoleService.execute(request)));
@@ -177,13 +224,23 @@ public class ApiDocConsoleMvcController {
      * @return ResponseEntity<Object> 返回压测结果
      */
     @PostMapping("/load-test")
-    public ResponseEntity<Object> loadTest(@RequestBody ApiDocConsolePayloads.LoadTestRequest request,
+    public ResponseEntity<Object> loadTest(@RequestBody(required = false) String requestBody,
                                            HttpServletRequest servletRequest) {
-        if (requireSession(servletRequest).isEmpty()) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(servletRequest);
+        if (session.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!validateConsoleSignature(session.get(), servletRequest, requestBody)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         if (sessionService.isReadOnly() || !properties.getLoadTest().isEnabled()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "当前环境禁止压测"));
+        }
+        ApiDocConsolePayloads.LoadTestRequest request;
+        try {
+            request = objectMapper.readValue(StringUtils.hasText(requestBody) ? requestBody : "{}", ApiDocConsolePayloads.LoadTestRequest.class);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "请求体不是合法 JSON"));
         }
         try {
             return ResponseEntity.ok(block(consoleService.loadTest(request)));
@@ -204,7 +261,11 @@ public class ApiDocConsoleMvcController {
     public ResponseEntity<byte[]> export(@PathVariable String serviceId,
                                          @RequestParam(defaultValue = "md") String format,
                                          HttpServletRequest servletRequest) {
-        if (requireSession(servletRequest).isEmpty()) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(servletRequest);
+        if (session.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!validateConsoleSignature(session.get(), servletRequest, "")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         if (!properties.getExport().isEnabled()) {
@@ -229,7 +290,48 @@ public class ApiDocConsoleMvcController {
         if (!sessionService.isConsoleOpen()) {
             return Optional.empty();
         }
-        return sessionService.resolveSession(request);
+        return resolveServletSession(request);
+    }
+
+    /**
+     * 创建错误响应体
+     *
+     * @param error 异常对象
+     * @return JsonNode 返回错误响应
+     */
+    private JsonNode errorBody(Throwable error) {
+        return objectMapper.createObjectNode()
+                .put("message", StringUtils.hasText(error.getMessage()) ? error.getMessage() : "OpenAPI JSON 加载失败");
+    }
+
+    /**
+     * 校验控制台 API 请求签名
+     *
+     * @param session 登录会话
+     * @param request Servlet 请求
+     * @param body    请求体
+     * @return boolean 返回 true 表示签名有效
+     */
+    private boolean validateConsoleSignature(ApiDocConsolePayloads.UserSession session, HttpServletRequest request, String body) {
+        return sessionService.validateRequestSignature(
+                session,
+                request.getMethod(),
+                pathWithQuery(request),
+                body == null ? "" : body,
+                request.getHeader("X-OpenAPI-Console-Timestamp"),
+                request.getHeader("X-OpenAPI-Console-Nonce"),
+                request.getHeader("X-OpenAPI-Console-Signature"));
+    }
+
+    /**
+     * 获取请求路径和查询串
+     *
+     * @param request Servlet 请求
+     * @return String 返回路径和查询串
+     */
+    private String pathWithQuery(HttpServletRequest request) {
+        String query = request.getQueryString();
+        return StringUtils.hasText(query) ? request.getRequestURI() + "?" + query : request.getRequestURI();
     }
 
     /**
@@ -256,6 +358,25 @@ public class ApiDocConsoleMvcController {
             return forwardedFor.split(",", 2)[0].trim();
         }
         return StringUtils.hasText(request.getRemoteAddr()) ? request.getRemoteAddr() : "unknown";
+    }
+
+    /**
+     * 从 Servlet 请求中解析登录会话
+     *
+     * @param request Servlet 请求
+     * @return Optional<UserSession> 返回登录会话
+     */
+    private Optional<ApiDocConsolePayloads.UserSession> resolveServletSession(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null || cookies.length == 0) {
+            return Optional.empty();
+        }
+        for (Cookie cookie : cookies) {
+            if (properties.getAuth().getCookieName().equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
+                return sessionService.resolveSession(cookie.getValue());
+            }
+        }
+        return Optional.empty();
     }
 
     /**

@@ -41,7 +41,7 @@ class ApiDocConsoleMvcControllerTest {
      * 测试 Servlet 环境控制台可以通过 MVC Controller 执行调试请求
      */
     @Test
-    void testMvcControllerExecuteWithSession() {
+    void testMvcControllerExecuteWithSession() throws Exception {
         ApiDocConsoleProperties properties = secureProperties();
         ApiDocConsoleSessionService sessionService = new ApiDocConsoleSessionService(properties, new MockEnvironment());
         ApiDocConsoleService consoleService = new ApiDocConsoleService(
@@ -57,17 +57,18 @@ class ApiDocConsoleMvcControllerTest {
                 new ApiDocConsoleDocumentRenderer(),
                 new DefaultListableBeanFactory().getBeanProvider(org.springframework.cloud.client.discovery.ReactiveDiscoveryClient.class),
                 new DefaultListableBeanFactory().getBeanProvider(org.springframework.cloud.client.discovery.DiscoveryClient.class));
-        ApiDocConsoleMvcController controller = new ApiDocConsoleMvcController(properties, sessionService, consoleService);
+        ApiDocConsoleMvcController controller = new ApiDocConsoleMvcController(properties, sessionService, consoleService, new ObjectMapper());
         ApiDocConsolePayloads.ExecuteRequest executeRequest = new ApiDocConsolePayloads.ExecuteRequest();
         executeRequest.setServiceId("demo");
         executeRequest.setMethod("GET");
         executeRequest.setPath("/hello");
+        String requestBody = new ObjectMapper().writeValueAsString(executeRequest);
         MockHttpServletRequest servletRequest = new MockHttpServletRequest();
         String sessionCookie = sessionService.createSessionCookie("admin").toString().split(";", 2)[0];
         String[] cookieParts = sessionCookie.split("=", 2);
         servletRequest.setCookies(new Cookie(cookieParts[0], cookieParts[1]));
 
-        ResponseEntity<Object> response = controller.execute(executeRequest, servletRequest);
+        ResponseEntity<Object> response = controller.execute(requestBody, servletRequest);
 
         Assertions.assertEquals(200, response.getStatusCode().value());
         Assertions.assertInstanceOf(ApiDocConsolePayloads.ExecuteResponse.class, response.getBody());
@@ -87,6 +88,7 @@ class ApiDocConsoleMvcControllerTest {
         properties.getAuth().setPassword("SecurePassword@2026");
         properties.getAuth().setSessionSecret("SecureSessionSecretForOpenApiConsole2026");
         properties.getAuth().setTtl(Duration.ofHours(1));
+        properties.getAuth().setRequestSigningEnabled(false);
         ApiDocConsoleProperties.ServiceRoute route = new ApiDocConsoleProperties.ServiceRoute();
         route.setId("demo");
         route.setName("demo");

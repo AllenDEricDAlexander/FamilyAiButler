@@ -10,12 +10,14 @@
 package top.egon.openapi.console.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -56,6 +58,24 @@ public class ApiDocConsoleController {
 
     private final ApiDocConsoleService consoleService;
 
+    private final ObjectMapper objectMapper;
+
+    /**
+     * 创建登录挑战
+     *
+     * @param username 用户名
+     * @param exchange WebFlux 请求上下文
+     * @return ResponseEntity<LoginChallengeResponse> 返回登录挑战
+     */
+    @GetMapping("/login-challenge")
+    public ResponseEntity<ApiDocConsolePayloads.LoginChallengeResponse> loginChallenge(@RequestParam(required = false) String username,
+                                                                                       ServerWebExchange exchange) {
+        if (!sessionService.isConsoleOpen()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(sessionService.createLoginChallenge(username, clientId(exchange)));
+    }
+
     /**
      * 登录控制台
      *
@@ -69,26 +89,35 @@ public class ApiDocConsoleController {
         if (!sessionService.isConsoleOpen()) {
             return ResponseEntity.notFound().build();
         }
-        if (!sessionService.validateLogin(request.getUsername(), request.getPassword(), clientId(exchange))) {
+        Optional<ApiDocConsoleSessionService.LoginValidation> validation = sessionService.validateLoginProof(request, clientId(exchange));
+        if (validation.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         ApiDocConsolePayloads.LoginResponse response = new ApiDocConsolePayloads.LoginResponse();
-        response.setUsername(request.getUsername());
+        response.setUsername(validation.get().getUsername());
         response.setMode(sessionService.currentMode().name());
         response.setReadOnly(sessionService.isReadOnly());
         response.setExpiresAt(sessionService.nextExpiresAt());
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, sessionService.createSessionCookie(request.getUsername()).toString())
+                .header(HttpHeaders.SET_COOKIE, sessionService.createSessionCookie(validation.get().getUsername(), validation.get().getRequestSigningSecret()).toString())
                 .body(response);
     }
 
     /**
      * 退出登录
      *
+     * @param exchange WebFlux 请求上下文
      * @return ResponseEntity<Void> 返回退出登录结果
      */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
+    public ResponseEntity<Void> logout(ServerWebExchange exchange) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(exchange);
+        if (session.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!validateConsoleSignature(session.get(), exchange, "")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, sessionService.createLogoutCookie().toString())
                 .build();
@@ -121,7 +150,11 @@ public class ApiDocConsoleController {
      */
     @GetMapping("/catalog")
     public ResponseEntity<ApiDocConsolePayloads.CatalogResponse> catalog(ServerWebExchange exchange) {
-        if (requireSession(exchange).isEmpty()) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(exchange);
+        if (session.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!validateConsoleSignature(session.get(), exchange, "")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ResponseEntity.ok(consoleService.catalog(sessionService.currentMode()));
@@ -136,12 +169,16 @@ public class ApiDocConsoleController {
      */
     @GetMapping("/openapi/{serviceId}")
     public Mono<ResponseEntity<JsonNode>> openApi(@PathVariable String serviceId, ServerWebExchange exchange) {
-        if (requireSession(exchange).isEmpty()) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(exchange);
+        if (session.isEmpty()) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+        }
+        if (!validateConsoleSignature(session.get(), exchange, "")) {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
         }
         return consoleService.fetchOpenApi(serviceId)
                 .map(ResponseEntity::ok)
-                .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.BAD_GATEWAY).build()));
+                .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(errorBody(error))));
     }
 
     /**
@@ -152,14 +189,23 @@ public class ApiDocConsoleController {
      * @return Mono<ResponseEntity<Object>> 返回调试响应
      */
     @PostMapping("/execute")
-    public Mono<ResponseEntity<Object>> execute(@RequestBody ApiDocConsolePayloads.ExecuteRequest request,
+    public Mono<ResponseEntity<Object>> execute(@RequestBody(required = false) String requestBody,
                                                 ServerWebExchange exchange) {
         Optional<ApiDocConsolePayloads.UserSession> session = requireSession(exchange);
         if (session.isEmpty()) {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
         }
+        if (!validateConsoleSignature(session.get(), exchange, requestBody)) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+        }
         if (sessionService.isReadOnly()) {
             return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "当前环境只读，禁止执行调试请求")));
+        }
+        ApiDocConsolePayloads.ExecuteRequest request;
+        try {
+            request = objectMapper.readValue(StringUtils.hasText(requestBody) ? requestBody : "{}", ApiDocConsolePayloads.ExecuteRequest.class);
+        } catch (Exception e) {
+            return Mono.just(ResponseEntity.badRequest().body((Object) Map.of("message", "请求体不是合法 JSON")));
         }
         return consoleService.execute(request)
                 .map(result -> ResponseEntity.ok((Object) result))
@@ -174,13 +220,23 @@ public class ApiDocConsoleController {
      * @return Mono<ResponseEntity<Object>> 返回压测结果
      */
     @PostMapping("/load-test")
-    public Mono<ResponseEntity<Object>> loadTest(@RequestBody ApiDocConsolePayloads.LoadTestRequest request,
+    public Mono<ResponseEntity<Object>> loadTest(@RequestBody(required = false) String requestBody,
                                                  ServerWebExchange exchange) {
-        if (requireSession(exchange).isEmpty()) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(exchange);
+        if (session.isEmpty()) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+        }
+        if (!validateConsoleSignature(session.get(), exchange, requestBody)) {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
         }
         if (sessionService.isReadOnly() || !properties.getLoadTest().isEnabled()) {
             return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "当前环境禁止压测")));
+        }
+        ApiDocConsolePayloads.LoadTestRequest request;
+        try {
+            request = objectMapper.readValue(StringUtils.hasText(requestBody) ? requestBody : "{}", ApiDocConsolePayloads.LoadTestRequest.class);
+        } catch (Exception e) {
+            return Mono.just(ResponseEntity.badRequest().body((Object) Map.of("message", "请求体不是合法 JSON")));
         }
         return consoleService.loadTest(request)
                 .map(result -> ResponseEntity.ok((Object) result))
@@ -199,7 +255,11 @@ public class ApiDocConsoleController {
     public Mono<ResponseEntity<byte[]>> export(@PathVariable String serviceId,
                                                @RequestParam(defaultValue = "md") String format,
                                                ServerWebExchange exchange) {
-        if (requireSession(exchange).isEmpty()) {
+        Optional<ApiDocConsolePayloads.UserSession> session = requireSession(exchange);
+        if (session.isEmpty()) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+        }
+        if (!validateConsoleSignature(session.get(), exchange, "")) {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
         }
         if (!properties.getExport().isEnabled()) {
@@ -222,6 +282,48 @@ public class ApiDocConsoleController {
             return Optional.empty();
         }
         return sessionService.resolveSession(exchange);
+    }
+
+    /**
+     * 创建错误响应体
+     *
+     * @param error 异常对象
+     * @return JsonNode 返回错误响应
+     */
+    private JsonNode errorBody(Throwable error) {
+        return objectMapper.createObjectNode()
+                .put("message", StringUtils.hasText(error.getMessage()) ? error.getMessage() : "OpenAPI JSON 加载失败");
+    }
+
+    /**
+     * 校验控制台 API 请求签名
+     *
+     * @param session  登录会话
+     * @param exchange WebFlux 请求上下文
+     * @param body     请求体
+     * @return boolean 返回 true 表示签名有效
+     */
+    private boolean validateConsoleSignature(ApiDocConsolePayloads.UserSession session, ServerWebExchange exchange, String body) {
+        return sessionService.validateRequestSignature(
+                session,
+                exchange.getRequest().getMethod().name(),
+                pathWithQuery(exchange),
+                body == null ? "" : body,
+                exchange.getRequest().getHeaders().getFirst("X-OpenAPI-Console-Timestamp"),
+                exchange.getRequest().getHeaders().getFirst("X-OpenAPI-Console-Nonce"),
+                exchange.getRequest().getHeaders().getFirst("X-OpenAPI-Console-Signature"));
+    }
+
+    /**
+     * 获取请求路径和查询串
+     *
+     * @param exchange WebFlux 请求上下文
+     * @return String 返回路径和查询串
+     */
+    private String pathWithQuery(ServerWebExchange exchange) {
+        String path = exchange.getRequest().getURI().getRawPath();
+        String query = exchange.getRequest().getURI().getRawQuery();
+        return query == null || query.isBlank() ? path : path + "?" + query;
     }
 
     /**
