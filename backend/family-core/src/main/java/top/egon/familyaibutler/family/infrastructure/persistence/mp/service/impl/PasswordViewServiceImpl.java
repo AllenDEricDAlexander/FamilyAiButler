@@ -2,10 +2,10 @@ package top.egon.familyaibutler.family.infrastructure.persistence.mp.service.imp
 
 import org.springframework.stereotype.Service;
 import top.egon.familyaibutler.common.mybatis.extention.IEgonServiceImpl;
-import top.egon.familyaibutler.family.domain.model.valueobject.StrengthDTO;
-import top.egon.familyaibutler.family.domain.service.PasswordDomainService;
-import top.egon.familyaibutler.family.infrastructure.persistence.mp.mapper.PasswordViewMapper;
+import top.egon.familyaibutler.family.domain.passwordview.model.valueobject.StrengthDTO;
+import top.egon.familyaibutler.family.domain.passwordview.service.PasswordDomainService;
 import top.egon.familyaibutler.family.infrastructure.persistence.mp.dataobject.PasswordViewPO;
+import top.egon.familyaibutler.family.infrastructure.persistence.mp.mapper.PasswordViewMapper;
 import top.egon.familyaibutler.family.infrastructure.persistence.mp.service.PasswordViewService;
 
 /**

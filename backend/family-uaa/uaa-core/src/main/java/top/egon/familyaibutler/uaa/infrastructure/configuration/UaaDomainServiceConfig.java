@@ -11,9 +11,9 @@ package top.egon.familyaibutler.uaa.infrastructure.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.egon.familyaibutler.uaa.domain.service.AccountDomainService;
-import top.egon.familyaibutler.uaa.domain.service.CredentialDomainService;
-import top.egon.familyaibutler.uaa.domain.service.TokenDomainService;
+import top.egon.familyaibutler.uaa.domain.account.service.AccountDomainService;
+import top.egon.familyaibutler.uaa.domain.account.service.CredentialDomainService;
+import top.egon.familyaibutler.uaa.domain.auth.service.TokenDomainService;
 
 /**
  * @BelongsProject: familyaibutler

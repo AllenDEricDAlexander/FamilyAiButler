@@ -337,7 +337,7 @@ start_backend_module() {
   if ! start_managed_process "${service_name}" "${ENVIRONMENT}" "${ROOT_DIR}/backend" \
     env "SPRING_PROFILES_ACTIVE=${ENVIRONMENT}" "FAMILY_AI_BUTLER_ENV=${ENVIRONMENT}" \
     "FAMILY_AI_BUTLER_LOG_PATH=${ROOT_DIR}/ops/.runtime/logs" "JAVA_TOOL_OPTIONS=${java_tool_options}" \
-    mvn -pl "${maven_module}" spring-boot:run "-Dspring-boot.run.profiles=${ENVIRONMENT}"; then
+    mvn -pl "${maven_module}" clean spring-boot:run "-Dspring-boot.run.profiles=${ENVIRONMENT}"; then
     return 1
   fi
   wait_backend_health "${module}"

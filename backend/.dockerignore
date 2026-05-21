@@ -1,0 +1,22 @@
+# @BelongsProject: FamilyAiButler
+# @BelongsPackage: backend
+# @ClassName: .dockerignore
+# @Author: atluofu
+# @CreateTime: 2026Year-05Month-21Day
+# @Description: 后端运行镜像 Docker build context 排除规则
+# @Version: 1.0
+**
+!family-core/
+!family-core/target/
+!family-core/target/*.jar
+!family-uaa/
+!family-uaa/uaa-core/
+!family-uaa/uaa-core/target/
+!family-uaa/uaa-core/target/*.jar
+!family-ai/
+!family-ai/qwen-ai/
+!family-ai/qwen-ai/target/
+!family-ai/qwen-ai/target/*.jar
+!family-gateway/
+!family-gateway/target/
+!family-gateway/target/*.jar

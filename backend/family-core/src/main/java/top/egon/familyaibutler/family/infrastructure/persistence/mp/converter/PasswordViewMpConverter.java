@@ -1,9 +1,7 @@
 package top.egon.familyaibutler.family.infrastructure.persistence.mp.converter;
 
 import org.springframework.stereotype.Component;
-import top.egon.familyaibutler.family.application.dto.CreatePasswordViewCommand;
-import top.egon.familyaibutler.family.application.dto.UpdatePasswordViewCommand;
-import top.egon.familyaibutler.family.application.dto.PasswordViewPageQuery;
+import top.egon.familyaibutler.family.domain.passwordview.model.aggregate.PasswordView;
 import top.egon.familyaibutler.family.infrastructure.persistence.mp.dataobject.PasswordViewPO;
 
 /**
@@ -19,54 +17,60 @@ import top.egon.familyaibutler.family.infrastructure.persistence.mp.dataobject.P
 public class PasswordViewMpConverter {
 
     /**
-     * 创建命令转换为数据对象。
+     * 领域模型转换为数据对象。
      *
-     * @param command 创建命令
+     * @param passwordView 账号密码领域模型
      * @return 数据对象
      */
-    public PasswordViewPO toDataObject(CreatePasswordViewCommand command) {
+    public PasswordViewPO toDataObject(PasswordView passwordView) {
         return PasswordViewPO.builder()
-                .name(command.name())
-                .password(command.password())
-                .description(command.description())
-                .accountNumber(command.accountNumber())
-                .websit(command.websit())
-                .likeStatus(Boolean.TRUE.equals(command.likeStatus()))
-                .category(command.category())
+                .id(passwordView.getId())
+                .businessId(passwordView.getBusinessId())
+                .name(passwordView.getName())
+                .password(passwordView.getPassword())
+                .description(passwordView.getDescription())
+                .accountNumber(passwordView.getAccountNumber())
+                .websit(passwordView.getWebsit())
+                .likeStatus(Boolean.TRUE.equals(passwordView.getLikeStatus()))
+                .category(passwordView.getCategory())
+                .lastViewTime(passwordView.getLastViewTime())
                 .build();
     }
 
     /**
-     * 查询对象转换为数据对象。
+     * 数据对象转换为领域模型。
      *
-     * @param query 查询对象
-     * @return 数据对象
+     * @param dataObject 数据对象
+     * @return 账号密码领域模型
      */
-    public PasswordViewPO toDataObject(PasswordViewPageQuery query) {
-        return PasswordViewPO.builder()
-                .name(query.name())
-                .password(query.password())
-                .description(query.description())
-                .accountNumber(query.accountNumber())
-                .websit(query.websit())
-                .likeStatus(Boolean.TRUE.equals(query.likeStatus()))
-                .category(query.category())
-                .build();
+    public PasswordView toDomain(PasswordViewPO dataObject) {
+        PasswordView passwordView = new PasswordView();
+        passwordView.setId(dataObject.getId());
+        passwordView.setBusinessId(dataObject.getBusinessId());
+        passwordView.setName(dataObject.getName());
+        passwordView.setPassword(dataObject.getPassword());
+        passwordView.setDescription(dataObject.getDescription());
+        passwordView.setAccountNumber(dataObject.getAccountNumber());
+        passwordView.setWebsit(dataObject.getWebsit());
+        passwordView.setLikeStatus(dataObject.getLikeStatus());
+        passwordView.setCategory(dataObject.getCategory());
+        passwordView.setLastViewTime(dataObject.getLastViewTime());
+        return passwordView;
     }
 
     /**
-     * 将修改命令应用到已有数据对象。
+     * 将领域模型应用到已有数据对象。
      *
-     * @param command 修改命令
-     * @param target  已有数据对象
+     * @param passwordView 账号密码领域模型
+     * @param target       已有数据对象
      */
-    public void apply(UpdatePasswordViewCommand command, PasswordViewPO target) {
-        target.setName(command.name())
-                .setPassword(command.password())
-                .setDescription(command.description())
-                .setAccountNumber(command.accountNumber())
-                .setWebsit(command.websit())
-                .setLikeStatus(Boolean.TRUE.equals(command.likeStatus()))
-                .setCategory(command.category());
+    public void apply(PasswordView passwordView, PasswordViewPO target) {
+        target.setName(passwordView.getName())
+                .setPassword(passwordView.getPassword())
+                .setDescription(passwordView.getDescription())
+                .setAccountNumber(passwordView.getAccountNumber())
+                .setWebsit(passwordView.getWebsit())
+                .setLikeStatus(Boolean.TRUE.equals(passwordView.getLikeStatus()))
+                .setCategory(passwordView.getCategory());
     }
 }

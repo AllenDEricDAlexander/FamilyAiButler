@@ -16,8 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import top.egon.familyaibutler.ai.qwen.domain.model.enums.QwenModelModalityEnum;
-import top.egon.familyaibutler.ai.qwen.domain.model.valueobject.QwenModelDefinition;
+import top.egon.familyaibutler.ai.qwen.domain.image.model.enums.QwenModelModalityEnum;
+import top.egon.familyaibutler.ai.qwen.domain.image.model.valueobject.QwenModelDefinition;
 import top.egon.familyaibutler.ai.qwen.infrastructure.configuration.QwenModelProperties;
 
 import java.util.List;

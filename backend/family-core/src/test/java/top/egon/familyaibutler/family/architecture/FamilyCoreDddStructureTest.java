@@ -36,28 +36,38 @@ class FamilyCoreDddStructureTest {
      */
     @Test
     void shouldProvideGeneratedStyleDddLayers() throws Exception {
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/PasswordViewServiceI.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/CategoryServiceI.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/dto/CreatePasswordViewCommand.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/dto/PasswordViewPageQuery.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/PasswordViewServiceImpl.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/CategoryServiceImpl.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/PasswordViewController.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/CategoryController.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/model/aggregate/PasswordView.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/model/aggregate/Category.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/gateway/PasswordViewGateway.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/service/PasswordDomainService.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/web/PasswordViewController.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/web/CategoryController.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/web/assembler/PasswordViewWebAssembler.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/manage/PasswordViewManage.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/manage/CategoryManage.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/manage/impl/PasswordViewManageImpl.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/manage/impl/CategoryManageImpl.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/executor/command/PasswordViewCommandExe.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/executor/query/PasswordViewQueryExe.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/command/CreatePasswordViewCommand.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/query/PasswordViewPageQuery.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/result/PasswordViewDTO.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/passwordview/model/aggregate/PasswordView.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/category/model/aggregate/Category.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/passwordview/gateway/PasswordViewGateway.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/passwordview/service/PasswordDomainService.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/gateway/impl/PasswordViewGatewayImpl.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/persistence/mp/converter/PasswordViewMpConverter.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/persistence/jpa/converter/CategoryJpaConverter.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/persistence/mp/mapper/PasswordViewMapper.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/persistence/mp/dataobject/PasswordViewPO.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/persistence/mp/service/PasswordViewService.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/persistence/jpa/entity/CategoryPo.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/persistence/jpa/dataobject/CategoryPo.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/persistence/jpa/repository/CategoryRepository.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/persistence/jpa/service/CategoryService.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/controller/PasswordViewController.java")).doesNotExist();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/web/PasswordViewController.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/PasswordViewController.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/PasswordViewManage.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/application/dto")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/model")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/domain/gateway")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/infrastructure/gatewayimpl")).doesNotExist();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/client")).doesNotExist();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/app")).doesNotExist();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/service")).doesNotExist();
@@ -79,17 +89,17 @@ class FamilyCoreDddStructureTest {
      */
     @Test
     void controllerShouldDelegateUseCasesToApplicationLayer() throws Exception {
-        String controller = Files.readString(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/PasswordViewController.java"));
+        String controller = Files.readString(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/web/PasswordViewController.java"));
         assertThat(controller)
                 .doesNotContain("QueryWrapper")
-                .doesNotContain("PasswordViewServiceImpl.")
-                .doesNotContain("family.application.PasswordViewServiceImpl")
-                .contains("PasswordViewServiceI");
-        String categoryController = Files.readString(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/CategoryController.java"));
+                .doesNotContain("PasswordViewManageImpl.")
+                .doesNotContain("family.application.manage.impl.PasswordViewManageImpl")
+                .contains("PasswordViewManage");
+        String categoryController = Files.readString(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/web/CategoryController.java"));
         assertThat(categoryController)
-                .doesNotContain("family.application.CategoryServiceImpl")
-                .contains("CategoryServiceI")
-                .contains("CategoryTypeServiceI");
+                .doesNotContain("family.application.manage.impl.CategoryManageImpl")
+                .contains("CategoryManage")
+                .contains("CategoryTypeManage");
     }
 
     /**
@@ -104,13 +114,15 @@ class FamilyCoreDddStructureTest {
                 "service",
                 "mapper",
                 "po",
+                "do",
                 "repository",
                 "configuration",
                 "enums",
                 "utils",
                 "domain/dto",
                 "domain/repository",
-                "infrastructure/persistence/impl"
+                "infrastructure/persistence/impl",
+                "adapter/rpc/grpc"
         );
         for (String forbiddenPackage : forbiddenPackages) {
             assertThat(Path.of("src/main/java/top/egon/familyaibutler/family/" + forbiddenPackage)).doesNotExist();
@@ -155,6 +167,7 @@ class FamilyCoreDddStructureTest {
                     .map(this::readSource)
                     .toList();
             assertThat(String.join("\n", adapterSources))
+                    .doesNotContain("top.egon.familyaibutler.family.infrastructure")
                     .doesNotContain(".infrastructure.persistence.mp.mapper")
                     .doesNotContain(".infrastructure.persistence.jpa.repository")
                     .doesNotContain("QueryWrapper");
@@ -176,7 +189,10 @@ class FamilyCoreDddStructureTest {
                     .toList();
             assertThat(String.join("\n", applicationSources))
                     .doesNotContain("org.springframework.web")
-                    .doesNotContain("top.egon.familyaibutler.family.adapter");
+                    .doesNotContain("top.egon.familyaibutler.family.adapter")
+                    .doesNotContain("top.egon.familyaibutler.family.infrastructure")
+                    .doesNotContain("com.baomidou.mybatisplus")
+                    .doesNotContain("jakarta.persistence");
         }
     }
 

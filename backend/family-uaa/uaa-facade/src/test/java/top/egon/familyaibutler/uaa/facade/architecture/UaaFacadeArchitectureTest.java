@@ -69,7 +69,12 @@ class UaaFacadeArchitectureTest {
                     .doesNotContain("PermissionPO")
                     .doesNotContain("org.springframework.web")
                     .doesNotContain("com.baomidou")
-                    .doesNotContain("jakarta.persistence");
+                    .doesNotContain("jakarta.persistence")
+                    .doesNotContain("@Service")
+                    .doesNotContain("@Component")
+                    .doesNotContain("@Repository")
+                    .doesNotContain("@Configuration")
+                    .doesNotContain("@RestController");
         }
     }
 

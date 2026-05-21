@@ -36,19 +36,23 @@ class QwenDddStructureTest {
      */
     @Test
     void shouldProvideGeneratedStyleDddLayers() throws Exception {
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/application/ImageServiceI.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/application/dto/ImageMessageCommand.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/application/ImageServiceImpl.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter/ImageController.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/domain/model/aggregate/ImageMessageTask.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/domain/gateway/ImageModelGateway.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/infrastructure/gatewayimpl/QwenImageModelGatewayImpl.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/domain/model/enums/ModelNumberEnums.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/domain/gateway/GenImageIteration.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/infrastructure/gatewayimpl/GenImageIterationImpl.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/application/manage/ImageManage.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/application/command/ImageMessageCommand.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/application/manage/impl/ImageManageImpl.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/application/executor/command/ImageCommandExe.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter/web/ImageController.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/domain/image/model/aggregate/ImageMessageTask.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/domain/image/gateway/ImageModelGateway.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/infrastructure/gateway/impl/QwenImageModelGatewayImpl.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/domain/image/model/enums/ModelNumberEnums.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/domain/image/gateway/GenImageIteration.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/infrastructure/gateway/impl/GenImageIterationImpl.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/infrastructure/configuration/ModelConfig.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/controller/ImageController.java")).doesNotExist();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter/web/ImageController.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter/ImageController.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/application/ImageManage.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/application/ImageManageImpl.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/infrastructure/gatewayimpl")).doesNotExist();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/client")).doesNotExist();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/app")).doesNotExist();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/service")).doesNotExist();
@@ -66,12 +70,12 @@ class QwenDddStructureTest {
      */
     @Test
     void controllerShouldDelegateModelCallToApplicationLayer() throws Exception {
-        String controller = Files.readString(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter/ImageController.java"));
+        String controller = Files.readString(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter/web/ImageController.java"));
         assertThat(controller)
                 .doesNotContain("MultiModalConversation")
                 .doesNotContain("MultiModalConversationParam")
-                .doesNotContain("qwen.application.ImageServiceImpl")
-                .contains("ImageServiceI");
+                .doesNotContain("qwen.application.ImageManageImpl")
+                .contains("ImageManage");
     }
 
     /**
@@ -81,7 +85,7 @@ class QwenDddStructureTest {
      */
     @Test
     void controllerShouldProvideOpenApiAnnotations() throws Exception {
-        String controller = Files.readString(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter/ImageController.java"));
+        String controller = Files.readString(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter/web/ImageController.java"));
         assertThat(controller)
                 .contains("@Tag")
                 .contains("@Operation")
@@ -99,13 +103,19 @@ class QwenDddStructureTest {
         List<String> forbiddenPackages = List.of(
                 "controller",
                 "service",
+                "mapper",
                 "po",
+                "do",
+                "repository",
                 "configuration",
                 "enums",
+                "utils",
                 "advisor",
                 "tools",
                 "domain/dto",
-                "domain/repository"
+                "domain/repository",
+                "infrastructure/persistence/impl",
+                "adapter/rpc/grpc"
         );
         for (String forbiddenPackage : forbiddenPackages) {
             assertThat(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/" + forbiddenPackage)).doesNotExist();
@@ -127,9 +137,9 @@ class QwenDddStructureTest {
                     .toList();
             assertThat(String.join("\n", domainSources))
                     .doesNotContain("org.springframework.web")
-                    .doesNotContain("top.egon.familyaibutler.ai.qwen.application.dto")
+                    .doesNotContain("top.egon.familyaibutler.ai.qwen.application.command")
                     .doesNotContain("top.egon.familyaibutler.ai.qwen.infrastructure")
-                    .doesNotContain("top.egon.familyaibutler.ai.qwen.adapter")
+                    .doesNotContain("top.egon.familyaibutler.ai.qwen.adapter.web")
                     .doesNotContain("com.alibaba.dashscope");
         }
     }
@@ -169,7 +179,26 @@ class QwenDddStructureTest {
                     .toList();
             assertThat(String.join("\n", applicationSources))
                     .doesNotContain("org.springframework.web")
-                    .doesNotContain("top.egon.familyaibutler.ai.qwen.adapter");
+                    .doesNotContain("top.egon.familyaibutler.ai.qwen.adapter.web")
+                    .doesNotContain("top.egon.familyaibutler.ai.qwen.infrastructure");
+        }
+    }
+
+    /**
+     * 校验 Web 适配层不反向依赖基础设施实现。
+     *
+     * @throws Exception 文件读写异常
+     */
+    @Test
+    void adapterShouldNotDependOnInfrastructure() throws Exception {
+        Path adapterPath = Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter");
+        try (Stream<Path> files = Files.walk(adapterPath)) {
+            List<String> adapterSources = files.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .map(this::readSource)
+                    .toList();
+            assertThat(String.join("\n", adapterSources))
+                    .doesNotContain("top.egon.familyaibutler.ai.qwen.infrastructure");
         }
     }
 
@@ -208,6 +237,37 @@ class QwenDddStructureTest {
         assertThat(bootstrap)
                 .contains("optional:nacos:family-ai-qwen-${FAMILY_AI_BUTLER_ENV:dev}.yaml?group=DEFAULT_GROUP&refreshEnabled=true")
                 .contains("file-extension: yaml");
+    }
+
+    /**
+     * 校验 Nacos 备份配置包含 PostgreSQL 数据源配置。
+     *
+     * @throws Exception 文件读写异常
+     */
+    @Test
+    void shouldProvidePostgresDatasourceInNacosBackup() throws Exception {
+        String backup = Files.readString(Path.of("src/main/resources/backup/family-ai-qwen-dev.yaml"));
+        assertThat(backup)
+                .contains("datasource:")
+                .contains("jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:5432}/${POSTGRES_DB:familyaibutler}")
+                .contains("driver-class-name: org.postgresql.Driver")
+                .contains("open-in-view: false")
+                .contains("ddl-auto: validate")
+                .contains("org.hibernate.dialect.PostgreSQLDialect");
+    }
+
+    /**
+     * 校验 Qwen AI 模块运行时包含 PostgreSQL 驱动。
+     *
+     * @throws Exception 文件读写异常
+     */
+    @Test
+    void shouldProvidePostgresRuntimeDriver() throws Exception {
+        String pom = Files.readString(Path.of("pom.xml"));
+        assertThat(pom)
+                .contains("<groupId>org.postgresql</groupId>")
+                .contains("<artifactId>postgresql</artifactId>")
+                .contains("<scope>runtime</scope>");
     }
 
     /**

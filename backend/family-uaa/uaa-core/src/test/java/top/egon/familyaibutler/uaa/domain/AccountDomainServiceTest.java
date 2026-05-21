@@ -10,12 +10,12 @@
 package top.egon.familyaibutler.uaa.domain;
 
 import org.junit.jupiter.api.Test;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.Account;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.Profile;
-import top.egon.familyaibutler.uaa.domain.model.enums.AccountStatus;
-import top.egon.familyaibutler.uaa.domain.model.enums.AccountType;
-import top.egon.familyaibutler.uaa.domain.model.enums.ProfileType;
-import top.egon.familyaibutler.uaa.domain.service.AccountDomainService;
+import top.egon.familyaibutler.uaa.domain.account.model.aggregate.Account;
+import top.egon.familyaibutler.uaa.domain.account.model.aggregate.Profile;
+import top.egon.familyaibutler.uaa.domain.account.model.enums.AccountStatus;
+import top.egon.familyaibutler.uaa.domain.account.model.enums.AccountType;
+import top.egon.familyaibutler.uaa.domain.account.model.enums.ProfileType;
+import top.egon.familyaibutler.uaa.domain.account.service.AccountDomainService;
 
 import java.util.List;
 

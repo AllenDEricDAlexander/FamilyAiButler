@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import top.egon.familyaibutler.family.infrastructure.persistence.jpa.entity.CategoryTypePo;
+import top.egon.familyaibutler.family.infrastructure.persistence.jpa.dataobject.CategoryTypePo;
 import top.egon.familyaibutler.family.infrastructure.persistence.jpa.repository.CategoryTypeRepository;
 import top.egon.familyaibutler.family.infrastructure.persistence.jpa.service.CategoryTypeService;
 
@@ -13,10 +13,10 @@ import java.util.Optional;
 /**
  * @BelongsProject: familyaibutler
  * @BelongsPackage: top.egon.familyaibutler.family.infrastructure.persistence.jpa.service.impl
- * @ClassName: CategoryServiceImpl
+ * @ClassName: CategoryManageImpl
  * @Author: atluofu
  * @CreateTime: 2025Year-08Month-04Day-11:48
- * @Description: CategoryServiceImpl
+ * @Description: CategoryManageImpl
  * @Version: 1.0
  */
 @Service

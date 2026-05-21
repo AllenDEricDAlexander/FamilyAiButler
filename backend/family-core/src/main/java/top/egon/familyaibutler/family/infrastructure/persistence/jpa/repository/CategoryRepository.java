@@ -2,7 +2,7 @@ package top.egon.familyaibutler.family.infrastructure.persistence.jpa.repository
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import top.egon.familyaibutler.family.infrastructure.persistence.jpa.entity.CategoryPo;
+import top.egon.familyaibutler.family.infrastructure.persistence.jpa.dataobject.CategoryPo;
 
 /**
  * @BelongsProject: familyaibutler

@@ -1,0 +1,23 @@
+# @BelongsProject: FamilyAiButler
+# @BelongsPackage: root
+# @ClassName: .dockerignore
+# @Author: atluofu
+# @CreateTime: 2026Year-05Month-21Day
+# @Description: 根目录 Docker build context 排除规则
+# @Version: 1.0
+.git
+.idea
+.DS_Store
+.pnpm-store
+~
+logs
+ops/.runtime
+backend
+frontend/node_modules
+frontend/.expo
+frontend/apps/**/node_modules
+frontend/apps/**/.expo
+frontend/apps/**/dist
+frontend/apps/desktop/src-tauri/target
+frontend/apps/desktop/src-tauri/gen
+frontend/packages/**/node_modules

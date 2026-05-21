@@ -5,16 +5,18 @@
 
 ## 脚本总览
 
-| 脚本                                   | 作用                        | 默认行为                  |
-|--------------------------------------|---------------------------|-----------------------|
-| `ops/scripts/build-backend.sh`       | 构建后端 Maven 模块             | `services skip-tests` |
-| `ops/scripts/backend-local.sh`       | 本机 JDK/Maven 启动后端服务       | `all dev start`       |
-| `ops/scripts/frontend-web-dev.sh`    | 构建 Web 静态产物并用本地 HTTP 服务预览 | `start dev`，监听 `8081` |
-| `ops/scripts/desktop-tauri-dev.sh`   | 启动 Tauri 桌面端开发模式          | `start dev`，拉起桌面客户端窗口 |
-| `ops/scripts/desktop-tauri-build.sh` | 打包 Tauri 客户端              | 生成 macOS `.dmg`       |
-| `ops/scripts/frontend-nginx-up.sh`   | 用本机 Nginx 验证前端静态资源和网关代理   | 监听 `80`               |
-| `ops/scripts/docker-compose-up.sh`   | 启动 Docker Compose 依赖服务    | `start dev`           |
-| `ops/scripts/k8s-apply.sh`           | 应用或删除 Kubernetes 资源       | `start dev`           |
+| 脚本                                        | 作用                                  | 默认行为                       |
+|-------------------------------------------|-------------------------------------|----------------------------|
+| `ops/scripts/build-backend.sh`            | 构建后端 Maven 模块                       | `services skip-tests`      |
+| `ops/scripts/backend-local.sh`            | 本机 JDK/Maven 启动后端服务                 | `all dev start`            |
+| `ops/scripts/frontend-web-dev.sh`         | 构建 Web 静态产物并启动本地预览代理                | `start dev`，监听 `8081`      |
+| `ops/scripts/frontend-preview-server.mjs` | Web 静态预览和 `/api` 反向代理               | 由 `frontend-web-dev.sh` 调用 |
+| `ops/scripts/desktop-tauri-dev.sh`        | 启动 Tauri 桌面端开发模式                    | `start dev`，拉起桌面客户端窗口      |
+| `ops/scripts/desktop-tauri-build.sh`      | 打包 Tauri 客户端                        | 生成 macOS `.dmg`            |
+| `ops/scripts/frontend-nginx-up.sh`        | 用本机 Nginx 验证前端静态资源和网关代理             | 监听 `80`                    |
+| `ops/scripts/build-images.sh`             | 构建 Docker Compose 和 Kubernetes 共用镜像 | 默认构建全部镜像                   |
+| `ops/scripts/docker-compose-up.sh`        | 启动 Docker Compose 依赖服务              | `start dev`                |
+| `ops/scripts/k8s-apply.sh`                | 应用或删除 Kubernetes 资源                 | `start dev`                |
 
 ## 通用命令格式
 
@@ -84,10 +86,23 @@
 ./ops/scripts/frontend-web-dev.sh start dev
 ```
 
-脚本会在缺少依赖时执行 `corepack pnpm install`，然后构建 `frontend/apps/web/dist` 并通过本地 HTTP 服务托管。默认访问地址：
+脚本会在缺少依赖时执行 `corepack pnpm install`，然后构建 `frontend/apps/web/dist`，并用本地 Node 预览服务托管静态资源。
+默认访问地址：
 
 ```text
 http://localhost:8081
+```
+
+该预览服务会把 `/api/**` 代理到 gateway，并在转发前去掉 `/api` 前缀。默认代理目标：
+
+```text
+http://127.0.0.1:9527
+```
+
+因此本机只需要先启动后端 gateway，就可以在 `8081` 页面上测试登录、权限、密码本、AI 等接口调用。需要换端口或网关地址时：
+
+```bash
+FRONTEND_WEB_PORT=18081 FRONTEND_WEB_GATEWAY_PROXY=http://127.0.0.1:9527 ./ops/scripts/frontend-web-dev.sh restart dev
 ```
 
 该模式不是热更新开发模式。前端代码改动后，需要重新执行：
@@ -149,7 +164,10 @@ FRONTEND_NGINX_PORT=18080 NGINX_API_PREFIX=/api NGINX_GATEWAY_PROXY=http://127.0
 ```
 
 该脚本只使用本机 Nginx，不会启动 Docker。如果本机没有 `nginx`，脚本会尝试使用 Homebrew、`apt-get`、`dnf` 或 `yum`
-安装；没有可用包管理器时会输出手动安装命令。默认 `80` 端口需要管理员权限，脚本会在启动或停止 Nginx 时使用 `sudo`。
+安装；没有可用包管理器时会输出手动安装命令。默认 `80` 端口是系统特权端口，macOS 和 Linux 都需要管理员权限，脚本会在启动或停止
+Nginx 时明确提示并使用 `sudo`。监听 `80` 时，Nginx worker 会被配置成当前用户，避免 worker 使用默认 `nobody` 后读不到
+`/Users/<user>/.../frontend/apps/web/dist`。不想输入管理员密码时，把 `FRONTEND_NGINX_PORT` 改成 `1024` 以上端口，例如
+`18080`。
 
 ## 桌面端开发
 
@@ -237,6 +255,66 @@ COMPOSE_PROFILES=backend ./ops/scripts/docker-compose-up.sh start dev
 和 `family-gateway` 的 jar 都存在后再构建镜像。容器内资源服务访问 UAA 使用 `http://family-uaa:39092`，前端 Nginx 默认代理
 到 Compose 网络里的 `http://family-gateway:9527`。
 
+Compose 使用本机 Docker daemon 构建和运行镜像，镜像名默认是：
+
+```text
+family-ai-butler/<service>:local
+```
+
+可以通过环境变量统一改镜像仓库和标签：
+
+```bash
+IMAGE_REGISTRY=harbor.example.com/family-ai-butler IMAGE_TAG=dev ./ops/scripts/docker-compose-up.sh restart dev
+```
+
+Compose 内的 Postgres、Redis、Nacos 都配置了 healthcheck；启用 `backend` profile 后，后端服务会等待基础依赖健康后再启动。
+
+## 镜像构建与发布
+
+Docker Compose 可以直接使用本机 Docker 镜像；Kubernetes 节点通常使用 containerd，不能看到开发机本地 Docker 镜像。因此 K8s
+部署前需要把镜像推到所有节点可访问的镜像仓库，例如 Harbor 或内网 registry。
+
+构建本机镜像：
+
+```bash
+./ops/scripts/build-images.sh
+```
+
+构建并推送到 registry：
+
+```bash
+IMAGE_REGISTRY=harbor.example.com/family-ai-butler \
+IMAGE_TAG=$(git rev-parse --short HEAD) \
+IMAGE_PLATFORM=linux/amd64 \
+PUSH_IMAGE=true \
+./ops/scripts/build-images.sh all
+```
+
+也可以只构建部分镜像：
+
+```bash
+./ops/scripts/build-images.sh frontend
+./ops/scripts/build-images.sh backend
+./ops/scripts/build-images.sh gateway
+```
+
+K8s 生产环境不要使用 `latest`。建议使用 Git SHA 标签，发布后再固定到 digest：
+
+```text
+harbor.example.com/family-ai-butler/family-gateway:<git-sha>
+harbor.example.com/family-ai-butler/family-gateway@sha256:<digest>
+```
+
+当前 Dockerfile 策略：
+
+| 文件                                       | 策略                                           |
+|------------------------------------------|----------------------------------------------|
+| `ops/docker-compose/Dockerfile.frontend` | 只复制前端构建所需文件，构建 Expo Web 后交给 Nginx 托管         |
+| `ops/docker-compose/Dockerfile.backend`  | 使用 JRE 运行 Maven 已构建 jar，非 root 用户运行，暴露后端服务端口 |
+
+根目录 `.dockerignore` 和 `backend/.dockerignore` 会减少 build context，避免把本地缓存、日志、IDE 文件和无关 target 目录发送给
+Docker。
+
 ## Kubernetes
 
 ```bash
@@ -248,6 +326,53 @@ COMPOSE_PROFILES=backend ./ops/scripts/docker-compose-up.sh start dev
 
 `ops/k8s/base/secret.example.yaml` 只作为样例，默认不会被 base kustomization 直接应用。真实环境需要先创建
 `family-ai-butler-secret`，或者在 overlay 中接入实际 Secret 管理方式。
+
+当前 K8s base 包含：
+
+| 类型          | 资源                                                                        | 说明                  |
+|-------------|---------------------------------------------------------------------------|---------------------|
+| Deployment  | `family-web`、`family-core`、`family-uaa`、`family-ai-qwen`、`family-gateway` | 无状态服务，配置探针和资源限制     |
+| StatefulSet | `postgres`、`redis`、`nacos`                                                | 有状态基础组件，使用 PVC 持久化  |
+| HPA         | `family-web`、`family-core`、`family-uaa`、`family-ai-qwen`、`family-gateway` | 只对无状态服务做水平伸缩        |
+| PVC         | `postgres-data`、`redis-data`、`nacos-data`                                 | 通过 StatefulSet 自动创建 |
+
+HPA 使用 `autoscaling/v2` 和 CPU 利用率，集群必须安装 metrics-server，否则 HPA 无法拿到指标。Postgres、Redis、Nacos 默认不配置
+HPA；这些组件扩容需要先设计复制、高可用、备份和恢复方案。
+
+K8s 镜像默认不是 `latest`，但 base 里的 `family-ai-butler/*:0.0.1` 只是占位标签。上集群前需要把镜像改成实际 registry 地址：
+
+```bash
+kubectl kustomize ops/k8s/overlays/prod > /tmp/family-ai-butler.yaml
+```
+
+可以在 overlay 中使用 Kustomize `images` 字段，或发布时用 CI/CD 替换成：
+
+```text
+harbor.example.com/family-ai-butler/family-core:<git-sha>
+```
+
+## Kubernetes 存储
+
+`ops/k8s/base` 的 PVC 不写死 `storageClassName`，会使用集群默认 StorageClass。这样可以同时适配本地测试集群、Rocky Linux VM
+里的自建 K8s，以及后续 vSphere/vSAN。
+
+当前容量默认值：
+
+| 组件       | PVC 名称模板        | 默认容量 |
+|----------|-----------------|------|
+| Postgres | `postgres-data` | 20Gi |
+| Redis    | `redis-data`    | 5Gi  |
+| Nacos    | `nacos-data`    | 10Gi |
+
+在 Dell 服务器 + vSphere VM + Rocky Linux 自建 K8s 的环境里，推荐后续接 vSphere CSI Driver。vSAN 准备好后，可以使用样例：
+
+```bash
+kubectl apply -f ops/k8s/storage/vsphere-csi-storageclass.yaml
+```
+
+数据库类存储建议 `reclaimPolicy: Retain`、`volumeBindingMode: WaitForFirstConsumer`、`allowVolumeExpansion: true`
+。生产环境上线前还要补
+PVC 快照、备份、恢复演练和容量告警；PVC 只解决持久化，不等于高可用。
 
 ## 日志和状态
 

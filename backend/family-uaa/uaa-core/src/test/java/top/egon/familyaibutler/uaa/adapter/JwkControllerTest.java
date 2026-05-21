@@ -1,13 +1,13 @@
 /**
  * @BelongsProject: familyaibutler
- * @BelongsPackage: top.egon.familyaibutler.uaa.adapter
+ * @BelongsPackage: top.egon.familyaibutler.uaa.adapter.web
  * @FileName: JwkControllerTest.java
  * @Author: atluofu
  * @CreateTime: 2026Year-05Month-20Day-16:20
  * @Description: JWK 控制器测试文件
  * @Version: 1.0
  */
-package top.egon.familyaibutler.uaa.adapter;
+package top.egon.familyaibutler.uaa.adapter.web;
 
 import org.junit.jupiter.api.Test;
 import top.egon.familyaibutler.common.security.jwt.FamilyJwtProperties;
@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @BelongsProject: familyaibutler
- * @BelongsPackage: top.egon.familyaibutler.uaa.adapter
+ * @BelongsPackage: top.egon.familyaibutler.uaa.adapter.web
  * @ClassName: JwkControllerTest
  * @Author: atluofu
  * @CreateTime: 2026-05-20 16:20

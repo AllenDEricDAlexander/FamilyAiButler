@@ -10,11 +10,12 @@
 package top.egon.familyaibutler.uaa.application;
 
 import org.junit.jupiter.api.Test;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.OAuthClient;
-import top.egon.familyaibutler.uaa.domain.service.TokenDomainService;
+import top.egon.familyaibutler.uaa.application.manage.impl.OAuthClientManageImpl;
+import top.egon.familyaibutler.uaa.domain.auth.service.TokenDomainService;
+import top.egon.familyaibutler.uaa.domain.oauth.model.aggregate.OAuthClient;
 import top.egon.familyaibutler.uaa.facade.dto.oauthclient.CreateOAuthClientRequest;
 import top.egon.familyaibutler.uaa.facade.dto.oauthclient.OAuthClientResponse;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryOAuthClientGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryOAuthClientGatewayImpl;
 
 import java.util.Set;
 
@@ -37,7 +38,7 @@ class OAuthClientServiceTest {
     @Test
     void shouldCreateGetAndListOAuthClientWithHashedSecret() {
         InMemoryOAuthClientGatewayImpl oAuthClientGateway = new InMemoryOAuthClientGatewayImpl();
-        OAuthClientServiceImpl service = new OAuthClientServiceImpl(oAuthClientGateway, new TokenDomainService());
+        OAuthClientManageImpl service = new OAuthClientManageImpl(oAuthClientGateway, new TokenDomainService());
         CreateOAuthClientRequest request = new CreateOAuthClientRequest("admin-console", "Admin Console",
                 "client-secret-123", Set.of("PASSWORD", "REFRESH_TOKEN"), Set.of("openid", "profile"),
                 Set.of("family-core:/password/**"), 600L, 2592000L);

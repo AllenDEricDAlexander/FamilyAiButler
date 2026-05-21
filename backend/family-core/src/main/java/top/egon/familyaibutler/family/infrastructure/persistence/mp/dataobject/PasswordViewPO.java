@@ -18,7 +18,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.With;
 import lombok.experimental.Accessors;
-import top.egon.familyaibutler.family.domain.model.enums.PasswordCategoryEnum;
+import top.egon.familyaibutler.family.domain.passwordview.model.enums.PasswordCategoryEnum;
 
 import java.io.Serial;
 import java.io.Serializable;

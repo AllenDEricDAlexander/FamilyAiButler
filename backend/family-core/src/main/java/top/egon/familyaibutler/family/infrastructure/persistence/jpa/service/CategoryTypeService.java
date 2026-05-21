@@ -2,8 +2,7 @@ package top.egon.familyaibutler.family.infrastructure.persistence.jpa.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import top.egon.familyaibutler.family.infrastructure.persistence.jpa.entity.CategoryPo;
-import top.egon.familyaibutler.family.infrastructure.persistence.jpa.entity.CategoryTypePo;
+import top.egon.familyaibutler.family.infrastructure.persistence.jpa.dataobject.CategoryTypePo;
 
 import java.util.Optional;
 

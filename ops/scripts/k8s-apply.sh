@@ -21,7 +21,7 @@ NAMESPACE="family-ai-butler"
 
 case "${COMMAND}" in
   status)
-    kubectl get all -n "${NAMESPACE}"
+    kubectl get all,hpa,pvc -n "${NAMESPACE}"
     ;;
   start)
     kubectl apply -k "${OVERLAY_DIR}"
@@ -31,6 +31,6 @@ case "${COMMAND}" in
     ;;
   restart)
     kubectl apply -k "${OVERLAY_DIR}"
-    kubectl rollout restart deployment -n "${NAMESPACE}"
+    kubectl rollout restart deployment,statefulset -n "${NAMESPACE}"
     ;;
 esac

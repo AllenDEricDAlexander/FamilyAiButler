@@ -1,3 +1,33 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:5432}/${POSTGRES_DB:familyaibutler}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:HomeLab666}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 2000
+      minimum-idle: 10
+      maximum-pool-size: 50
+      idle-timeout: 200000
+      auto-commit: true
+      max-lifetime: 1800000
+      connection-test-query: select 1
+      pool-name: FamilyHikariCP
+      validation-timeout: 3000
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  jpa:
+    generate-ddl: false
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
 family:
   ai:
     qwen:

@@ -11,3 +11,4 @@ resources:
   - ../../base
 patches:
   - path: replica-patch.yaml
+  - path: hpa-patch.yaml

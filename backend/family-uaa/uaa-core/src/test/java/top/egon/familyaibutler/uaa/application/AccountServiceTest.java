@@ -10,16 +10,19 @@
 package top.egon.familyaibutler.uaa.application;
 
 import org.junit.jupiter.api.Test;
-import top.egon.familyaibutler.uaa.application.dto.account.RegisterAccountCommand;
-import top.egon.familyaibutler.uaa.domain.gateway.AccountGateway;
-import top.egon.familyaibutler.uaa.domain.gateway.CredentialGateway;
-import top.egon.familyaibutler.uaa.domain.gateway.ProfileGateway;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.Account;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.Profile;
-import top.egon.familyaibutler.uaa.domain.model.entity.Credential;
-import top.egon.familyaibutler.uaa.domain.model.enums.ProfileType;
-import top.egon.familyaibutler.uaa.domain.service.AccountDomainService;
-import top.egon.familyaibutler.uaa.domain.service.CredentialDomainService;
+import top.egon.familyaibutler.uaa.application.command.account.RegisterAccountCommand;
+import top.egon.familyaibutler.uaa.application.executor.command.AccountCommandExe;
+import top.egon.familyaibutler.uaa.application.executor.query.AccountQueryExe;
+import top.egon.familyaibutler.uaa.application.manage.impl.AccountManageImpl;
+import top.egon.familyaibutler.uaa.domain.account.gateway.AccountGateway;
+import top.egon.familyaibutler.uaa.domain.account.gateway.CredentialGateway;
+import top.egon.familyaibutler.uaa.domain.account.gateway.ProfileGateway;
+import top.egon.familyaibutler.uaa.domain.account.model.aggregate.Account;
+import top.egon.familyaibutler.uaa.domain.account.model.aggregate.Profile;
+import top.egon.familyaibutler.uaa.domain.account.model.entity.Credential;
+import top.egon.familyaibutler.uaa.domain.account.model.enums.ProfileType;
+import top.egon.familyaibutler.uaa.domain.account.service.AccountDomainService;
+import top.egon.familyaibutler.uaa.domain.account.service.CredentialDomainService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,10 +49,10 @@ class AccountServiceTest {
         InMemoryAccountGateway accountGateway = new InMemoryAccountGateway();
         InMemoryCredentialGateway credentialGateway = new InMemoryCredentialGateway();
         InMemoryProfileGateway profileGateway = new InMemoryProfileGateway();
-        AccountCommandService commandService = new AccountCommandService(new AccountDomainService(), new CredentialDomainService(),
+        AccountCommandExe commandService = new AccountCommandExe(new AccountDomainService(), new CredentialDomainService(),
                 accountGateway, credentialGateway, profileGateway);
-        AccountQueryService queryService = new AccountQueryService(accountGateway, profileGateway);
-        AccountServiceImpl accountService = new AccountServiceImpl(commandService, queryService);
+        AccountQueryExe queryService = new AccountQueryExe(accountGateway, profileGateway);
+        AccountManageImpl accountService = new AccountManageImpl(commandService, queryService);
 
         var response = accountService.registerByUsername(new RegisterAccountCommand("mario", "mario@example.com", "13800000000", "S3cret@123"));
 

@@ -5,10 +5,23 @@
 # @CreateTime: 2026Year-05Month-19Day
 # @Description: 后端服务运行镜像
 # @Version: 1.0
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-alpine
 
 ARG JAR_FILE
+
 WORKDIR /app
-COPY ${JAR_FILE} app.jar
-EXPOSE 39090
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+
+RUN addgroup -S -g 10001 family \
+    && adduser -S -D -H -u 10001 -G family family \
+    && mkdir -p /var/log/family-ai-butler \
+    && chown -R 10001:10001 /app /var/log/family-ai-butler
+
+COPY --chown=10001:10001 ${JAR_FILE} app.jar
+
+USER 10001:10001
+
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -Djava.security.egd=file:/dev/./urandom -Djava.io.tmpdir=/tmp"
+
+EXPOSE 39090 39091 39092 9527
+
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

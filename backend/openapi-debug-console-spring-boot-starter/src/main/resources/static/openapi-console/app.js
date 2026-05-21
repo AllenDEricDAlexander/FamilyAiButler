@@ -31,12 +31,19 @@ const state = {
     lastCode: "",
     lastRequestPayload: null,
     signingKey: "",
+    serviceDrawerOpen: false,
+    operationDrawerOpen: false,
+    sendingRequest: false,
+    runningLoadTest: false,
+    toastTimer: 0,
 };
 
 const $ = (id) => document.getElementById(id);
 
 document.addEventListener("DOMContentLoaded", () => {
     bindEvents();
+    syncTabState();
+    syncDrawerState();
     renderLocalBadges();
     checkLogin();
 });
@@ -65,11 +72,18 @@ function bindEvents() {
     $("clearLocalData").addEventListener("click", clearBrowserStorage);
     $("favoriteOperation").addEventListener("click", toggleFavorite);
     $("savePreset").addEventListener("click", saveCurrentPreset);
+    $("serviceDrawerToggle").addEventListener("click", () => toggleServiceDrawer(true));
+    $("operationDrawerToggle").addEventListener("click", () => toggleOperationDrawer(true));
+    $("closeServiceDrawer").addEventListener("click", () => toggleServiceDrawer(false));
+    $("closeOperationDrawer").addEventListener("click", () => toggleOperationDrawer(false));
+    $("drawerBackdrop").addEventListener("click", closeDrawers);
     $("applyAuth").addEventListener("click", applyAuth);
     $("copyResponse").addEventListener("click", () => copyText(state.lastResponseBody));
     $("copyCurl").addEventListener("click", () => copyText(state.artifactTab === "code" ? state.lastCode : state.lastCurl));
     $("downloadResponse").addEventListener("click", downloadResponse);
-    $("showHistory").addEventListener("click", () => renderLocalPanel("history"));
+    if ($("showHistory")) {
+        $("showHistory").addEventListener("click", () => renderLocalPanel("history"));
+    }
     $("showFavorites").addEventListener("click", () => renderLocalPanel("favorites"));
     $("showPresets").addEventListener("click", () => renderLocalPanel("presets"));
     $("showSettings").addEventListener("click", () => renderLocalPanel("settings"));
@@ -82,6 +96,112 @@ function bindEvents() {
     document.querySelectorAll(".artifact-tab").forEach((tab) => {
         tab.addEventListener("click", () => activateArtifactTab(tab.dataset.artifactTab));
     });
+    document.querySelectorAll(".action-menu").forEach((menu) => {
+        menu.addEventListener("toggle", () => closeSiblingMenus(menu));
+    });
+    document.querySelectorAll(".menu-panel button").forEach((button) => {
+        button.addEventListener("click", closeMenus);
+    });
+    document.addEventListener("keydown", handleGlobalKeydown);
+    window.addEventListener("resize", syncDrawerState);
+}
+
+/**
+ * 处理全局键盘快捷键
+ *
+ * @param {KeyboardEvent} event 键盘事件
+ */
+function handleGlobalKeydown(event) {
+    if (event.key === "Escape" && (state.serviceDrawerOpen || state.operationDrawerOpen || state.localPanel)) {
+        event.preventDefault();
+        closeDrawers();
+        return;
+    }
+    if (!(event.metaKey || event.ctrlKey) || event.key !== "Enter" || event.repeat) {
+        return;
+    }
+    if ($("consoleView").classList.contains("hidden") || $("sendRequest").disabled) {
+        return;
+    }
+    event.preventDefault();
+    sendRequest();
+}
+
+/**
+ * 关闭同组之外的菜单
+ *
+ * @param {HTMLDetailsElement} currentMenu 当前菜单
+ */
+function closeSiblingMenus(currentMenu) {
+    if (!currentMenu.open) {
+        return;
+    }
+    document.querySelectorAll(".action-menu").forEach((menu) => {
+        if (menu !== currentMenu) {
+            menu.open = false;
+        }
+    });
+}
+
+/**
+ * 关闭顶部操作菜单
+ */
+function closeMenus() {
+    document.querySelectorAll(".action-menu").forEach((menu) => {
+        menu.open = false;
+    });
+}
+
+/**
+ * 切换服务抽屉
+ *
+ * @param {boolean} open 是否打开
+ */
+function toggleServiceDrawer(open) {
+    state.serviceDrawerOpen = Boolean(open);
+    syncDrawerState();
+}
+
+/**
+ * 切换接口抽屉
+ *
+ * @param {boolean} open 是否打开
+ */
+function toggleOperationDrawer(open) {
+    state.operationDrawerOpen = Boolean(open);
+    if (state.operationDrawerOpen) {
+        closeLocalPanel();
+    }
+    syncDrawerState();
+    if (state.operationDrawerOpen && !$("operationSearch").disabled) {
+        window.setTimeout(() => $("operationSearch").focus(), 0);
+    }
+}
+
+/**
+ * 关闭响应式抽屉和弹出面板
+ */
+function closeDrawers() {
+    state.serviceDrawerOpen = false;
+    state.operationDrawerOpen = false;
+    closeLocalPanel();
+    syncDrawerState();
+}
+
+/**
+ * 同步抽屉、接口弹窗和遮罩可见性
+ */
+function syncDrawerState() {
+    const width = window.innerWidth || document.documentElement.clientWidth;
+    const serviceOpen = width < 1180 && state.serviceDrawerOpen;
+    const operationOpen = state.operationDrawerOpen;
+    $("consoleView").classList.toggle("service-drawer-open", serviceOpen);
+    $("consoleView").classList.toggle("operation-drawer-open", operationOpen);
+    $("serviceDrawerToggle").setAttribute("aria-expanded", String(serviceOpen));
+    $("operationDrawerToggle").setAttribute("aria-expanded", String(operationOpen));
+    $("operationDialog").classList.toggle("hidden", !operationOpen);
+    $("operationDialog").hidden = !operationOpen;
+    $("drawerBackdrop").hidden = !(serviceOpen || operationOpen || state.localPanel);
 }
 
 /**
@@ -403,16 +523,24 @@ async function loadService(service, operationKey, snapshot) {
         $("currentOperationList").innerHTML = `<div class="empty-state">OpenAPI JSON 加载失败</div>`;
         $("operationCount").textContent = "0";
         renderOperationDetail();
+        state.serviceDrawerOpen = false;
+        toggleOperationDrawer(true);
         return;
     }
     state.operations = state.serviceOperations[service.id] || [];
     state.operation = operationKey
         ? state.operations.find((item) => item.key === operationKey) || state.operations[0] || null
-        : state.operations[0] || null;
+        : null;
     renderServices();
     renderCurrentOperationList();
     try {
         renderOperationDetail(snapshot);
+        state.serviceDrawerOpen = false;
+        if (operationKey) {
+            toggleOperationDrawer(false);
+        } else {
+            toggleOperationDrawer(true);
+        }
     } catch (error) {
         setResponseError(`接口详情渲染失败: ${error.message}`);
     }
@@ -489,6 +617,10 @@ function renderServices() {
         const button = document.createElement("button");
         const count = state.operationCounts[service.id] ?? "-";
         button.className = `service-item${state.service?.id === service.id ? " active" : ""}`;
+        button.type = "button";
+        if (state.service?.id === service.id) {
+            button.setAttribute("aria-current", "true");
+        }
         button.innerHTML = `
       <strong>${escapeHtml(service.name || service.id)}</strong>
       <span class="count-badge">${escapeHtml(count)}</span>
@@ -533,6 +665,10 @@ function renderCurrentOperationList() {
 function operationButton(item, clickHandler, showService) {
     const button = document.createElement("button");
     button.className = `operation-item${state.operation?.key === item.key ? " active" : ""}`;
+    button.type = "button";
+    if (state.operation?.key === item.key) {
+        button.setAttribute("aria-current", "true");
+    }
     button.innerHTML = `
     <span class="operation-main">
       <span class="method-pill method-${escapeHtml(item.method.toLowerCase())}">${escapeHtml(item.method)}</span>
@@ -554,6 +690,7 @@ function selectCurrentOperation(operation) {
     $("requestPath").value = operation.path;
     renderCurrentOperationList();
     renderOperationDetail();
+    toggleOperationDrawer(false);
 }
 
 /**
@@ -577,6 +714,7 @@ function selectOperationFromAnyService(operation) {
 function renderOperationDetail(snapshot) {
     if (!state.operation) {
         disableWorkspace(true);
+        renderOperationContext();
         $("methodSelect").value = "GET";
         $("requestPath").value = "";
         $("pathInput").value = "{}";
@@ -592,10 +730,12 @@ function renderOperationDetail(snapshot) {
         $("logsOutput").textContent = "";
         $("curlOutput").textContent = "";
         $("codeOutput").textContent = "";
+        clearResponseAlert();
         setStatusPills();
         return;
     }
     disableWorkspace(false);
+    renderOperationContext();
     $("methodSelect").value = state.operation.method;
     $("requestPath").value = state.operation.path;
     fillDefaults();
@@ -610,8 +750,22 @@ function renderOperationDetail(snapshot) {
     $("logsOutput").textContent = "";
     $("curlOutput").textContent = "";
     $("codeOutput").textContent = "";
+    clearResponseAlert();
     $("loadResult").classList.add("hidden");
     renderFavoriteState();
+}
+
+/**
+ * 渲染当前接口上下文
+ */
+function renderOperationContext() {
+    if (!state.operation) {
+        $("currentOperationName").textContent = "请选择接口";
+        $("currentOperationMeta").textContent = "GET /";
+        return;
+    }
+    $("currentOperationName").textContent = state.operation.summary || state.operation.operation?.operationId || state.operation.path;
+    $("currentOperationMeta").textContent = `${state.operation.method} ${state.operation.path}`;
 }
 
 /**
@@ -661,8 +815,7 @@ function currentParameters() {
  */
 function activateTab(tabName) {
     state.activeTab = tabName;
-    document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === tabName));
-    document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `${tabName}Panel`));
+    syncTabState();
 }
 
 /**
@@ -672,8 +825,7 @@ function activateTab(tabName) {
  */
 function activateResponseTab(tabName) {
     state.responseTab = tabName;
-    document.querySelectorAll(".response-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.responseTab === tabName));
-    document.querySelectorAll(".response-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `${tabName}Panel`));
+    syncTabState();
 }
 
 /**
@@ -683,8 +835,37 @@ function activateResponseTab(tabName) {
  */
 function activateArtifactTab(tabName) {
     state.artifactTab = tabName;
-    document.querySelectorAll(".artifact-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.artifactTab === tabName));
-    document.querySelectorAll(".artifact-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `${tabName}Panel`));
+    syncTabState();
+}
+
+/**
+ * 同步 Tab 可访问状态
+ */
+function syncTabState() {
+    syncTabGroup(".tab", ".tab-panel", "tab", state.activeTab);
+    syncTabGroup(".response-tab", ".response-panel", "responseTab", state.responseTab);
+    syncTabGroup(".artifact-tab", ".artifact-panel", "artifactTab", state.artifactTab);
+}
+
+/**
+ * 同步单组 Tab 和面板状态
+ *
+ * @param {string} tabSelector Tab 选择器
+ * @param {string} panelSelector 面板选择器
+ * @param {string} dataKey 数据字段
+ * @param {string} activeName 当前激活名称
+ */
+function syncTabGroup(tabSelector, panelSelector, dataKey, activeName) {
+    document.querySelectorAll(tabSelector).forEach((tab) => {
+        const active = tab.dataset[dataKey] === activeName;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+    });
+    document.querySelectorAll(panelSelector).forEach((panel) => {
+        const active = panel.id === `${activeName}Panel`;
+        panel.classList.toggle("active", active);
+        panel.hidden = !active;
+    });
 }
 
 /**
@@ -784,7 +965,7 @@ function applyAuth() {
  * 发送调试请求
  */
 async function sendRequest() {
-    if (!state.service || !state.operation) {
+    if (!state.service || !state.operation || state.sendingRequest) {
         return;
     }
     let payload;
@@ -795,7 +976,7 @@ async function sendRequest() {
         return;
     }
     state.lastRequestPayload = payload;
-    let result;
+    setActionLoading("sendRequest", true, "发送中");
     try {
         const requestBody = JSON.stringify(payload);
         const response = await apiFetch("/execute", {
@@ -803,30 +984,31 @@ async function sendRequest() {
             headers: {"Content-Type": "application/json"},
             body: requestBody,
         });
-        result = await readJsonResult(response);
+        const result = await readJsonResult(response);
+        renderExecuteResult(result);
+        localStore.addHistory({
+            serviceId: state.service.id,
+            serviceName: state.service.name || state.service.id,
+            method: payload.method,
+            path: payload.path,
+            summary: state.operation.summary,
+            status: result.status,
+            durationMillis: result.durationMillis,
+            request: snapshotRequest(),
+        });
+        renderLocalBadges();
     } catch (error) {
         setResponseError(error.message);
-        return;
+    } finally {
+        setActionLoading("sendRequest", false);
     }
-    renderExecuteResult(result);
-    localStore.addHistory({
-        serviceId: state.service.id,
-        serviceName: state.service.name || state.service.id,
-        method: payload.method,
-        path: payload.path,
-        summary: state.operation.summary,
-        status: result.status,
-        durationMillis: result.durationMillis,
-        request: snapshotRequest(),
-    });
-    renderLocalBadges();
 }
 
 /**
  * 执行轻量压测
  */
 async function runLoadTest() {
-    if (!state.service || !state.operation) {
+    if (!state.service || !state.operation || state.runningLoadTest) {
         return;
     }
     let executeRequest;
@@ -842,7 +1024,7 @@ async function runLoadTest() {
         concurrency: Number($("concurrency").value || 2),
     };
     state.lastRequestPayload = executeRequest;
-    let result;
+    setActionLoading("runLoadTest", true, "压测中");
     try {
         const requestBody = JSON.stringify(payload);
         const response = await apiFetch("/load-test", {
@@ -850,16 +1032,17 @@ async function runLoadTest() {
             headers: {"Content-Type": "application/json"},
             body: requestBody,
         });
-        result = await readJsonResult(response);
+        const result = await readJsonResult(response);
+        state.lastCurl = JSON.stringify(result, null, 2);
+        state.lastCode = buildFetchExample(executeRequest);
+        $("curlOutput").textContent = state.lastCurl;
+        $("codeOutput").textContent = state.lastCode;
+        renderLoadResult(result);
     } catch (error) {
         setResponseError(error.message);
-        return;
+    } finally {
+        setActionLoading("runLoadTest", false);
     }
-    state.lastCurl = JSON.stringify(result, null, 2);
-    state.lastCode = buildFetchExample(executeRequest);
-    $("curlOutput").textContent = state.lastCurl;
-    $("codeOutput").textContent = state.lastCode;
-    renderLoadResult(result);
 }
 
 /**
@@ -942,6 +1125,7 @@ function applyRequestSnapshot(snapshot) {
 function renderExecuteResult(result) {
     const body = result.body || "";
     const responseHeaders = result.headers || {};
+    clearResponseAlert();
     state.lastResponseBody = prettyText(body);
     state.lastResponseHeaders = responseHeaders;
     state.lastResponseLog = {
@@ -1088,7 +1272,7 @@ function saveCurrentPreset() {
         request: snapshotRequest(),
     });
     renderLocalBadges();
-    renderLocalPanel("presets");
+    renderLocalPanel("presets", true);
 }
 
 /**
@@ -1108,7 +1292,7 @@ function toggleFavorite() {
     renderFavoriteState();
     renderLocalBadges();
     if (state.localPanel === "favorites") {
-        renderLocalPanel("favorites");
+        renderLocalPanel("favorites", true);
     }
 }
 
@@ -1124,7 +1308,9 @@ function renderFavoriteState() {
  */
 function renderLocalBadges() {
     const local = localStore.loadState();
-    $("historyCount").textContent = local.history.length;
+    if ($("historyCount")) {
+        $("historyCount").textContent = local.history.length;
+    }
     $("favoriteCount").textContent = local.favorites.length;
     $("presetCount").textContent = local.presets.length;
 }
@@ -1138,12 +1324,28 @@ function renderLocalBadges() {
 function renderLocalPanel(type, forceOpen) {
     state.localPanel = !forceOpen && state.localPanel === type ? "" : type;
     document.querySelectorAll(".side-nav button").forEach((button) => button.classList.remove("active"));
-    $("localPanel").classList.toggle("hidden", !state.localPanel);
     if (!state.localPanel) {
-        $("localPanel").innerHTML = "";
+        closeLocalPanel();
         return;
     }
-    $(`show${type.slice(0, 1).toUpperCase()}${type.slice(1)}`).classList.add("active");
+    state.operationDrawerOpen = false;
+    const panelButton = $(`show${type.slice(0, 1).toUpperCase()}${type.slice(1)}`);
+    if (panelButton) {
+        panelButton.classList.add("active");
+    }
+    $("localPanel").classList.remove("hidden");
+    $("localPanel").hidden = false;
+    $("localPanel").innerHTML = `
+      <div class="local-panel-head">
+        <div>
+          <strong id="localPanelTitle">${escapeHtml(localPanelTitle(type))}</strong>
+          <small>${escapeHtml(localPanelHint(type))}</small>
+        </div>
+        <button id="closeLocalPanel" class="icon-button" type="button" title="关闭">×</button>
+      </div>
+      <div id="localPanelBody" class="local-panel-body"></div>
+    `;
+    $("closeLocalPanel").addEventListener("click", closeLocalPanel);
     const local = localStore.loadState();
     if (type === "history") {
         renderLocalItems(local.history, "暂无接口历史", restoreHistory);
@@ -1155,15 +1357,68 @@ function renderLocalPanel(type, forceOpen) {
         renderLocalItems(local.presets, "暂无接口预设", applyPreset);
     }
     if (type === "settings") {
-        $("localPanel").innerHTML = `
+        $("localPanelBody").innerHTML = `
       <div class="local-list">
         <button class="local-item" type="button" id="panelExportData"><strong>导出本地数据</strong><small>history / favorites / presets / settings</small></button>
         <button class="local-item" type="button" id="panelImportData"><strong>导入本地数据</strong><small>openapi-console-local-data.json</small></button>
+        <button class="local-item danger-item" type="button" id="panelClearData"><strong>清除浏览器缓存</strong><small>清除历史、收藏、预设、设置和登录签名</small></button>
       </div>
     `;
         $("panelExportData").addEventListener("click", exportLocalData);
         $("panelImportData").addEventListener("click", () => $("localDataFile").click());
+        $("panelClearData").addEventListener("click", clearBrowserStorage);
     }
+    syncDrawerState();
+}
+
+/**
+ * 关闭本地数据弹窗
+ */
+function closeLocalPanel() {
+    state.localPanel = "";
+    document.querySelectorAll(".side-nav button").forEach((button) => button.classList.remove("active"));
+    $("localPanel").classList.add("hidden");
+    $("localPanel").hidden = true;
+    $("localPanel").innerHTML = "";
+    $("drawerBackdrop").hidden = !state.operationDrawerOpen && !state.serviceDrawerOpen;
+}
+
+/**
+ * 获取本地数据弹窗标题
+ *
+ * @param {string} type 面板类型
+ * @returns {string} 返回标题
+ */
+function localPanelTitle(type) {
+    if (type === "favorites") {
+        return "收藏接口";
+    }
+    if (type === "presets") {
+        return "接口预设";
+    }
+    if (type === "settings") {
+        return "本地数据";
+    }
+    return "接口历史";
+}
+
+/**
+ * 获取本地数据弹窗说明
+ *
+ * @param {string} type 面板类型
+ * @returns {string} 返回说明
+ */
+function localPanelHint(type) {
+    if (type === "favorites") {
+        return "点击收藏项后自动切换到对应服务接口";
+    }
+    if (type === "presets") {
+        return "点击预设后自动选中接口并回填请求数据";
+    }
+    if (type === "settings") {
+        return "导入、导出或清除当前浏览器的控制台数据";
+    }
+    return "历史数据保留在本地缓存中，不再占用主导航位置";
 }
 
 /**
@@ -1175,11 +1430,11 @@ function renderLocalPanel(type, forceOpen) {
  */
 function renderLocalItems(items, emptyText, handler) {
     if (!items.length) {
-        $("localPanel").innerHTML = `<div class="empty-state">${escapeHtml(emptyText)}</div>`;
+        $("localPanelBody").innerHTML = `<div class="empty-state">${escapeHtml(emptyText)}</div>`;
         return;
     }
-    $("localPanel").innerHTML = `<div class="local-list"></div>`;
-    const list = $("localPanel").querySelector(".local-list");
+    $("localPanelBody").innerHTML = `<div class="local-list"></div>`;
+    const list = $("localPanelBody").querySelector(".local-list");
     items.forEach((item) => {
         const button = document.createElement("button");
         button.className = "local-item";
@@ -1198,8 +1453,9 @@ function renderLocalItems(items, emptyText, handler) {
  *
  * @param {object} item 历史条目
  */
-function restoreHistory(item) {
-    loadStoredOperation(item.serviceId, specTools.operationKey(item.serviceId, item.method, item.path), item.request);
+async function restoreHistory(item) {
+    await loadStoredOperation(item.serviceId, specTools.operationKey(item.serviceId, item.method, item.path), item.request);
+    closeLocalPanel();
 }
 
 /**
@@ -1207,8 +1463,9 @@ function restoreHistory(item) {
  *
  * @param {object} item 收藏条目
  */
-function loadFavorite(item) {
-    loadStoredOperation(item.serviceId, item.key);
+async function loadFavorite(item) {
+    await loadStoredOperation(item.serviceId, item.key);
+    closeLocalPanel();
 }
 
 /**
@@ -1216,9 +1473,10 @@ function loadFavorite(item) {
  *
  * @param {object} item 预设条目
  */
-function applyPreset(item) {
+async function applyPreset(item) {
     const [serviceId] = item.key.split(":");
-    loadStoredOperation(serviceId, item.key, item.request);
+    await loadStoredOperation(serviceId, item.key, item.request);
+    closeLocalPanel();
 }
 
 /**
@@ -1228,10 +1486,10 @@ function applyPreset(item) {
  * @param {string} operationKey 接口键
  * @param {object} snapshot 请求快照
  */
-function loadStoredOperation(serviceId, operationKey, snapshot) {
+async function loadStoredOperation(serviceId, operationKey, snapshot) {
     const service = state.catalog?.services?.find((item) => item.id === serviceId);
     if (service) {
-        loadService(service, operationKey, snapshot);
+        await loadService(service, operationKey, snapshot);
     }
 }
 
@@ -1239,7 +1497,7 @@ function loadStoredOperation(serviceId, operationKey, snapshot) {
  * 导出本地数据
  */
 function exportLocalData() {
-    downloadText("openapi-console-local-data.json", JSON.stringify(localStore.exportState(), null, 2), "application/json");
+    downloadText(downloadFilename("openapi-console", "json"), JSON.stringify(localStore.exportState(), null, 2), "application/json");
 }
 
 /**
@@ -1274,6 +1532,7 @@ function clearBrowserStorage() {
     state.signingKey = "";
     writeSigningKey("");
     $("localPanel").classList.add("hidden");
+    $("localPanel").hidden = true;
     $("localPanel").innerHTML = "";
     renderLocalBadges();
     renderFavoriteState();
@@ -1296,7 +1555,34 @@ async function exportDoc(format) {
         return;
     }
     const blob = await response.blob();
-    downloadBlob(filenameFromDisposition(response.headers.get("Content-Disposition")) || `${state.service.id}.${format}`, blob);
+    downloadBlob(downloadFilename(serviceFilenamePrefix(state.service), format), blob);
+}
+
+/**
+ * 设置请求动作的 loading 状态
+ *
+ * @param {string} buttonId 按钮 ID
+ * @param {boolean} loading 是否 loading
+ * @param {string} label loading 文案
+ */
+function setActionLoading(buttonId, loading, label) {
+    const button = $(buttonId);
+    if (buttonId === "sendRequest") {
+        state.sendingRequest = loading;
+    }
+    if (buttonId === "runLoadTest") {
+        state.runningLoadTest = loading;
+    }
+    if (loading) {
+        button.dataset.defaultText = button.dataset.defaultText || button.textContent;
+        button.textContent = label || button.textContent;
+        button.disabled = true;
+        button.classList.add("is-loading");
+        return;
+    }
+    button.textContent = button.dataset.defaultText || button.textContent;
+    button.classList.remove("is-loading");
+    disableWorkspace(!state.operation);
 }
 
 /**
@@ -1338,12 +1624,20 @@ function setResponseError(message) {
     state.lastResponseBody = message;
     state.lastResponseHeaders = {};
     state.lastResponseLog = {error: message, completedAt: new Date().toISOString()};
+    $("responseOutput").setAttribute("role", "alert");
     $("responseOutput").textContent = message;
     $("previewOutput").textContent = message;
     $("responseHeadersOutput").textContent = "{}";
     $("cookiesOutput").textContent = "[]";
     $("logsOutput").textContent = JSON.stringify(state.lastResponseLog, null, 2);
     setStatusPills(0, 0, 0);
+}
+
+/**
+ * 清除响应错误状态
+ */
+function clearResponseAlert() {
+    $("responseOutput").removeAttribute("role");
 }
 
 /**
@@ -1521,14 +1815,48 @@ function downloadBlob(filename, blob) {
 }
 
 /**
- * 从 Content-Disposition 中解析文件名
+ * 获取服务导出文件名前缀
  *
- * @param {string} value 响应头
- * @returns {string} 返回文件名
+ * @param {object} service 服务条目
+ * @returns {string} 返回文件名前缀
  */
-function filenameFromDisposition(value) {
-    const match = String(value || "").match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
-    return match ? decodeURIComponent(match[1] || match[2]) : "";
+function serviceFilenamePrefix(service) {
+    return safeFilenameSlug(service?.id || service?.name || "openapi-doc", "openapi-doc");
+}
+
+/**
+ * 生成带时间戳的下载文件名
+ *
+ * @param {string} prefix 文件名前缀
+ * @param {string} extension 文件扩展名
+ * @returns {string} 返回下载文件名
+ */
+function downloadFilename(prefix, extension) {
+    const now = new Date();
+    const parts = [
+        String(now.getFullYear()).slice(-2),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0"),
+        String(now.getHours()).padStart(2, "0"),
+        String(now.getMinutes()).padStart(2, "0"),
+    ];
+    return `${safeFilenameSlug(prefix, "openapi-console")}-${parts.join("-")}.${safeFilenameSlug(extension, "dat")}`;
+}
+
+/**
+ * 转换安全文件名片段
+ *
+ * @param {string} value 原始文本
+ * @param {string} fallback 默认文本
+ * @returns {string} 返回安全 slug
+ */
+function safeFilenameSlug(value, fallback) {
+    const slug = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    return slug || fallback;
 }
 
 /**
@@ -1536,10 +1864,44 @@ function filenameFromDisposition(value) {
  *
  * @param {string} text 文本
  */
-function copyText(text) {
-    if (navigator.clipboard && text) {
-        navigator.clipboard.writeText(text);
+async function copyText(text) {
+    if (!text) {
+        return;
     }
+    try {
+        if (navigator.clipboard) {
+            await navigator.clipboard.writeText(text);
+            showToast("已复制");
+            return;
+        }
+        const input = document.createElement("textarea");
+        input.value = text;
+        input.setAttribute("readonly", "true");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        input.remove();
+        showToast("已复制");
+    } catch (error) {
+        setResponseError("复制失败，请手动复制输出内容");
+    }
+}
+
+/**
+ * 显示轻量提示
+ *
+ * @param {string} message 提示文案
+ */
+function showToast(message) {
+    const toast = $("toast");
+    toast.textContent = message;
+    toast.hidden = false;
+    clearTimeout(state.toastTimer);
+    state.toastTimer = window.setTimeout(() => {
+        toast.hidden = true;
+    }, 1200);
 }
 
 /**

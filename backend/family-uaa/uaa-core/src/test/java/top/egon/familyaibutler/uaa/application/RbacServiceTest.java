@@ -10,13 +10,14 @@
 package top.egon.familyaibutler.uaa.application;
 
 import org.junit.jupiter.api.Test;
+import top.egon.familyaibutler.uaa.application.manage.impl.RbacManageImpl;
 import top.egon.familyaibutler.uaa.facade.dto.rbac.BindAccountRoleRequest;
 import top.egon.familyaibutler.uaa.facade.dto.rbac.BindRoleResourceRequest;
 import top.egon.familyaibutler.uaa.facade.dto.rbac.UpsertPermissionResourceRequest;
 import top.egon.familyaibutler.uaa.facade.dto.rbac.UpsertRoleRequest;
 import top.egon.familyaibutler.uaa.facade.dto.rbac.UserPermissionQuery;
 import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryRbacGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryRbacGatewayImpl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,7 +37,7 @@ class RbacServiceTest {
      */
     @Test
     void shouldManagePageButtonAndApiPermissions() {
-        RbacServiceImpl service = new RbacServiceImpl(new InMemoryRbacGatewayImpl());
+        RbacManageImpl service = new RbacManageImpl(new InMemoryRbacGatewayImpl());
 
         service.upsertRole(new UpsertRoleRequest("family-admin", "Family Admin"));
         service.upsertResource(new UpsertPermissionResourceRequest("password-page", "Password Page",

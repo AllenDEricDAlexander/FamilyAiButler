@@ -10,6 +10,7 @@ FROM node:22-alpine AS build
 WORKDIR /workspace/frontend
 
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/tsconfig.base.json ./
+COPY frontend/scripts ./scripts
 COPY frontend/apps ./apps
 COPY frontend/packages ./packages
 

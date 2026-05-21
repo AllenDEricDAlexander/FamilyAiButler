@@ -1,0 +1,90 @@
+/**
+ * @BelongsProject: familyaibutler
+ * @BelongsPackage: top.egon.familyaibutler.uaa.adapter.rpc.dubbo
+ * @FileName: TokenDubboAdapter.java
+ * @Author: atluofu
+ * @CreateTime: 2026Year-05Month-21Day-14:20
+ * @Description: Token facade 适配器文件
+ * @Version: 1.0
+ */
+package top.egon.familyaibutler.uaa.adapter.rpc.dubbo;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import top.egon.familyaibutler.uaa.application.manage.TokenManage;
+import top.egon.familyaibutler.uaa.facade.TokenFacade;
+import top.egon.familyaibutler.uaa.facade.dto.token.RefreshTokenRequest;
+import top.egon.familyaibutler.uaa.facade.dto.token.RevokeTokenRequest;
+import top.egon.familyaibutler.uaa.facade.dto.token.TokenPairResponse;
+import top.egon.familyaibutler.uaa.facade.dto.token.TokenValidationRequest;
+import top.egon.familyaibutler.uaa.facade.dto.token.TokenValidationResponse;
+
+/**
+ * @BelongsProject: familyaibutler
+ * @BelongsPackage: top.egon.familyaibutler.uaa.adapter.rpc.dubbo
+ * @ClassName: TokenDubboAdapter
+ * @Author: atluofu
+ * @CreateTime: 2026-05-21 14:20
+ * @Description: Token facade 适配器
+ * @Version: 1.0
+ */
+@Component
+@RequiredArgsConstructor
+public class TokenDubboAdapter implements TokenFacade {
+    private final TokenManage tokenService;
+
+    /**
+     * 刷新访问令牌。
+     *
+     * @param request 刷新请求
+     * @return 新令牌对
+     */
+    @Override
+    public TokenPairResponse refreshAccessToken(RefreshTokenRequest request) {
+        return tokenService.refreshAccessToken(request);
+    }
+
+    /**
+     * 校验访问令牌。
+     *
+     * @param request 校验请求
+     * @return 校验结果
+     */
+    @Override
+    public TokenValidationResponse validateAccessToken(TokenValidationRequest request) {
+        return tokenService.validateAccessToken(request);
+    }
+
+    /**
+     * 撤销单个令牌。
+     *
+     * @param request 撤销请求
+     * @return true 表示撤销成功
+     */
+    @Override
+    public boolean revokeToken(RevokeTokenRequest request) {
+        return tokenService.revokeToken(request);
+    }
+
+    /**
+     * 按账号撤销令牌。
+     *
+     * @param accountId 账号 ID
+     * @return true 表示撤销成功
+     */
+    @Override
+    public boolean revokeAccountTokens(String accountId) {
+        return tokenService.revokeAccountTokens(accountId);
+    }
+
+    /**
+     * 按设备撤销令牌。
+     *
+     * @param deviceId 设备 ID
+     * @return true 表示撤销成功
+     */
+    @Override
+    public boolean revokeDeviceTokens(String deviceId) {
+        return tokenService.revokeDeviceTokens(deviceId);
+    }
+}

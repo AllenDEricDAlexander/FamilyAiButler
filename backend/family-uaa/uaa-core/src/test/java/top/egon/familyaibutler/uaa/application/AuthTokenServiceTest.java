@@ -12,31 +12,34 @@ package top.egon.familyaibutler.uaa.application;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.Test;
 import top.egon.familyaibutler.common.security.jwt.FamilyJwtService;
-import top.egon.familyaibutler.uaa.application.dto.account.RegisterAccountCommand;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.OAuthClient;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.AuthSession;
-import top.egon.familyaibutler.uaa.domain.model.entity.Device;
-import top.egon.familyaibutler.uaa.domain.model.entity.TokenRecord;
-import top.egon.familyaibutler.uaa.domain.model.enums.DeviceType;
-import top.egon.familyaibutler.uaa.domain.model.enums.SessionStatus;
-import top.egon.familyaibutler.uaa.domain.model.enums.TokenStatus;
-import top.egon.familyaibutler.uaa.domain.service.AccountDomainService;
-import top.egon.familyaibutler.uaa.domain.service.CredentialDomainService;
-import top.egon.familyaibutler.uaa.domain.service.TokenDomainService;
+import top.egon.familyaibutler.uaa.application.command.account.RegisterAccountCommand;
+import top.egon.familyaibutler.uaa.application.executor.command.AccountCommandExe;
+import top.egon.familyaibutler.uaa.application.manage.impl.AuthManageImpl;
+import top.egon.familyaibutler.uaa.application.manage.impl.TokenManageImpl;
+import top.egon.familyaibutler.uaa.domain.account.service.AccountDomainService;
+import top.egon.familyaibutler.uaa.domain.account.service.CredentialDomainService;
+import top.egon.familyaibutler.uaa.domain.auth.model.aggregate.AuthSession;
+import top.egon.familyaibutler.uaa.domain.auth.model.entity.Device;
+import top.egon.familyaibutler.uaa.domain.auth.model.entity.TokenRecord;
+import top.egon.familyaibutler.uaa.domain.auth.model.enums.DeviceType;
+import top.egon.familyaibutler.uaa.domain.auth.model.enums.SessionStatus;
+import top.egon.familyaibutler.uaa.domain.auth.model.enums.TokenStatus;
+import top.egon.familyaibutler.uaa.domain.auth.service.TokenDomainService;
+import top.egon.familyaibutler.uaa.domain.oauth.model.aggregate.OAuthClient;
 import top.egon.familyaibutler.uaa.facade.dto.auth.PasswordLoginRequest;
 import top.egon.familyaibutler.uaa.facade.dto.auth.PasswordRecoveryRequest;
 import top.egon.familyaibutler.uaa.facade.dto.auth.ResetPasswordRequest;
 import top.egon.familyaibutler.uaa.facade.dto.token.RefreshTokenRequest;
 import top.egon.familyaibutler.uaa.facade.dto.token.TokenPairResponse;
 import top.egon.familyaibutler.uaa.facade.dto.token.TokenValidationRequest;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryAccountGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryCredentialGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryDeviceGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryOAuthClientGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryProfileGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemorySecurityNotificationGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemorySessionGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryTokenGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryAccountGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryCredentialGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryDeviceGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryOAuthClientGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryProfileGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemorySecurityNotificationGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemorySessionGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryTokenGatewayImpl;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -107,14 +110,14 @@ class AuthTokenServiceTest {
         CredentialDomainService credentialDomainService = new CredentialDomainService();
         TokenDomainService tokenDomainService = new TokenDomainService();
         FamilyJwtService familyJwtService = new FamilyJwtService(jwtProperties());
-        AccountCommandService accountCommandService = new AccountCommandService(new AccountDomainService(), credentialDomainService,
+        AccountCommandExe accountCommandService = new AccountCommandExe(new AccountDomainService(), credentialDomainService,
                 accountGateway, credentialGateway, profileGateway);
         oAuthClientGateway.save(OAuthClient.createPublicClient("family-web", "Family Web", Set.of("PASSWORD", "REFRESH_TOKEN"),
                 Set.of("openid", "profile"), Set.of("/**")));
-        AuthServiceImpl authService = new AuthServiceImpl(accountGateway, credentialGateway, deviceGateway, profileGateway,
+        AuthManageImpl authService = new AuthManageImpl(accountGateway, credentialGateway, deviceGateway, profileGateway,
                 securityNotificationGateway, sessionGateway, tokenGateway, oAuthClientGateway, credentialDomainService,
                 tokenDomainService, familyJwtService);
-        TokenServiceImpl tokenService = new TokenServiceImpl(tokenGateway, sessionGateway, tokenDomainService, familyJwtService);
+        TokenManageImpl tokenService = new TokenManageImpl(tokenGateway, sessionGateway, tokenDomainService, familyJwtService);
 
         accountCommandService.registerByUsername(new RegisterAccountCommand("mario", "mario@example.com", "13800000000", "S3cret@123"));
         TokenPairResponse tokenPair = authService.loginByPassword(new PasswordLoginRequest(
@@ -150,9 +153,9 @@ class AuthTokenServiceTest {
         CredentialDomainService credentialDomainService = new CredentialDomainService();
         TokenDomainService tokenDomainService = new TokenDomainService();
         FamilyJwtService familyJwtService = new FamilyJwtService(jwtProperties());
-        AccountCommandService accountCommandService = new AccountCommandService(new AccountDomainService(), credentialDomainService,
+        AccountCommandExe accountCommandService = new AccountCommandExe(new AccountDomainService(), credentialDomainService,
                 accountGateway, credentialGateway, profileGateway);
-        AuthServiceImpl authService = new AuthServiceImpl(accountGateway, credentialGateway, deviceGateway, profileGateway,
+        AuthManageImpl authService = new AuthManageImpl(accountGateway, credentialGateway, deviceGateway, profileGateway,
                 securityNotificationGateway, sessionGateway, tokenGateway, oAuthClientGateway, credentialDomainService,
                 tokenDomainService, familyJwtService);
 
@@ -180,14 +183,14 @@ class AuthTokenServiceTest {
         CredentialDomainService credentialDomainService = new CredentialDomainService();
         TokenDomainService tokenDomainService = new TokenDomainService();
         FamilyJwtService familyJwtService = new FamilyJwtService(jwtProperties());
-        AccountCommandService accountCommandService = new AccountCommandService(new AccountDomainService(), credentialDomainService,
+        AccountCommandExe accountCommandService = new AccountCommandExe(new AccountDomainService(), credentialDomainService,
                 accountGateway, credentialGateway, profileGateway);
         oAuthClientGateway.save(OAuthClient.createPublicClient("family-web", "Family Web", Set.of("PASSWORD", "REFRESH_TOKEN"),
                 Set.of("openid", "profile"), Set.of("/**")));
-        AuthServiceImpl authService = new AuthServiceImpl(accountGateway, credentialGateway, deviceGateway, profileGateway,
+        AuthManageImpl authService = new AuthManageImpl(accountGateway, credentialGateway, deviceGateway, profileGateway,
                 securityNotificationGateway, sessionGateway, tokenGateway, oAuthClientGateway, credentialDomainService,
                 tokenDomainService, familyJwtService);
-        TokenServiceImpl tokenService = new TokenServiceImpl(tokenGateway, sessionGateway, tokenDomainService, familyJwtService);
+        TokenManageImpl tokenService = new TokenManageImpl(tokenGateway, sessionGateway, tokenDomainService, familyJwtService);
 
         accountCommandService.registerByUsername(new RegisterAccountCommand("mario", "mario@example.com", "13800000000", "S3cret@123"));
         TokenPairResponse oldToken = authService.loginByPassword(new PasswordLoginRequest(

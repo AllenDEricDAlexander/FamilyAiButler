@@ -1,7 +1,6 @@
 package top.egon.familyaibutler.family.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.Filter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,14 +19,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 import top.egon.familyaibutler.common.pojo.Result;
 import top.egon.familyaibutler.family.FamilyApplication;
-import top.egon.familyaibutler.family.adapter.PasswordViewController;
-import top.egon.familyaibutler.family.infrastructure.persistence.mp.mapper.PasswordViewMapper;
+import top.egon.familyaibutler.family.adapter.web.PasswordViewController;
+import top.egon.familyaibutler.family.application.manage.impl.PasswordViewManageImpl;
 import top.egon.familyaibutler.family.infrastructure.persistence.mp.dataobject.PasswordViewPO;
-import top.egon.familyaibutler.family.infrastructure.persistence.mp.service.impl.PasswordViewServiceImpl;
+import top.egon.familyaibutler.family.infrastructure.persistence.mp.mapper.PasswordViewMapper;
 
 import java.util.Random;
 import java.util.regex.Pattern;
@@ -56,7 +53,7 @@ class TestPassword {
     private PasswordViewController passwordViewController;
 
     @Mock
-    private PasswordViewServiceImpl passwordViewService;
+    private PasswordViewManageImpl passwordViewService;
 
     @Mock
     private PasswordViewMapper passwordViewMapper;

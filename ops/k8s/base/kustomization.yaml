@@ -11,5 +11,7 @@ namespace: family-ai-butler
 resources:
   - namespace.yaml
   - configmap.yaml
+  - statefulsets.yaml
   - deployments.yaml
   - services.yaml
+  - hpa.yaml

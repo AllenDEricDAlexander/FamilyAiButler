@@ -1,0 +1,17 @@
+# @BelongsProject: FamilyAiButler
+# @BelongsPackage: ops.k8s.storage
+# @ClassName: vsphere-csi-storageclass
+# @Author: atluofu
+# @CreateTime: 2026Year-05Month-21Day
+# @Description: vSphere CSI StorageClass 样例
+# @Version: 1.0
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: vsan-retain
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  storagepolicyname: vSAN Default Storage Policy

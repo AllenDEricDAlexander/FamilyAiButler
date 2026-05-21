@@ -12,27 +12,30 @@ package top.egon.familyaibutler.uaa.application;
 import org.junit.jupiter.api.Test;
 import top.egon.familyaibutler.common.security.jwt.FamilyJwtProperties;
 import top.egon.familyaibutler.common.security.jwt.FamilyJwtService;
-import top.egon.familyaibutler.uaa.application.dto.account.RegisterAccountCommand;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.OAuthClient;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.PermissionResource;
-import top.egon.familyaibutler.uaa.domain.model.aggregate.Role;
-import top.egon.familyaibutler.uaa.domain.model.enums.PermissionResourceType;
-import top.egon.familyaibutler.uaa.domain.model.valueobject.TokenClaims;
-import top.egon.familyaibutler.uaa.domain.service.AccountDomainService;
-import top.egon.familyaibutler.uaa.domain.service.CredentialDomainService;
-import top.egon.familyaibutler.uaa.domain.service.TokenDomainService;
+import top.egon.familyaibutler.uaa.application.command.account.RegisterAccountCommand;
+import top.egon.familyaibutler.uaa.application.executor.command.AccountCommandExe;
+import top.egon.familyaibutler.uaa.application.manage.impl.AuthManageImpl;
+import top.egon.familyaibutler.uaa.application.manage.impl.AuthorizationManageImpl;
+import top.egon.familyaibutler.uaa.domain.account.service.AccountDomainService;
+import top.egon.familyaibutler.uaa.domain.account.service.CredentialDomainService;
+import top.egon.familyaibutler.uaa.domain.auth.model.valueobject.TokenClaims;
+import top.egon.familyaibutler.uaa.domain.auth.service.TokenDomainService;
+import top.egon.familyaibutler.uaa.domain.oauth.model.aggregate.OAuthClient;
+import top.egon.familyaibutler.uaa.domain.rbac.model.aggregate.PermissionResource;
+import top.egon.familyaibutler.uaa.domain.rbac.model.aggregate.Role;
+import top.egon.familyaibutler.uaa.domain.rbac.model.enums.PermissionResourceType;
+import top.egon.familyaibutler.uaa.facade.dto.auth.PasswordLoginRequest;
 import top.egon.familyaibutler.uaa.facade.dto.authorization.AuthorizationDecisionRequest;
 import top.egon.familyaibutler.uaa.facade.dto.authorization.AuthorizationDecisionResponse;
-import top.egon.familyaibutler.uaa.facade.dto.auth.PasswordLoginRequest;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryAccountGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryCredentialGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryDeviceGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryOAuthClientGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryProfileGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryRbacGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemorySecurityNotificationGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemorySessionGatewayImpl;
-import top.egon.familyaibutler.uaa.infrastructure.gatewayimpl.InMemoryTokenGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryAccountGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryCredentialGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryDeviceGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryOAuthClientGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryProfileGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryRbacGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemorySecurityNotificationGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemorySessionGatewayImpl;
+import top.egon.familyaibutler.uaa.infrastructure.gateway.impl.InMemoryTokenGatewayImpl;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -68,17 +71,17 @@ class AuthorizationDecisionServiceTest {
         CredentialDomainService credentialDomainService = new CredentialDomainService();
         TokenDomainService tokenDomainService = new TokenDomainService();
         FamilyJwtService familyJwtService = new FamilyJwtService(jwtProperties());
-        AccountCommandService accountCommandService = new AccountCommandService(new AccountDomainService(), credentialDomainService,
+        AccountCommandExe accountCommandService = new AccountCommandExe(new AccountDomainService(), credentialDomainService,
                 accountGateway, credentialGateway, profileGateway);
         oAuthClientGateway.save(OAuthClient.createPublicClient("family-web", "Family Web", Set.of("PASSWORD", "REFRESH_TOKEN"),
                 Set.of("openid", "profile"), Set.of("family-core:/**")));
         rbacGateway.saveRole(Role.active("family-admin", "Family Admin"));
         rbacGateway.saveResource(PermissionResource.active("password-view-page", "Password View Page", PermissionResourceType.API,
                 "family-core", "/password/**", "read"));
-        AuthServiceImpl authService = new AuthServiceImpl(accountGateway, credentialGateway, deviceGateway, profileGateway,
+        AuthManageImpl authService = new AuthManageImpl(accountGateway, credentialGateway, deviceGateway, profileGateway,
                 securityNotificationGateway, sessionGateway, tokenGateway, oAuthClientGateway, credentialDomainService,
                 tokenDomainService, familyJwtService);
-        AuthorizationServiceImpl authorizationService = new AuthorizationServiceImpl(accountGateway, tokenGateway, oAuthClientGateway, rbacGateway, familyJwtService);
+        AuthorizationManageImpl authorizationService = new AuthorizationManageImpl(accountGateway, tokenGateway, oAuthClientGateway, rbacGateway, familyJwtService);
 
         accountCommandService.registerByUsername(new RegisterAccountCommand("mario", "mario@example.com", "13800000000", "S3cret@123"));
         var tokenPair = authService.loginByPassword(new PasswordLoginRequest(

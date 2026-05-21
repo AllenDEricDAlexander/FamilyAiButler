@@ -40,6 +40,8 @@
     </section>
 
     <section id="consoleView" class="console-view hidden">
+        <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+
         <aside class="sidebar">
             <div class="brand">
                 <span class="logo-mark">A</span>
@@ -47,6 +49,8 @@
                     <h1 id="title">FamilyAiButler</h1>
                     <p>API Debug Console</p>
                 </div>
+                <button id="closeServiceDrawer" class="icon-button drawer-close" type="button" title="关闭服务列表">×
+                </button>
             </div>
 
             <label class="search-wrap">
@@ -63,15 +67,11 @@
             </div>
 
             <nav class="side-nav">
-                <button id="showHistory" type="button"><span>接口历史</span><strong id="historyCount">0</strong>
-                </button>
                 <button id="showFavorites" type="button"><span>收藏接口</span><strong id="favoriteCount">0</strong>
                 </button>
                 <button id="showPresets" type="button"><span>接口预设</span><strong id="presetCount">0</strong></button>
                 <button id="showSettings" type="button"><span>本地数据</span><strong>JSON</strong></button>
             </nav>
-
-            <div id="localPanel" class="local-panel hidden"></div>
 
             <div class="user-card">
                 <span id="userAvatar">A</span>
@@ -82,13 +82,21 @@
             </div>
         </aside>
 
-        <aside class="operation-sidebar">
+        <span id="historyCount" hidden>0</span>
+        <div id="localPanel" class="local-panel hidden" role="dialog" aria-modal="true"
+             aria-labelledby="localPanelTitle"></div>
+
+        <aside id="operationDialog" class="operation-sidebar hidden" role="dialog" aria-modal="true"
+               aria-labelledby="operationDialogTitle">
             <div class="operation-sidebar-head">
                 <div>
-                    <span>接口列表</span>
+                    <span id="operationDialogTitle">接口列表</span>
                     <strong id="operationServiceName">请选择服务</strong>
                 </div>
                 <small id="operationCount">0</small>
+                <button id="closeOperationDrawer" class="icon-button drawer-close" type="button" title="关闭接口列表">
+                    ×
+                </button>
             </div>
 
             <label class="search-wrap">
@@ -103,26 +111,58 @@
 
         <section class="content">
             <header class="toolbar">
-                <div class="service-heading">
-                    <h2 id="currentServiceName">请选择服务</h2>
-                    <span id="currentServiceTag">服务</span>
+                <div class="toolbar-context">
+                    <button id="serviceDrawerToggle" class="ghost-button toolbar-drawer-button" type="button"
+                            aria-controls="serviceList" aria-expanded="false">服务
+                    </button>
+                    <button id="operationDrawerToggle" class="ghost-button toolbar-drawer-button" type="button"
+                            aria-controls="currentOperationList" aria-expanded="false">接口列表
+                    </button>
+                    <div class="service-heading">
+                        <h2 id="currentServiceName">请选择服务</h2>
+                        <span id="currentServiceTag">服务</span>
+                    </div>
+                    <div class="operation-heading">
+                        <strong id="currentOperationName">请选择接口</strong>
+                        <span id="currentOperationMeta">GET /</span>
+                    </div>
                 </div>
                 <div class="toolbar-actions">
                     <button id="environmentButton" class="ghost-button status-button" type="button"><span></span><strong
                             id="environment">dev</strong></button>
-                    <button id="exportMd" class="ghost-button" type="button">导出 MD</button>
-                    <button id="exportPdf" class="ghost-button" type="button">导出 PDF</button>
-                    <button id="favoriteOperation" class="ghost-button" type="button">收藏接口</button>
-                    <button id="savePreset" class="ghost-button" type="button">保存接口</button>
-                    <button id="exportLocalData" class="ghost-button" type="button">导出数据</button>
-                    <button id="importLocalData" class="ghost-button" type="button">导入数据</button>
-                    <button id="clearLocalData" class="ghost-button danger-button" type="button">清除缓存</button>
+                    <details class="action-menu">
+                        <summary>文档</summary>
+                        <div class="menu-panel">
+                            <button id="exportMd" class="menu-item" type="button">导出 MD</button>
+                            <button id="exportPdf" class="menu-item" type="button">导出 PDF</button>
+                        </div>
+                    </details>
+                    <details class="action-menu">
+                        <summary>数据</summary>
+                        <div class="menu-panel">
+                            <button id="exportLocalData" class="menu-item" type="button">导出数据</button>
+                            <button id="importLocalData" class="menu-item" type="button">导入数据</button>
+                            <button id="clearLocalData" class="menu-item danger-button" type="button">清除缓存</button>
+                        </div>
+                    </details>
                     <button id="logout" class="ghost-button" type="button">退出</button>
                 </div>
             </header>
 
             <section class="workspace">
                 <section class="request-panel">
+                    <div class="panel-head">
+                        <div>
+                            <h3>请求</h3>
+                            <p>编辑参数后发送调试请求</p>
+                        </div>
+                        <div class="panel-actions">
+                            <button id="favoriteOperation" class="ghost-button" type="button">收藏接口</button>
+                            <button id="savePreset" class="ghost-button" type="button">保存接口</button>
+                            <button id="fillExample" class="ghost-button" type="button">生成测试数据</button>
+                        </div>
+                    </div>
+
                     <div class="request-line">
                         <select id="methodSelect" aria-label="请求方法">
                             <option>GET</option>
@@ -135,18 +175,32 @@
                         <button id="sendRequest" type="button">发送请求</button>
                     </div>
 
-                    <div class="tabs" role="tablist">
-                        <button class="tab active" data-tab="params" type="button">Params</button>
-                        <button class="tab" data-tab="headers" type="button">Headers <span id="headerCount">(0)</span>
+                    <div class="tabs" role="tablist" aria-label="请求配置">
+                        <button id="paramsTab" class="tab active" data-tab="params" type="button" role="tab"
+                                aria-selected="true" aria-controls="paramsPanel">Params
                         </button>
-                        <button class="tab" data-tab="body" type="button">Body</button>
-                        <button class="tab" data-tab="auth" type="button">Auth</button>
-                        <button class="tab" data-tab="script" type="button">Scripts</button>
-                        <button class="tab" data-tab="preRequest" type="button">Pre-request</button>
-                        <button class="tab" data-tab="tests" type="button">Tests</button>
+                        <button id="headersTab" class="tab" data-tab="headers" type="button" role="tab"
+                                aria-selected="false" aria-controls="headersPanel">Headers <span
+                                id="headerCount">(0)</span>
+                        </button>
+                        <button id="bodyTab" class="tab" data-tab="body" type="button" role="tab"
+                                aria-selected="false" aria-controls="bodyPanel">Body
+                        </button>
+                        <button id="authTab" class="tab" data-tab="auth" type="button" role="tab"
+                                aria-selected="false" aria-controls="authPanel">Auth
+                        </button>
+                        <button id="scriptTab" class="tab" data-tab="script" type="button" role="tab"
+                                aria-selected="false" aria-controls="scriptPanel">Scripts
+                        </button>
+                        <button id="preRequestTab" class="tab" data-tab="preRequest" type="button" role="tab"
+                                aria-selected="false" aria-controls="preRequestPanel">Pre-request
+                        </button>
+                        <button id="testsTab" class="tab" data-tab="tests" type="button" role="tab"
+                                aria-selected="false" aria-controls="testsPanel">Tests
+                        </button>
                     </div>
 
-                    <div id="paramsPanel" class="tab-panel active">
+                    <div id="paramsPanel" class="tab-panel active" role="tabpanel" aria-labelledby="paramsTab">
                         <label class="editor-label">
                             <span>Path 参数 (JSON)</span>
                             <textarea id="pathInput" spellcheck="false"></textarea>
@@ -157,21 +211,21 @@
                         </label>
                     </div>
 
-                    <div id="headersPanel" class="tab-panel">
+                    <div id="headersPanel" class="tab-panel" role="tabpanel" aria-labelledby="headersTab" hidden>
                         <label class="editor-label full">
                             <span>Headers (JSON)</span>
                             <textarea id="headersInput" spellcheck="false"></textarea>
                         </label>
                     </div>
 
-                    <div id="bodyPanel" class="tab-panel">
+                    <div id="bodyPanel" class="tab-panel" role="tabpanel" aria-labelledby="bodyTab" hidden>
                         <label class="editor-label full">
                             <span>Body (JSON)</span>
                             <textarea id="bodyInput" spellcheck="false"></textarea>
                         </label>
                     </div>
 
-                    <div id="authPanel" class="tab-panel auth-panel">
+                    <div id="authPanel" class="tab-panel auth-panel" role="tabpanel" aria-labelledby="authTab" hidden>
                         <label>
                             <span>类型</span>
                             <select id="authType">
@@ -204,21 +258,21 @@
                         <button id="applyAuth" type="button">应用认证</button>
                     </div>
 
-                    <div id="scriptPanel" class="tab-panel">
+                    <div id="scriptPanel" class="tab-panel" role="tabpanel" aria-labelledby="scriptTab" hidden>
                         <label class="editor-label full">
                             <span>预设变量 (JSON)</span>
                             <textarea id="scriptInput" spellcheck="false">{}</textarea>
                         </label>
                     </div>
 
-                    <div id="preRequestPanel" class="tab-panel">
+                    <div id="preRequestPanel" class="tab-panel" role="tabpanel" aria-labelledby="preRequestTab" hidden>
                         <label class="editor-label full">
                             <span>Pre-request (JavaScript)</span>
                             <textarea id="preRequestInput" spellcheck="false"></textarea>
                         </label>
                     </div>
 
-                    <div id="testsPanel" class="tab-panel">
+                    <div id="testsPanel" class="tab-panel" role="tabpanel" aria-labelledby="testsTab" hidden>
                         <label class="editor-label full">
                             <span>Tests (JavaScript)</span>
                             <textarea id="testsInput" spellcheck="false"></textarea>
@@ -226,31 +280,55 @@
                     </div>
 
                     <div class="request-actions">
-                        <button id="formatEditor" class="ghost-button" type="button">美化</button>
-                        <button id="clearEditor" class="ghost-button" type="button">清空</button>
-                        <button id="importEditorJson" class="ghost-button" type="button">导入</button>
-                        <span class="spacer"></span>
-                        <button id="fillExample" class="ghost-button" type="button">生成测试数据</button>
-                        <button id="runLoadTest" class="ghost-button" type="button">压力测试</button>
-                        <label class="compact-field">次数 <input id="totalRequests" type="number" min="1"
-                                                                 value="10"/></label>
-                        <label class="compact-field">并发 <input id="concurrency" type="number" min="1"
-                                                                 value="2"/></label>
+                        <div class="action-group">
+                            <span>编辑器</span>
+                            <button id="formatEditor" class="ghost-button" type="button">美化</button>
+                            <button id="clearEditor" class="ghost-button" type="button">清空</button>
+                            <button id="importEditorJson" class="ghost-button" type="button">导入</button>
+                        </div>
+                        <div class="action-group load-group">
+                            <span>压测</span>
+                            <label class="compact-field">次数 <input id="totalRequests" type="number" min="1"
+                                                                     value="10"/></label>
+                            <label class="compact-field">并发 <input id="concurrency" type="number" min="1"
+                                                                     value="2"/></label>
+                            <button id="runLoadTest" class="ghost-button" type="button">压力测试</button>
+                        </div>
                     </div>
                 </section>
 
                 <section class="result-grid">
                     <section class="result-card response-card">
                         <div class="result-head">
-                            <div class="response-tabs" role="tablist">
-                                <button class="response-tab active" data-response-tab="response" type="button">
-                                    Response
-                                </button>
-                                <button class="response-tab" data-response-tab="preview" type="button">Preview</button>
-                                <button class="response-tab" data-response-tab="responseHeaders" type="button">Headers
-                                </button>
-                                <button class="response-tab" data-response-tab="cookies" type="button">Cookies</button>
-                                <button class="response-tab" data-response-tab="logs" type="button">Logs</button>
+                            <div class="response-card-top">
+                                <div class="response-tabs" role="tablist" aria-label="响应内容">
+                                    <button id="responseTab" class="response-tab active" data-response-tab="response"
+                                            type="button" role="tab" aria-selected="true" aria-controls="responsePanel">
+                                        Response
+                                    </button>
+                                    <button id="previewTab" class="response-tab" data-response-tab="preview"
+                                            type="button" role="tab" aria-selected="false" aria-controls="previewPanel">
+                                        Preview
+                                    </button>
+                                    <button id="responseHeadersTab" class="response-tab"
+                                            data-response-tab="responseHeaders"
+                                            type="button" role="tab" aria-selected="false"
+                                            aria-controls="responseHeadersPanel">Headers
+                                    </button>
+                                    <button id="cookiesTab" class="response-tab" data-response-tab="cookies"
+                                            type="button" role="tab" aria-selected="false" aria-controls="cookiesPanel">
+                                        Cookies
+                                    </button>
+                                    <button id="logsTab" class="response-tab" data-response-tab="logs"
+                                            type="button" role="tab" aria-selected="false" aria-controls="logsPanel">
+                                        Logs
+                                    </button>
+                                </div>
+                                <div class="result-tools">
+                                    <button id="copyResponse" class="icon-button" type="button" title="复制">⧉</button>
+                                    <button id="downloadResponse" class="icon-button" type="button" title="下载">⇩
+                                    </button>
+                                </div>
                             </div>
                             <div class="status-pills">
                                 <span id="statusPill">-</span>
@@ -258,39 +336,43 @@
                                 <span id="sizePill">-</span>
                             </div>
                         </div>
-                        <div class="result-tools">
-                            <button id="copyResponse" class="icon-button" type="button" title="复制">⧉</button>
-                            <button id="downloadResponse" class="icon-button" type="button" title="下载">⇩</button>
+                        <div id="responsePanel" class="response-panel active" role="tabpanel"
+                             aria-labelledby="responseTab">
+                            <pre id="responseOutput" aria-live="polite"></pre>
                         </div>
-                        <div id="responsePanel" class="response-panel active">
-                            <pre id="responseOutput"></pre>
+                        <div id="previewPanel" class="response-panel" role="tabpanel" aria-labelledby="previewTab"
+                             hidden>
+                            <pre id="previewOutput" aria-live="polite"></pre>
                         </div>
-                        <div id="previewPanel" class="response-panel">
-                            <pre id="previewOutput"></pre>
+                        <div id="responseHeadersPanel" class="response-panel" role="tabpanel"
+                             aria-labelledby="responseHeadersTab" hidden>
+                            <pre id="responseHeadersOutput" aria-live="polite"></pre>
                         </div>
-                        <div id="responseHeadersPanel" class="response-panel">
-                            <pre id="responseHeadersOutput"></pre>
+                        <div id="cookiesPanel" class="response-panel" role="tabpanel" aria-labelledby="cookiesTab"
+                             hidden>
+                            <pre id="cookiesOutput" aria-live="polite"></pre>
                         </div>
-                        <div id="cookiesPanel" class="response-panel">
-                            <pre id="cookiesOutput"></pre>
-                        </div>
-                        <div id="logsPanel" class="response-panel">
-                            <pre id="logsOutput"></pre>
+                        <div id="logsPanel" class="response-panel" role="tabpanel" aria-labelledby="logsTab" hidden>
+                            <pre id="logsOutput" aria-live="polite"></pre>
                         </div>
                     </section>
 
                     <section class="result-card artifact-card">
                         <div class="result-head">
-                            <div class="response-tabs" role="tablist">
-                                <button class="artifact-tab active" data-artifact-tab="curl" type="button">cURL</button>
-                                <button class="artifact-tab" data-artifact-tab="code" type="button">代码示例</button>
+                            <div class="response-tabs" role="tablist" aria-label="请求产物">
+                                <button id="curlTab" class="artifact-tab active" data-artifact-tab="curl" type="button"
+                                        role="tab" aria-selected="true" aria-controls="curlPanel">cURL
+                                </button>
+                                <button id="codeTab" class="artifact-tab" data-artifact-tab="code" type="button"
+                                        role="tab" aria-selected="false" aria-controls="codePanel">代码示例
+                                </button>
                             </div>
                             <button id="copyCurl" class="ghost-button" type="button">复制</button>
                         </div>
-                        <div id="curlPanel" class="artifact-panel active">
+                        <div id="curlPanel" class="artifact-panel active" role="tabpanel" aria-labelledby="curlTab">
                             <pre id="curlOutput"></pre>
                         </div>
-                        <div id="codePanel" class="artifact-panel">
+                        <div id="codePanel" class="artifact-panel" role="tabpanel" aria-labelledby="codeTab" hidden>
                             <pre id="codeOutput"></pre>
                         </div>
                         <div id="loadResult" class="load-result hidden">
@@ -308,6 +390,7 @@
 
         <input id="localDataFile" type="file" accept="application/json,.json" hidden/>
         <input id="editorJsonFile" type="file" accept="application/json,.json" hidden/>
+        <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     </section>
 </main>
 <script src="./storage.js"></script>

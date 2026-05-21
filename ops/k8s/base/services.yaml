@@ -14,8 +14,9 @@ spec:
   selector:
     app: family-web
   ports:
-    - port: 80
-      targetPort: 80
+    - name: http
+      port: 80
+      targetPort: http
 ---
 apiVersion: v1
 kind: Service
@@ -25,8 +26,9 @@ spec:
   selector:
     app: family-core
   ports:
-    - port: 39090
-      targetPort: 39090
+    - name: http
+      port: 39090
+      targetPort: http
 ---
 apiVersion: v1
 kind: Service
@@ -36,8 +38,9 @@ spec:
   selector:
     app: family-uaa
   ports:
-    - port: 39092
-      targetPort: 39092
+    - name: http
+      port: 39092
+      targetPort: http
 ---
 apiVersion: v1
 kind: Service
@@ -47,8 +50,9 @@ spec:
   selector:
     app: family-ai-qwen
   ports:
-    - port: 39091
-      targetPort: 39091
+    - name: http
+      port: 39091
+      targetPort: http
 ---
 apiVersion: v1
 kind: Service
@@ -59,5 +63,90 @@ spec:
   selector:
     app: family-gateway
   ports:
-    - port: 9527
-      targetPort: 9527
+    - name: http
+      port: 9527
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-headless
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  type: ClusterIP
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-headless
+spec:
+  clusterIP: None
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nacos
+spec:
+  type: ClusterIP
+  selector:
+    app: nacos
+  ports:
+    - name: http
+      port: 8848
+      targetPort: http
+    - name: grpc
+      port: 9848
+      targetPort: grpc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nacos-headless
+spec:
+  clusterIP: None
+  selector:
+    app: nacos
+  ports:
+    - name: http
+      port: 8848
+      targetPort: http
+    - name: grpc
+      port: 9848
+      targetPort: grpc

@@ -13,6 +13,7 @@ data:
   SPRING_PROFILES_ACTIVE: "prod"
   FAMILY_AI_BUTLER_ENV: "prod"
   FAMILY_AI_BUTLER_LOG_PATH: "/var/log/family-ai-butler"
+  JAVA_OPTS: "-XX:MaxRAMPercentage=75 -Djava.security.egd=file:/dev/./urandom -Djava.io.tmpdir=/tmp"
   POSTGRES_HOST: "postgres"
   POSTGRES_PORT: "5432"
   POSTGRES_DB: "familyaibutler"

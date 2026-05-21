@@ -7,7 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import top.egon.familyaibutler.family.infrastructure.persistence.jpa.entity.CategoryPo;
+import top.egon.familyaibutler.family.infrastructure.persistence.jpa.dataobject.CategoryPo;
 import top.egon.familyaibutler.family.infrastructure.persistence.jpa.repository.CategoryRepository;
 import top.egon.familyaibutler.family.infrastructure.persistence.jpa.service.impl.CategoryServiceImpl;
 

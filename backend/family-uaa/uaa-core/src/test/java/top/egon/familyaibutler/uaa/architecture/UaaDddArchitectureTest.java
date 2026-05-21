@@ -37,10 +37,29 @@ class UaaDddArchitectureTest {
     @Test
     void shouldProvideDddLayers() throws Exception {
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/UserAuthenticationAuthorizationApplication.java")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/adapter")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/application")).exists();
-        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/adapter/web/AccountController.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/adapter/rpc/dubbo/AuthDubboAdapter.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/application/manage/AuthManage.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/application/manage/impl/AuthManageImpl.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/application/executor/command/AccountCommandExe.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/application/executor/query/AccountQueryExe.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/application/command/account/RegisterAccountCommand.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/application/result/account/AccountResponse.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain/account/model/aggregate/Account.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain/auth/model/aggregate/AuthSession.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain/oauth/model/aggregate/OAuthClient.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain/rbac/model/aggregate/Role.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain/account/gateway/AccountGateway.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain/auth/gateway/TokenGateway.java")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/infrastructure/gateway/impl/MpAccountGatewayImpl.java")).exists();
         assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/infrastructure")).exists();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/adapter/AccountController.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/application/AuthServiceI.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/application/AuthServiceImpl.java")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain/model")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain/gateway")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/domain/service")).doesNotExist();
+        assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/infrastructure/gatewayimpl")).doesNotExist();
     }
 
     /**
@@ -53,14 +72,17 @@ class UaaDddArchitectureTest {
                 "service",
                 "mapper",
                 "po",
+                "do",
                 "repository",
                 "configuration",
+                "enums",
                 "filter",
                 "utils",
                 "vo",
                 "domain/dto",
                 "domain/repository",
-                "infrastructure/persistence/impl"
+                "infrastructure/persistence/impl",
+                "adapter/rpc/grpc"
         );
         for (String forbiddenPackage : forbiddenPackages) {
             assertThat(Path.of("src/main/java/top/egon/familyaibutler/uaa/" + forbiddenPackage)).doesNotExist();
@@ -84,10 +106,34 @@ class UaaDddArchitectureTest {
                     .doesNotContain("org.springframework.web")
                     .doesNotContain("top.egon.familyaibutler.uaa.application.dto")
                     .doesNotContain("top.egon.familyaibutler.uaa.infrastructure")
-                    .doesNotContain("top.egon.familyaibutler.uaa.adapter")
+                    .doesNotContain("top.egon.familyaibutler.uaa.adapter.web")
                     .doesNotContain("Mapper")
                     .doesNotContain("Repository")
                     .doesNotContain("PO");
+        }
+    }
+
+    /**
+     * 校验应用层不直接承载 facade 契约 Provider。
+     *
+     * @throws Exception 文件读取异常
+     */
+    @Test
+    void applicationShouldNotImplementFacadeContracts() throws Exception {
+        Path applicationPath = Path.of("src/main/java/top/egon/familyaibutler/uaa/application");
+        try (Stream<Path> files = Files.walk(applicationPath)) {
+            List<String> sources = files.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .map(this::readSource)
+                    .toList();
+            assertThat(String.join("\n", sources))
+                    .doesNotContain("implements AccountManage, AccountFacade")
+                    .doesNotContain("implements AuthManage, AuthFacade")
+                    .doesNotContain("implements AuthorizationManage, AuthorizationFacade")
+                    .doesNotContain("implements ProfileManage, ProfileFacade")
+                    .doesNotContain("implements TokenManage, TokenFacade")
+                    .doesNotContain("extends OAuthClientFacade")
+                    .doesNotContain("extends RbacFacade");
         }
     }
 

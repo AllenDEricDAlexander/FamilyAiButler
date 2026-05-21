@@ -10,8 +10,8 @@
 package top.egon.familyaibutler.ai.qwen.infrastructure.model;
 
 import org.junit.jupiter.api.Test;
-import top.egon.familyaibutler.ai.qwen.domain.model.enums.QwenModelKindEnum;
-import top.egon.familyaibutler.ai.qwen.domain.model.enums.QwenModelModalityEnum;
+import top.egon.familyaibutler.ai.qwen.domain.image.model.enums.QwenModelKindEnum;
+import top.egon.familyaibutler.ai.qwen.domain.image.model.enums.QwenModelModalityEnum;
 import top.egon.familyaibutler.ai.qwen.infrastructure.configuration.QwenModelProperties;
 
 import java.util.List;

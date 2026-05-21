@@ -37,6 +37,9 @@ NGINX_SERVER_CONF="${NGINX_RUNTIME_DIR}/conf.d/default.conf"
 NGINX_MAIN_CONF="${NGINX_RUNTIME_DIR}/nginx.conf"
 NGINX_LOCAL_PREFIX="${NGINX_RUNTIME_DIR}/prefix"
 NGINX_PID_FILE="${NGINX_LOCAL_PREFIX}/logs/nginx.pid"
+NGINX_ERROR_LOG="${NGINX_LOCAL_PREFIX}/logs/error.log"
+NGINX_ACCESS_LOG="${NGINX_LOCAL_PREFIX}/logs/access.log"
+NGINX_LOG_MARKER="family-ai-butler-nginx-start-$(date +%Y%m%d%H%M%S)"
 FRONTEND_DIST_DIR="${ROOT_DIR}/frontend/apps/web/dist"
 
 # 转义 sed 替换值。
@@ -134,6 +137,7 @@ resolve_status_nginx_port() {
 # 判断当前脚本托管的 Nginx 是否运行中。
 is_local_nginx_running() {
   local pid
+  local kill_result
   if [ ! -s "${NGINX_PID_FILE}" ]; then
     return 1
   fi
@@ -141,7 +145,18 @@ is_local_nginx_running() {
   if [ -z "${pid}" ]; then
     return 1
   fi
-  is_pid_running "${pid}"
+  if kill -0 "${pid}" >/dev/null 2>&1; then
+    return 0
+  fi
+  kill_result="$(kill -0 "${pid}" 2>&1 || true)"
+  case "${kill_result}" in
+    *"Operation not permitted"*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 # 判断 Nginx 控制命令是否需要 sudo。
@@ -156,6 +171,8 @@ run_nginx_control() {
       echo "sudo is required to bind nginx on port ${NGINX_PORT}." >&2
       return 1
     fi
+    echo "frontend-nginx port ${NGINX_PORT} requires administrator privilege; running nginx with sudo." >&2
+    sudo -v
     sudo "$@"
     return
   fi
@@ -271,36 +288,75 @@ render_nginx_server_config() {
 
 # 根据模板渲染本机 Nginx 主配置。
 render_nginx_main_config_from_template() {
-  local access_log
-  local error_log
   local mime_types
   local mime_types_include
+  local worker_user_directive
   mime_types="$(resolve_nginx_mime_types)"
-  error_log="${NGINX_LOCAL_PREFIX}/logs/error.log"
-  access_log="${NGINX_LOCAL_PREFIX}/logs/access.log"
   if [ -n "${mime_types}" ]; then
     mime_types_include="include ${mime_types};"
   else
     mime_types_include="# mime.types not found"
   fi
+  worker_user_directive="$(resolve_nginx_worker_user_directive)"
 
   sed \
-    -e "s|\${NGINX_ERROR_LOG}|$(escape_sed_replacement "${error_log}")|g" \
+    -e "s|\${NGINX_WORKER_USER_DIRECTIVE}|$(escape_sed_replacement "${worker_user_directive}")|g" \
+    -e "s|\${NGINX_ERROR_LOG}|$(escape_sed_replacement "${NGINX_ERROR_LOG}")|g" \
     -e "s|\${NGINX_PID_FILE}|$(escape_sed_replacement "${NGINX_PID_FILE}")|g" \
     -e "s|\${NGINX_MIME_TYPES_INCLUDE}|$(escape_sed_replacement "${mime_types_include}")|g" \
-    -e "s|\${NGINX_ACCESS_LOG}|$(escape_sed_replacement "${access_log}")|g" \
+    -e "s|\${NGINX_ACCESS_LOG}|$(escape_sed_replacement "${NGINX_ACCESS_LOG}")|g" \
     -e "s|\${NGINX_SERVER_CONF}|$(escape_sed_replacement "${NGINX_SERVER_CONF}")|g" \
     "${NGINX_MAIN_TEMPLATE_FILE}" >"${NGINX_MAIN_CONF}"
 }
 
-# 校验本机 Nginx 启动后端口已进入监听状态。
-verify_local_nginx_started() {
-  sleep 1
-  if is_tcp_port_in_use "${NGINX_PORT}"; then
+# 获取本机 Nginx worker 用户配置。
+resolve_nginx_worker_user_directive() {
+  local user_name
+  local group_name
+  if ! needs_nginx_sudo; then
+    echo ""
     return
   fi
+  user_name="$(id -un)"
+  group_name="$(id -gn)"
+  echo "user ${user_name} ${group_name};"
+}
+
+# 写入本次启动日志标记，避免失败时把历史错误误判成当前错误。
+append_nginx_error_log_marker() {
+  mkdir -p "${NGINX_LOCAL_PREFIX}/logs"
+  printf "\n---- %s ----\n" "${NGINX_LOG_MARKER}" >>"${NGINX_ERROR_LOG}" 2>/dev/null || true
+}
+
+# 输出本次启动后的 Nginx 错误日志。
+tail_current_nginx_error_log() {
+  if [ ! -f "${NGINX_ERROR_LOG}" ]; then
+    return
+  fi
+  awk -v marker="${NGINX_LOG_MARKER}" '
+    index($0, marker) > 0 { found = 1; next }
+    found == 1 { print }
+  ' "${NGINX_ERROR_LOG}" | tail -n 80
+}
+
+# 校验本机 Nginx 启动后端口已进入监听状态。
+verify_local_nginx_started() {
+  local health_url="http://127.0.0.1:${NGINX_PORT}/"
+  local error_log
+  local _
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if is_local_nginx_running && curl -fsS -o /dev/null --max-time 1 "${health_url}" 2>/dev/null; then
+      return
+    fi
+    sleep 1
+  done
   echo "frontend-nginx ${ENVIRONMENT} failed to listen on port ${NGINX_PORT}." >&2
-  tail -n 80 "${NGINX_LOCAL_PREFIX}/logs/error.log" >&2 || true
+  error_log="$(tail_current_nginx_error_log || true)"
+  if [ -n "${error_log}" ]; then
+    echo "${error_log}" >&2
+  else
+    echo "No nginx error log was written for this start attempt. config=${NGINX_MAIN_CONF}" >&2
+  fi
   return 1
 }
 
@@ -317,9 +373,10 @@ start_local_nginx() {
   build_frontend_dist_for_nginx
   render_nginx_server_config
   render_nginx_main_config_from_template
-  "${nginx_bin}" -t -e "${NGINX_LOCAL_PREFIX}/logs/error.log" -c "${NGINX_MAIN_CONF}" -p "${NGINX_LOCAL_PREFIX}" >/dev/null
+  append_nginx_error_log_marker
+  "${nginx_bin}" -t -e "${NGINX_ERROR_LOG}" -c "${NGINX_MAIN_CONF}" -p "${NGINX_LOCAL_PREFIX}" >/dev/null
   printf "%s" "${NGINX_PORT}" >"${NGINX_PORT_FILE}"
-  run_nginx_control "${nginx_bin}" -e "${NGINX_LOCAL_PREFIX}/logs/error.log" -c "${NGINX_MAIN_CONF}" -p "${NGINX_LOCAL_PREFIX}"
+  run_nginx_control "${nginx_bin}" -e "${NGINX_ERROR_LOG}" -c "${NGINX_MAIN_CONF}" -p "${NGINX_LOCAL_PREFIX}"
   verify_local_nginx_started
   echo "${SERVICE_NAME} ${ENVIRONMENT} started, pid=$(cat "${NGINX_PID_FILE}"), url=http://localhost:${NGINX_PORT}, config=${NGINX_SERVER_CONF}"
 }
@@ -334,7 +391,7 @@ stop_frontend_nginx() {
     return
   fi
   nginx_bin="$(resolve_nginx_bin)"
-  run_nginx_control "${nginx_bin}" -e "${NGINX_LOCAL_PREFIX}/logs/error.log" -s stop -c "${NGINX_MAIN_CONF}" -p "${NGINX_LOCAL_PREFIX}" >/dev/null
+  run_nginx_control "${nginx_bin}" -e "${NGINX_ERROR_LOG}" -s stop -c "${NGINX_MAIN_CONF}" -p "${NGINX_LOCAL_PREFIX}" >/dev/null
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     if ! is_local_nginx_running; then
       rm -f "${NGINX_PORT_FILE}"
