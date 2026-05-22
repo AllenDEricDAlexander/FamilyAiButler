@@ -9,7 +9,6 @@
  */
 package top.egon.familyaibutler.family.application.result;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +16,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.With;
 import lombok.experimental.Accessors;
+import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -38,24 +39,24 @@ import java.util.Date;
 @AllArgsConstructor
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
-@Schema(name = "CategoryTypeDTO", title = "Category Type DTO")
+@DocModel(name = "CategoryTypeDTO", description = "Category Type DTO")
 public class CategoryTypeDTO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = -7041315135873001168L;
 
-    @Schema(title = "id", name = "id", defaultValue = "1", type = "long")
+    @DocField(description = "id", example = "1")
     private Long id;
 
-    @Schema(title = "typeName", name = "typeName", defaultValue = "room", type = "String")
+    @DocField(description = "typeName", example = "支出")
     private String typeName;
 
-    @Schema(title = "description", name = "description", defaultValue = "room", type = "String")
+    @DocField(description = "description", example = "家庭支出类型")
     private String description;
 
-    @Schema(title = "createTime", name = "createTime", defaultValue = "2025-08-01 20:30:40", type = "Date")
+    @DocField(description = "createTime", example = "2026-05-22T00:00:00")
     private Date createTime;
 
-    @Schema(title = "updateTime", name = "updateTime", defaultValue = "2025-08-01 20:30:40", type = "Date")
+    @DocField(description = "updateTime", example = "2026-05-22T00:00:00")
     private Date updateTime;
 }

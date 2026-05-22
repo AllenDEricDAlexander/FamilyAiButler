@@ -2,29 +2,23 @@ package top.egon.familyaibutler.family.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import top.egon.familyaibutler.common.pojo.Result;
 import top.egon.familyaibutler.family.FamilyApplication;
-import top.egon.familyaibutler.family.adapter.web.PasswordViewController;
-import top.egon.familyaibutler.family.application.manage.impl.PasswordViewManageImpl;
+import top.egon.familyaibutler.family.infrastructure.configuration.CacheService;
 import top.egon.familyaibutler.family.infrastructure.persistence.mp.dataobject.PasswordViewPO;
-import top.egon.familyaibutler.family.infrastructure.persistence.mp.mapper.PasswordViewMapper;
+import top.egon.familyaibutler.family.infrastructure.persistence.mp.service.PasswordViewService;
 
 import java.util.Random;
 import java.util.regex.Pattern;
@@ -40,7 +34,6 @@ import java.util.regex.Pattern;
  */
 @SpringBootTest(classes = FamilyApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc(addFilters = false)
-@ExtendWith(MockitoExtension.class)
 class TestPassword {
 
     private static final String PASSWORD_TRUE_REGEX = "^[a-zA-Z0-9!@#$%^&*()-_=+<>?]+$";
@@ -49,19 +42,11 @@ class TestPassword {
     @Autowired
     private MockMvc mockMvc;
 
-    @InjectMocks
-    private PasswordViewController passwordViewController;
+    @MockitoBean
+    private PasswordViewService passwordViewService;
 
-    @Mock
-    private PasswordViewManageImpl passwordViewService;
-
-    @Mock
-    private PasswordViewMapper passwordViewMapper;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
+    @MockitoBean
+    private CacheService cacheService;
 
     @Test
     void testSelectOne() throws Exception {
@@ -69,8 +54,28 @@ class TestPassword {
                 .id(1L)
                 .accountNumber("001")
                 .name("name001").build();
-        Mockito.when(passwordViewMapper.selectById(1L)).thenReturn(passwordViewPO1);
+        Mockito.when(passwordViewService.getById(1L)).thenReturn(passwordViewPO1);
         mockMvc.perform(MockMvcRequestBuilders.get("/password/1")
+                        .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andDo(MockMvcResultHandlers.print())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value(10000))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("success"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.id").value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.accountNumber").value("001"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.name").value("name001"))
+                .andExpect(result -> {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Result data = objectMapper.readValue(result.getResponse().getContentAsString(), Result.class);
+                    Assertions.assertNotNull(data);
+                })
+                .andReturn();
+        Mockito.verify(cacheService).put(Mockito.eq("1"), Mockito.same(passwordViewPO1), Mockito.anyLong());
+    }
+
+    @Test
+    void testSelectOneReturnsSuccessWhenPasswordDoesNotExist() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/password/404")
                         .accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andDo(MockMvcResultHandlers.print())
@@ -79,9 +84,10 @@ class TestPassword {
                 .andExpect(result -> {
                     ObjectMapper objectMapper = new ObjectMapper();
                     Result data = objectMapper.readValue(result.getResponse().getContentAsString(), Result.class);
-                    Assertions.assertNotNull(data);
+                    Assertions.assertNull(data.getData());
                 })
                 .andReturn();
+        Mockito.verify(cacheService, Mockito.never()).put(Mockito.eq("404"), Mockito.isNull(), Mockito.anyLong());
     }
 
     @Test

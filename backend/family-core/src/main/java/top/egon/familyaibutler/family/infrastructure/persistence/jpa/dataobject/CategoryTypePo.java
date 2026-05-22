@@ -1,6 +1,5 @@
 package top.egon.familyaibutler.family.infrastructure.persistence.jpa.dataobject;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -17,6 +16,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.With;
 import lombok.experimental.Accessors;
+import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -40,7 +41,7 @@ import java.util.Date;
 @Builder
 @Entity
 @Table(name = "category_type")
-@Schema(name = "CategoryTypePo", title = "Category Type POJO")
+@DocModel(name = "CategoryTypePo", description = "Category Type POJO")
 public class CategoryTypePo implements Serializable {
 
     @Serial
@@ -49,20 +50,20 @@ public class CategoryTypePo implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "menuSeq")
     @SequenceGenerator(name = "menuSeq", initialValue = 10000, allocationSize = 1, sequenceName = "MENU_SEQUENCE")
-    @Schema(title = "id", name = "id", defaultValue = "1", type = "long")
+    @DocField(description = "id")
     @Column(name = "id")
     private Long id;
-    @Schema(title = "typeName", name = "typeName", defaultValue = "room", type = "String")
+    @DocField(description = "typeName")
     @Column(name = "type_name")
     private String typeName;
-    @Schema(title = "description", name = "description", defaultValue = "room", type = "String")
+    @DocField(description = "description")
     @Column(name = "description")
     private String description;
-    @Schema(title = "createTime", name = "createTime", defaultValue = "2025-08-01 20:30:40", type = "Date")
+    @DocField(description = "createTime")
     @Column(name = "create_time", updatable = false)
     private Date createTime;
     @Column(name = "update_time")
-    @Schema(title = "updateTime", name = "updateTime", defaultValue = "2025-08-01 20:30:40", type = "Date")
+    @DocField(description = "updateTime")
     private Date updateTime;
 
     @PrePersist

@@ -1,10 +1,11 @@
 package top.egon.familyaibutler.common.pojo;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.With;
 import lombok.experimental.Accessors;
 import top.egon.familyaibutler.common.enums.ResultCode;
+import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -16,17 +17,22 @@ import java.io.Serializable;
  * @Author: atluofu
  * @CreateTime: 2025Year-08Month-01Day-18:38
  * @Description: Result Record 类型
- * 泛型类型的返回包装类  不能类注释@Schema openapi3 生成有问题
+ * 泛型类型的返回包装类
  * @Version: 1.0
  */
 @With
 @Builder
 @Accessors(chain = true)
+@DocModel(name = "ResultRecord", description = "接口统一返回 Record 对象")
 public record ResultRecord<T>(
-        @Schema(title = "状态码", name = "code", defaultValue = "10000", type = "int") Integer code,
-        @Schema(title = "描述", name = "message", defaultValue = "10000", type = "String") String message,
-        @Schema(title = "响应状态", name = "success", defaultValue = "true", type = "bool") Boolean success,
-        @Schema(title = "返回结果", name = "data", defaultValue = "test", type = "T") T data) implements Serializable {
+        @DocField(description = "业务状态码", example = "0")
+        Integer code,
+        @DocField(description = "提示信息", example = "success")
+        String message,
+        @DocField(description = "是否成功", example = "true")
+        Boolean success,
+        @DocField(description = "响应数据")
+        T data) implements Serializable {
 
     @Serial
     private static final long serialVersionUID = -4633117999621557174L;

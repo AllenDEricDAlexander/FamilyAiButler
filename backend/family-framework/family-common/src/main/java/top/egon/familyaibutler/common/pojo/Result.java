@@ -1,6 +1,5 @@
 package top.egon.familyaibutler.common.pojo;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,6 +7,8 @@ import lombok.With;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import top.egon.familyaibutler.common.enums.ResultCode;
+import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.io.IOException;
 import java.io.Serial;
@@ -20,7 +21,7 @@ import java.io.Serializable;
  * @Author: atluofu
  * @CreateTime: 2025Year-08Month-01Day-18:38
  * @Description: 接口统一返回对象
- * * 泛型类型的返回包装类  不能类注释@Schema openapi3 生成有问题
+ * * 泛型类型的返回包装类
  * @Version: 1.0
  */
 @Data
@@ -29,19 +30,20 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
+@DocModel(name = "Result", description = "接口统一返回对象")
 public class Result<T> implements Serializable {
     @Serial
     private static final long serialVersionUID = -4633117999621557173L;
 
-    @Schema(title = "状态码", name = "code", defaultValue = "10000", type = "int")
+    @DocField(description = "业务状态码", example = "0")
     private Integer code;
-    @Schema(title = "描述", name = "message", defaultValue = "10000", type = "String")
+    @DocField(description = "提示信息", example = "success")
     private String message;
-    @Schema(title = "响应状态", name = "success", defaultValue = "true", type = "bool")
+    @DocField(description = "是否成功", example = "true")
     private Boolean success;
-    @Schema(title = "时间戳", name = "timestamp", defaultValue = "123123456456", type = "int", description = "返回时间")
+    @DocField(description = "响应时间戳", example = "1770000000000")
     private Long timestamp;
-    @Schema(title = "返回结果", name = "data", type = "T")
+    @DocField(description = "响应数据")
     private T data;
 
     public static <T> Result<T> success(T res) {

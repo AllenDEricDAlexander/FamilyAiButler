@@ -81,20 +81,6 @@ spring:
         server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         namespace: ${NACOS_NAMESPACE:d11babcf-8ebf-47fb-90a6-3fb6a7eb85dc}
 
-springdoc:
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha
-  group-configs:
-    - group: 'default'
-      paths-to-match: '/**'
-      packages-to-scan: top.egon.familyaibutler.ai
-
 egon:
   openapi:
     console:
@@ -121,7 +107,6 @@ family:
       permit-patterns:
         - /actuator/**
         - /v3/api-docs/**
-        - /swagger-ui/**
         - /openapi-console/**
   ai:
     qwen:

@@ -46,22 +46,30 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- WebMVC 业务模块生成 /v3/api-docs -->
+        <!-- WebMVC 业务模块扫描 REST 接口并生成 /v3/api-docs -->
         <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <optional>true</optional>
         </dependency>
 
-        <!-- WebFlux 网关或响应式模块生成 /v3/api-docs -->
+        <!-- Bean Validation 注解读取 required 字段 -->
         <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webflux-api</artifactId>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- Jackson OpenAPI JSON 处理 -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Lombok 日志注解编译依赖 -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
 
         <!-- Lombok -->

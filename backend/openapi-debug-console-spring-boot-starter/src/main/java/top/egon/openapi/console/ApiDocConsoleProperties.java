@@ -94,6 +94,21 @@ public class ApiDocConsoleProperties {
     /**
      * @BelongsProject: openapi-console
      * @BelongsPackage: top.egon.openapi.console
+     * @ClassName: Policy
+     * @Author: atluofu
+     * @CreateTime: 2026Year-05Month-22Day-14:20
+     * @Description: OpenAPI 生产端校验策略
+     * @Version: 1.0
+     */
+    public enum Policy {
+        OFF,
+        WARN,
+        FAIL
+    }
+
+    /**
+     * @BelongsProject: openapi-console
+     * @BelongsPackage: top.egon.openapi.console
      * @ClassName: Auth
      * @Author: atluofu
      * @CreateTime: 2026Year-05Month-19Day-17:20
@@ -305,6 +320,10 @@ public class ApiDocConsoleProperties {
         private String licenseUrl = "";
 
         private String authorizationHeader = "Authorization";
+
+        private Policy contractPolicy = Policy.WARN;
+
+        private Policy examplePolicy = Policy.WARN;
 
         private AccessControl accessControl = new AccessControl();
     }

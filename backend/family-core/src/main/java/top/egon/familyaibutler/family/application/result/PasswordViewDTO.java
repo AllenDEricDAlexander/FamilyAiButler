@@ -1,6 +1,5 @@
 package top.egon.familyaibutler.family.application.result;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -10,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.With;
 import lombok.experimental.Accessors;
 import top.egon.familyaibutler.family.domain.passwordview.model.enums.PasswordCategoryEnum;
+import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -30,32 +31,32 @@ import java.time.LocalDateTime;
 @With
 @Accessors(chain = true)
 @Builder
-@Schema(name = "PasswordViewDTO", title = "password view api dto")
+@DocModel(name = "PasswordViewDTO", description = "password view api dto")
 public class PasswordViewDTO implements Serializable {
     @Serial
     private static final long serialVersionUID = 9146111814279753262L;
-    @Schema(title = "name", name = "name", defaultValue = "1", type = "String")
+    @DocField(description = "id", example = "1")
     private Long id;
-    @Schema(title = "name", name = "name", defaultValue = "test", type = "String")
+    @DocField(description = "name", example = "GitHub")
     private String name;
-    @Schema(title = "password", name = "password", defaultValue = "Test123*.+", type = "String")
+    @DocField(description = "password", example = "P@ssw0rd1234")
     @NotNull
     @NotEmpty
     private String password;
-    @Schema(title = "description", name = "description", defaultValue = "test content", type = "String")
+    @DocField(description = "description", example = "GitHub 账号")
     private String description;
-    @Schema(title = "accountNumber", name = "accountNumber", defaultValue = "test001", type = "String")
+    @DocField(description = "accountNumber", example = "mario@example.com")
     @NotNull
     @NotEmpty
     private String accountNumber;
-    @Schema(title = "websit", name = "websit", defaultValue = "www.baidu.com", type = "String")
+    @DocField(description = "websit", example = "https://github.com")
     @NotNull
     @NotEmpty
     private String websit;
-    @Schema(title = "likeStatus", name = "likeStatus", defaultValue = "false", type = "bool")
+    @DocField(description = "likeStatus", example = "true")
     private boolean likeStatus;
-    @Schema(title = "category", name = "category", defaultValue = "1", type = "int")
+    @DocField(description = "category", example = "WORK")
     private PasswordCategoryEnum category;
-    @Schema(title = "lastViewTime", name = "lastViewTime", defaultValue = "2025-08-01 20:30:40", type = "String", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @DocField(description = "lastViewTime", example = "2026-05-22T00:00:00")
     private LocalDateTime lastViewTime;
 }

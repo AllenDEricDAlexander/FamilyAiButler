@@ -93,20 +93,6 @@ mybatis-plus:
       logic-not-delete-value: false
   type-aliases-package: top.egon.familyaibutler.family.domain.model.enums
 
-springdoc:
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha
-  group-configs:
-    - group: 'default'
-      paths-to-match: '/**'
-      packages-to-scan: top.egon.familyaibutler.family
-
 egon:
   openapi:
     console:
@@ -133,7 +119,6 @@ family:
       permit-patterns:
         - /actuator/**
         - /v3/api-docs/**
-        - /swagger-ui/**
         - /openapi-console/**
 
 logging:

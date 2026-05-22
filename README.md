@@ -98,6 +98,36 @@ mvn clean package -DskipTests
 脚本会按 `uaa -> core -> qwen-ai -> gateway` 顺序启动，停止时反向处理，运行日志位于 `ops/.runtime/`。该脚本只使用本机
 JDK/Maven 启动应用，不会启动 Docker。
 
+后端运行服务验证：
+
+```bash
+mvn -f backend/pom.xml -pl family-core,family-ai/qwen-ai,family-gateway,family-uaa/uaa-core -am -DskipTests compile
+mvn -f backend/pom.xml -pl family-core -am test
+mvn -f backend/pom.xml -pl family-ai/qwen-ai -am test
+mvn -f backend/pom.xml -pl family-gateway -am test
+mvn -f backend/pom.xml -pl family-uaa/uaa-core -am test
+./ops/scripts/build-backend.sh services test
+./ops/scripts/backend-local.sh all dev restart
+./ops/scripts/backend-local.sh all dev status
+```
+
+本地启动健康检查路径：
+
+| 服务 | 健康检查 |
+| --- | --- |
+| `family-uaa` | `http://127.0.0.1:39092/.well-known/jwks.json` |
+| `family-core` | `http://127.0.0.1:39090/actuator/health` |
+| `family-ai-qwen` | `http://127.0.0.1:39091/actuator/health` |
+| `family-gateway` | `http://127.0.0.1:9527/actuator/health` |
+
+## 接口文档与调试控制台
+
+后端接口文档由 `openapi-debug-console-spring-boot-starter` 提供。业务模块只负责生产 OpenAPI JSON，网关负责聚合服务列表、
+登录认证、接口调试、测试数据生成、压测和文档导出。
+
+adapter 层 Controller / RPC adapter 需要使用 doc 模块自有注解描述接口、请求、响应和 DTO/VO 字段示例。注解和示例见
+`backend/openapi-debug-console-spring-boot-starter/README.md`，adapter 层编码约束见 `backend/code_style.md`。
+
 ## 大前端
 
 大前端使用 pnpm workspace 管理。Web 端基于 Expo + React Native Web，桌面端通过 Tauri 包装同一套 Web 构建产物。

@@ -87,10 +87,19 @@ class QwenDddStructureTest {
     void controllerShouldProvideOpenApiAnnotations() throws Exception {
         String controller = Files.readString(Path.of("src/main/java/top/egon/familyaibutler/ai/qwen/adapter/web/ImageController.java"));
         assertThat(controller)
-                .contains("@Tag")
-                .contains("@Operation")
-                .contains("@Parameter")
-                .contains("@ApiResponse");
+                .contains("@DocService")
+                .contains("@DocOperation")
+                .contains("@DocRequest")
+                .contains("@DocBody")
+                .contains("@DocParameter")
+                .doesNotContain("@DocRequestBody")
+                .doesNotContain("@DocFormField")
+                .doesNotContain("@DocSchemaRef")
+                .doesNotContain("@DocOperationParameter")
+                .doesNotContain("@" + "Tag")
+                .doesNotContain("@" + "Operation")
+                .doesNotContain("@" + "Parameter")
+                .doesNotContain("@" + "ApiResponse");
     }
 
     /**
@@ -218,7 +227,7 @@ class QwenDddStructureTest {
                 .contains("authorization-base-url: ${UAA_AUTHORIZATION_BASE_URL:http://127.0.0.1:39092}")
                 .contains("/actuator/**")
                 .contains("/v3/api-docs/**")
-                .contains("/swagger-ui/**")
+                .doesNotContain("/swagger-ui/**")
                 .contains("/openapi-console/**");
     }
 

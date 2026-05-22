@@ -352,7 +352,7 @@ adapter
 做协议对象到 Command / Query 的转换
 调用 application 接口
 将 application 结果转换为 HTTP / RPC / MQ 对应响应
-维护 Swagger / OpenAPI 注解
+维护 doc 模块自有接口文档注解
 维护 Dubbo Provider 注解
 ```
 
@@ -367,6 +367,7 @@ adapter 当前协议自己的 assembler
 facade proto 生成类，仅限 adapter.rpc.dubbo
 common.pojo.Result
 common.pojo.PageResult
+openapi-debug-console-spring-boot-starter 的文档注解，仅限 adapter 入站接口和 DTO / VO 文档描述
 ```
 
 ### 4.4 禁止
@@ -383,9 +384,35 @@ common.pojo.PageResult
 新增接口直接返回持久化对象
 把 Web DTO 传入 application
 把 Proto Request 传入 application
+使用 Springdoc 或 Swagger 注解作为项目自有接口文档来源
 ```
 
-### 4.5 Web Controller 示例
+### 4.5 adapter 层接口文档注解规则
+
+HTTP Controller 和 RPC adapter 必须使用 `top.egon.openapi.console.annotation` 包下的 doc 模块自有注解描述接口文档。
+
+要求：
+
+```text
+Controller / RPC adapter 使用 @DocService 描述 group 和 service 二级分类
+接口方法使用 @DocOperation 描述 summary、description、request、response
+请求参数使用 @DocRequest、@DocParameter 或方法参数上的 @DocParam
+请求体使用 @DocBody
+返回值使用 @DocResponse，固定表达为 dataType + wrapper
+DTO / VO 字段使用 @DocField 补充 description、required、example
+复杂泛型使用 DocTypeReference<T>
+```
+
+禁止：
+
+```text
+只依赖方法名、JavaDoc 或框架默认推断生成接口文档
+只声明返回 wrapper，不声明真实 dataType
+在一个接口方法上声明多个主返回类型
+业务模块新增 Springdoc 或 Swagger 注解作为接口文档来源
+```
+
+### 4.6 Web Controller 示例
 
 ```java
 /**
@@ -400,7 +427,9 @@ common.pojo.PageResult
 @RestController
 @RequestMapping("/api/password-views")
 @Validated
-@Tag(name = "账号密码管理接口")
+@DocService(groupId = "core", groupName = "家庭核心服务",
+        serviceId = "family-core-password", serviceName = "账号密码管理接口",
+        serviceDescription = "账号密码 HTTP 适配器", protocol = DocProtocol.HTTP)
 @RequiredArgsConstructor
 public class PasswordViewController {
 
@@ -414,7 +443,12 @@ public class PasswordViewController {
      * @return 新增结果
      */
     @PostMapping
-    @Operation(summary = "新增账号密码")
+    @DocOperation(summary = "新增账号密码", description = "新增账号密码",
+            request = @DocRequest(body = @DocBody(
+                    dataType = @DocDataType(kind = DocDataKind.OBJECT, type = CreatePasswordViewRequestDTO.class))),
+            response = @DocResponse(description = "新增成功",
+                    dataType = @DocDataType(kind = DocDataKind.OBJECT, type = PasswordViewCreateVO.class),
+                    wrapper = @DocWrapper(type = Result.class, dataPath = "data")))
     public Result<PasswordViewCreateVO> create(@RequestBody @Valid CreatePasswordViewRequestDTO request) {
         CreatePasswordViewCommand command = passwordViewWebAssembler.toCreateCommand(request);
         PasswordViewCreateResult result = passwordViewManage.create(command);
@@ -423,7 +457,7 @@ public class PasswordViewController {
 }
 ```
 
-### 4.6 Web DTO 示例
+### 4.7 Web DTO 示例
 
 ```java
 /**
@@ -442,28 +476,32 @@ public class CreatePasswordViewRequestDTO {
      * 登录账号。
      */
     @NotBlank(message = "登录账号不能为空")
+    @DocField(description = "登录账号", required = true, example = "demo@example.com")
     private String account;
 
     /**
      * 登录密码。
      */
     @NotBlank(message = "登录密码不能为空")
+    @DocField(description = "登录密码", required = true, example = "Demo@123456")
     private String password;
 
     /**
      * 所属平台。
      */
     @NotBlank(message = "所属平台不能为空")
+    @DocField(description = "所属平台", required = true, example = "GitHub")
     private String platform;
 
     /**
      * 备注。
      */
+    @DocField(description = "备注", example = "个人账号")
     private String remark;
 }
 ```
 
-### 4.7 Web Assembler 示例
+### 4.8 Web Assembler 示例
 
 ```java
 /**
@@ -507,7 +545,7 @@ public class PasswordViewWebAssembler {
 }
 ```
 
-### 4.8 Dubbo Provider 示例
+### 4.9 Dubbo Provider 示例
 
 ```java
 /**
@@ -562,7 +600,7 @@ PasswordViewDubboAdapter 是 Provider 实现，必须放在 adapter.rpc.dubbo。
 不要使用 @GrpcService、StreamObserver，除非项目明确直接接入原生 grpc-java。
 ```
 
-### 4.9 Dubbo Assembler 示例
+### 4.10 Dubbo Assembler 示例
 
 ```java
 /**

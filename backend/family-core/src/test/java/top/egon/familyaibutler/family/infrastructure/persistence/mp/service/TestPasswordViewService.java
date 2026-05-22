@@ -1,6 +1,7 @@
 package top.egon.familyaibutler.family.infrastructure.persistence.mp.service;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -8,7 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.util.ReflectionTestUtils;
 import top.egon.familyaibutler.family.infrastructure.persistence.mp.mapper.PasswordViewMapper;
 import top.egon.familyaibutler.family.infrastructure.persistence.mp.service.impl.PasswordViewServiceImpl;
 
@@ -21,7 +22,6 @@ import top.egon.familyaibutler.family.infrastructure.persistence.mp.service.impl
  * @Description: TestPasswordViewService
  * @Version: 1.0
  */
-@SpringBootTest
 @ExtendWith(MockitoExtension.class)
 class TestPasswordViewService {
 
@@ -30,6 +30,11 @@ class TestPasswordViewService {
 
     @Mock
     private PasswordViewMapper passwordViewMapper;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(passwordViewService, "baseMapper", passwordViewMapper);
+    }
 
     @Test
     void testPasswordStrength() {

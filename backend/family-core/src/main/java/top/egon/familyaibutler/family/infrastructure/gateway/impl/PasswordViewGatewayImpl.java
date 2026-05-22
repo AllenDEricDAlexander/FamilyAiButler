@@ -52,7 +52,9 @@ public class PasswordViewGatewayImpl implements PasswordViewGateway {
         PasswordViewPO dataObject = cacheService.get(businessId, PasswordViewPO.class);
         if (ObjectUtils.isEmpty(dataObject)) {
             dataObject = passwordViewService.selectByBusinessId(businessId);
-            cacheService.put(businessId, dataObject, 60L * 60 * 24);
+            if (ObjectUtils.isNotEmpty(dataObject)) {
+                cacheService.put(businessId, dataObject, 60L * 60 * 24);
+            }
         }
         return Optional.ofNullable(dataObject).map(passwordViewMpConverter::toDomain);
     }
@@ -69,7 +71,9 @@ public class PasswordViewGatewayImpl implements PasswordViewGateway {
         PasswordViewPO dataObject = cacheService.get(cacheKey, PasswordViewPO.class);
         if (ObjectUtils.isEmpty(dataObject)) {
             dataObject = passwordViewService.getById(id);
-            cacheService.put(cacheKey, dataObject, 60L * 60 * 24);
+            if (ObjectUtils.isNotEmpty(dataObject)) {
+                cacheService.put(cacheKey, dataObject, 60L * 60 * 24);
+            }
         }
         return Optional.ofNullable(dataObject).map(passwordViewMpConverter::toDomain);
     }

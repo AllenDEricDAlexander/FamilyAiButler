@@ -9,21 +9,21 @@
  */
 package top.egon.openapi.console.autoconfigure;
 
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.security.SecurityScheme;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.DispatcherServlet;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import top.egon.openapi.console.ApiDocConsoleProperties;
+import top.egon.openapi.console.openapi.ApiDocOpenApiController;
+import top.egon.openapi.console.openapi.ApiDocOpenApiSchemaGenerator;
+import top.egon.openapi.console.openapi.ApiDocSpringMvcOpenApiGenerator;
 
 /**
  * @BelongsProject: openapi-console
@@ -35,69 +35,49 @@ import top.egon.openapi.console.ApiDocConsoleProperties;
  * @Version: 1.0
  */
 @AutoConfiguration
-@ConditionalOnClass(OpenAPI.class)
+@ConditionalOnClass({DispatcherServlet.class, RequestMappingHandlerMapping.class})
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties(ApiDocConsoleProperties.class)
 @ConditionalOnProperty(prefix = "egon.openapi.console.producer", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class ApiDocOpenApiAutoConfiguration {
 
     /**
-     * 创建默认 OpenAPI 配置
+     * 创建 OpenAPI Schema 生成器
      *
-     * @param properties OpenAPI 控制台配置
-     * @return OpenAPI 返回默认 OpenAPI 描述
+     * @param objectMapper Jackson 映射器
+     * @return ApiDocOpenApiSchemaGenerator 返回 OpenAPI Schema 生成器
      */
     @Bean
-    @ConditionalOnMissingBean(OpenAPI.class)
-    public OpenAPI apiDocOpenApi(ApiDocConsoleProperties properties) {
-        ApiDocConsoleProperties.Producer producer = properties.getProducer();
-        Info info = new Info()
-                .title(producer.getTitle())
-                .description(producer.getDescription())
-                .version(producer.getVersion());
-        fillContact(info, producer);
-        fillLicense(info, producer);
-        return new OpenAPI()
-                .info(info)
-                .components(new Components()
-                        .addSecuritySchemes(producer.getAuthorizationHeader(),
-                                new SecurityScheme()
-                                        .type(SecurityScheme.Type.APIKEY)
-                                        .scheme("token")
-                                        .name(producer.getAuthorizationHeader())
-                                        .in(SecurityScheme.In.HEADER)))
-                .addSecurityItem(new SecurityRequirement().addList(producer.getAuthorizationHeader()));
+    @ConditionalOnMissingBean
+    public ApiDocOpenApiSchemaGenerator apiDocOpenApiSchemaGenerator(ObjectMapper objectMapper) {
+        return new ApiDocOpenApiSchemaGenerator(objectMapper);
     }
 
     /**
-     * 填充联系人信息
+     * 创建 Spring MVC OpenAPI 文档生成器
      *
-     * @param info     OpenAPI 基础信息
-     * @param producer 业务模块 OpenAPI 生产配置
+     * @param handlerMapping  Spring MVC 映射处理器
+     * @param schemaGenerator OpenAPI Schema 生成器
+     * @param properties      OpenAPI 控制台配置
+     * @return ApiDocSpringMvcOpenApiGenerator 返回 Spring MVC OpenAPI 文档生成器
      */
-    private void fillContact(Info info, ApiDocConsoleProperties.Producer producer) {
-        if (!StringUtils.hasText(producer.getContactName())
-                && !StringUtils.hasText(producer.getContactUrl())
-                && !StringUtils.hasText(producer.getContactEmail())) {
-            return;
-        }
-        info.contact(new Contact()
-                .name(producer.getContactName())
-                .url(producer.getContactUrl())
-                .email(producer.getContactEmail()));
+    @Bean
+    @ConditionalOnMissingBean
+    public ApiDocSpringMvcOpenApiGenerator apiDocSpringMvcOpenApiGenerator(@Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping handlerMapping,
+                                                                           ApiDocOpenApiSchemaGenerator schemaGenerator,
+                                                                           ApiDocConsoleProperties properties) {
+        return new ApiDocSpringMvcOpenApiGenerator(handlerMapping, schemaGenerator, properties);
     }
 
     /**
-     * 填充许可证信息
+     * 创建 OpenAPI JSON 控制器
      *
-     * @param info     OpenAPI 基础信息
-     * @param producer 业务模块 OpenAPI 生产配置
+     * @param openApiGenerator Spring MVC OpenAPI 文档生成器
+     * @return ApiDocOpenApiController 返回 OpenAPI JSON 控制器
      */
-    private void fillLicense(Info info, ApiDocConsoleProperties.Producer producer) {
-        if (!StringUtils.hasText(producer.getLicenseName()) && !StringUtils.hasText(producer.getLicenseUrl())) {
-            return;
-        }
-        info.license(new License()
-                .name(producer.getLicenseName())
-                .url(producer.getLicenseUrl()));
+    @Bean
+    @ConditionalOnMissingBean
+    public ApiDocOpenApiController apiDocOpenApiController(ApiDocSpringMvcOpenApiGenerator openApiGenerator) {
+        return new ApiDocOpenApiController(openApiGenerator);
     }
 }

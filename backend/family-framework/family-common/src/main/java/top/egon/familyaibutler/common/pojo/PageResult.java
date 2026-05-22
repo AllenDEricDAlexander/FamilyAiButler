@@ -1,6 +1,5 @@
 package top.egon.familyaibutler.common.pojo;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,6 +8,8 @@ import lombok.With;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import top.egon.familyaibutler.common.enums.ResultCode;
+import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.io.Serial;
 import java.util.List;
@@ -20,7 +21,7 @@ import java.util.List;
  * @Author: atluofu
  * @CreateTime: 2025Year-08Month-01Day-19:14
  * @Description: 接口统一返回分页对象
- * * 泛型类型的返回包装类  不能类注释@Schema openapi3 生成有问题
+ * * 泛型类型的返回包装类
  * @Version: 1.0
  */
 @Data
@@ -30,15 +31,16 @@ import java.util.List;
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder(builderMethodName = "PageResultBuilder")
+@DocModel(name = "PageResult", description = "接口统一返回分页对象")
 public class PageResult<T> extends Result<List<T>> {
     @Serial
     private static final long serialVersionUID = 8938942437517754689L;
 
-    @Schema(title = "总量", name = "total", defaultValue = "100", type = "long")
+    @DocField(description = "总数", example = "100")
     private Long total;
-    @Schema(title = "页号", name = "pageNum", defaultValue = "0", type = "int")
+    @DocField(description = "页码", example = "1")
     private Long pageNum;
-    @Schema(title = "页大小", name = "pageSize", defaultValue = "10", type = "int")
+    @DocField(description = "页大小", example = "10")
     private Long pageSize;
 
     public static <T> PageResult<T> success(List<T> data, Long total, Long pageNum, Long pageSize) {

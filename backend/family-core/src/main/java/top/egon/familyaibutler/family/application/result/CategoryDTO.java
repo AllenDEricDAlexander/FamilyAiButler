@@ -1,6 +1,5 @@
 package top.egon.familyaibutler.family.application.result;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,6 +7,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.With;
 import lombok.experimental.Accessors;
+import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -28,19 +29,19 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
-@Schema(name = "CategoryDTO", title = "Category DTO")
+@DocModel(name = "CategoryDTO", description = "Category DTO")
 public class CategoryDTO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = -7033547257705498021L;
 
-    @Schema(title = "id", name = "id", defaultValue = "1", type = "long")
+    @DocField(description = "id", example = "1")
     private Long id;
-    @Schema(title = "name", name = "name", defaultValue = "house", type = "String")
+    @DocField(description = "name", example = "生活")
     private String categoryName;
-    @Schema(title = "description", name = "description", defaultValue = "test", type = "String")
+    @DocField(description = "description", example = "家庭生活分类")
     private String description;
-    @Schema(title = "parentId", name = "parentId", defaultValue = "0", type = "long")
+    @DocField(description = "parentId", example = "0")
     private Long parentId;
 
 }

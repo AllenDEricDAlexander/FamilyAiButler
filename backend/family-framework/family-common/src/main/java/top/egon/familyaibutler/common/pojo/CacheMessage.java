@@ -1,12 +1,13 @@
 package top.egon.familyaibutler.common.pojo;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.With;
 import lombok.experimental.Accessors;
+import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -26,12 +27,15 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
-@Schema(title = "Cache对象", name = "CacheMessage")
+@DocModel(name = "CacheMessage", description = "缓存变更消息")
 public class CacheMessage implements Serializable {
     @Serial
     private static final long serialVersionUID = -7913819771231281565L;
+    @DocField(description = "缓存键", example = "family:category:1")
     private String cacheKey;
+    @DocField(description = "缓存动作", example = "evict")
     private String action;
+    @DocField(description = "变更后的值", example = "{\"id\":1}")
     private String newValue;
 
 }
