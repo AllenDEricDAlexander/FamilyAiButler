@@ -11,6 +11,7 @@ package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
 import jakarta.validation.constraints.NotBlank;
 import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
+import top.egon.openapi.console.annotation.DocField;
 
 /**
  * @BelongsProject: familyaibutler
@@ -22,7 +23,9 @@ import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
  * @Version: 1.0
  */
 public record UserPermissionQuery(
+        @DocField(description = "账号 ID", example = "account-001")
         @NotBlank String accountId,
+        @DocField(description = "权限资源类型", example = "API")
         PermissionResourceType resourceType
 ) {
 }

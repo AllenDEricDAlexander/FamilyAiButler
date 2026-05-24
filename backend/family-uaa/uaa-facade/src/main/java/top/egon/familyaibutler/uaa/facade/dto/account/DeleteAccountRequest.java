@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.account;
 
 import jakarta.validation.constraints.NotBlank;
+import top.egon.openapi.console.annotation.DocField;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,7 +22,9 @@ import jakarta.validation.constraints.NotBlank;
  * @Version: 1.0
  */
 public record DeleteAccountRequest(
+        @DocField(description = "账号 ID", example = "account-001")
         @NotBlank String accountId,
+        @DocField(description = "注销验证码", example = "123456")
         String verificationCode
 ) {
 }

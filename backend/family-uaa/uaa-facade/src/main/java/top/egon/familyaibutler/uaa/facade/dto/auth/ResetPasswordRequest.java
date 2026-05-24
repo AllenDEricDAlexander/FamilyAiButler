@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
+import top.egon.openapi.console.annotation.DocField;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,8 +22,11 @@ import jakarta.validation.constraints.NotBlank;
  * @Version: 1.0
  */
 public record ResetPasswordRequest(
+        @DocField(description = "账号标识，支持用户名、邮箱或手机号", example = "mario@example.com")
         @NotBlank String principal,
+        @DocField(description = "验证码", example = "123456")
         @NotBlank String verificationCode,
+        @DocField(description = "新密码", example = "NewPassw0rd!")
         @NotBlank String newPassword
 ) {
 }

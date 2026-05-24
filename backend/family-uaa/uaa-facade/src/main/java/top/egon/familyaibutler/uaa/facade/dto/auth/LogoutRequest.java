@@ -9,6 +9,8 @@
  */
 package top.egon.familyaibutler.uaa.facade.dto.auth;
 
+import top.egon.openapi.console.annotation.DocField;
+
 /**
  * @BelongsProject: familyaibutler
  * @BelongsPackage: top.egon.familyaibutler.uaa.facade.dto.auth
@@ -19,8 +21,11 @@ package top.egon.familyaibutler.uaa.facade.dto.auth;
  * @Version: 1.0
  */
 public record LogoutRequest(
+        @DocField(description = "账号 ID", example = "account-001")
         String accountId,
+        @DocField(description = "会话 ID", example = "session-001")
         String sessionId,
+        @DocField(description = "设备 ID", example = "device-001")
         String deviceId
 ) {
 }

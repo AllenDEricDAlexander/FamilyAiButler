@@ -33,12 +33,12 @@ import java.io.Serializable;
 public class StrengthDTO implements Serializable {
     @Serial
     private static final long serialVersionUID = -5108785276179717760L;
-    @DocField(description = "破解所需秒数")
+    @DocField(description = "破解所需秒数", example = "{\"onlineNoThrottling10perSecond\":1000000}")
     private AttackTimes.CrackTimeSeconds crackTimeSeconds;
-    @DocField(description = "破解所需时间")
+    @DocField(description = "破解所需时间", example = "{\"onlineNoThrottling10perSecond\":\"11 days\"}")
     private AttackTimes.CrackTimesDisplay crackTimesDisplay;
     @DocField(description = "密码强度", example = "3")
     private int score;
-    @DocField(description = "密码强度反馈")
+    @DocField(description = "密码强度反馈", example = "{\"warning\":\"\",\"suggestions\":[]}")
     private Feedback feedback;
 }

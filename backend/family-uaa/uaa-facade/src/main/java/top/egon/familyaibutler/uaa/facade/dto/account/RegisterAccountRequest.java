@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.account;
 
 import jakarta.validation.constraints.NotBlank;
+import top.egon.openapi.console.annotation.DocField;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,9 +22,13 @@ import jakarta.validation.constraints.NotBlank;
  * @Version: 1.0
  */
 public record RegisterAccountRequest(
+        @DocField(description = "用户名", example = "mario")
         String username,
+        @DocField(description = "邮箱", example = "mario@example.com")
         String email,
+        @DocField(description = "手机号", example = "13800138000")
         String phone,
+        @DocField(description = "登录密码", example = "Passw0rd!")
         @NotBlank String password
 ) {
 }

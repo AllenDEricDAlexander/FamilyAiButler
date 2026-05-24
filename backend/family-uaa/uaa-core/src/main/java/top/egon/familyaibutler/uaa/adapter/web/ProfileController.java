@@ -22,6 +22,19 @@ import top.egon.familyaibutler.common.pojo.Result;
 import top.egon.familyaibutler.uaa.application.manage.ProfileManage;
 import top.egon.familyaibutler.uaa.facade.dto.profile.ProfileRequest;
 import top.egon.familyaibutler.uaa.facade.dto.profile.ProfileResponse;
+import top.egon.openapi.console.annotation.DocBody;
+import top.egon.openapi.console.annotation.DocDataKind;
+import top.egon.openapi.console.annotation.DocDataType;
+import top.egon.openapi.console.annotation.DocOperation;
+import top.egon.openapi.console.annotation.DocParam;
+import top.egon.openapi.console.annotation.DocParamIn;
+import top.egon.openapi.console.annotation.DocParameter;
+import top.egon.openapi.console.annotation.DocProtocol;
+import top.egon.openapi.console.annotation.DocRequest;
+import top.egon.openapi.console.annotation.DocResponse;
+import top.egon.openapi.console.annotation.DocService;
+import top.egon.openapi.console.annotation.DocTypeReference;
+import top.egon.openapi.console.annotation.DocWrapper;
 
 import java.util.List;
 
@@ -36,6 +49,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/profile")
+@DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-profile",
+        serviceName = "Profile 服务", serviceDescription = "账号 Profile 创建、修改、删除和查询能力", protocol = DocProtocol.HTTP)
 public class ProfileController {
     private final ProfileManage profileService;
 
@@ -55,6 +70,11 @@ public class ProfileController {
      * @return Profile 响应
      */
     @PostMapping
+    @DocOperation(summary = "创建 Profile", description = "为账号创建 Profile",
+            request = @DocRequest(body = @DocBody(dataType = @DocDataType(kind = DocDataKind.OBJECT, type = ProfileRequest.class))),
+            response = @DocResponse(description = "创建成功",
+                    dataType = @DocDataType(kind = DocDataKind.OBJECT, type = ProfileResponse.class),
+                    wrapper = @DocWrapper(type = Result.class, dataPath = "data")))
     public Result<ProfileResponse> createProfile(@RequestBody @Valid ProfileRequest request) {
         return Result.success(profileService.createProfile(request));
     }
@@ -66,6 +86,11 @@ public class ProfileController {
      * @return Profile 响应
      */
     @PutMapping
+    @DocOperation(summary = "修改 Profile", description = "修改账号 Profile",
+            request = @DocRequest(body = @DocBody(dataType = @DocDataType(kind = DocDataKind.OBJECT, type = ProfileRequest.class))),
+            response = @DocResponse(description = "修改成功",
+                    dataType = @DocDataType(kind = DocDataKind.OBJECT, type = ProfileResponse.class),
+                    wrapper = @DocWrapper(type = Result.class, dataPath = "data")))
     public Result<ProfileResponse> updateProfile(@RequestBody @Valid ProfileRequest request) {
         return Result.success(profileService.updateProfile(request));
     }
@@ -77,7 +102,15 @@ public class ProfileController {
      * @return true 表示删除成功
      */
     @DeleteMapping("/{profileId}")
-    public Result<Boolean> deleteProfile(@PathVariable String profileId) {
+    @DocOperation(summary = "删除 Profile", description = "按 Profile ID 删除 Profile",
+            request = @DocRequest(params = {
+                    @DocParameter(name = "profileId", in = DocParamIn.PATH, description = "Profile ID", required = true,
+                            dataType = @DocDataType(kind = DocDataKind.STRING), example = "profile-001")
+            }),
+            response = @DocResponse(description = "删除成功",
+                    dataType = @DocDataType(kind = DocDataKind.BOOLEAN),
+                    wrapper = @DocWrapper(type = Result.class, dataPath = "data")))
+    public Result<Boolean> deleteProfile(@PathVariable @DocParam(description = "Profile ID", required = true) String profileId) {
         return Result.success(profileService.deleteProfile(profileId));
     }
 
@@ -88,7 +121,18 @@ public class ProfileController {
      * @return Profile 列表
      */
     @GetMapping("/account/{accountId}")
-    public Result<List<ProfileResponse>> listProfiles(@PathVariable String accountId) {
+    @DocOperation(summary = "查询账号下的 Profile 列表", description = "按账号 ID 查询 Profile 列表",
+            request = @DocRequest(params = {
+                    @DocParameter(name = "accountId", in = DocParamIn.PATH, description = "账号 ID", required = true,
+                            dataType = @DocDataType(kind = DocDataKind.STRING), example = "account-001")
+            }),
+            response = @DocResponse(description = "查询成功",
+                    dataType = @DocDataType(kind = DocDataKind.GENERIC, ref = ProfileListDataType.class),
+                    wrapper = @DocWrapper(type = Result.class, dataPath = "data")))
+    public Result<List<ProfileResponse>> listProfiles(@PathVariable @DocParam(description = "账号 ID", required = true) String accountId) {
         return Result.success(profileService.listProfiles(accountId));
+    }
+
+    public static final class ProfileListDataType extends DocTypeReference<List<ProfileResponse>> {
     }
 }

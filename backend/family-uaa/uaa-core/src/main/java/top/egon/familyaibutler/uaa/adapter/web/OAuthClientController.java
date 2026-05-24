@@ -20,6 +20,19 @@ import top.egon.familyaibutler.common.pojo.Result;
 import top.egon.familyaibutler.uaa.application.manage.OAuthClientManage;
 import top.egon.familyaibutler.uaa.facade.dto.oauthclient.CreateOAuthClientRequest;
 import top.egon.familyaibutler.uaa.facade.dto.oauthclient.OAuthClientResponse;
+import top.egon.openapi.console.annotation.DocBody;
+import top.egon.openapi.console.annotation.DocDataKind;
+import top.egon.openapi.console.annotation.DocDataType;
+import top.egon.openapi.console.annotation.DocOperation;
+import top.egon.openapi.console.annotation.DocParam;
+import top.egon.openapi.console.annotation.DocParamIn;
+import top.egon.openapi.console.annotation.DocParameter;
+import top.egon.openapi.console.annotation.DocProtocol;
+import top.egon.openapi.console.annotation.DocRequest;
+import top.egon.openapi.console.annotation.DocResponse;
+import top.egon.openapi.console.annotation.DocService;
+import top.egon.openapi.console.annotation.DocTypeReference;
+import top.egon.openapi.console.annotation.DocWrapper;
 
 import java.util.List;
 
@@ -34,6 +47,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/oauth-clients")
+@DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-oauth-client",
+        serviceName = "OAuth Client 服务", serviceDescription = "OAuth Client 创建与查询能力", protocol = DocProtocol.HTTP)
 public class OAuthClientController {
     private final OAuthClientManage oAuthClientService;
 
@@ -53,6 +68,11 @@ public class OAuthClientController {
      * @return OAuth Client 响应
      */
     @PostMapping
+    @DocOperation(summary = "创建 OAuth Client", description = "创建 OAuth Client 配置",
+            request = @DocRequest(body = @DocBody(dataType = @DocDataType(kind = DocDataKind.OBJECT, type = CreateOAuthClientRequest.class))),
+            response = @DocResponse(description = "创建成功",
+                    dataType = @DocDataType(kind = DocDataKind.OBJECT, type = OAuthClientResponse.class),
+                    wrapper = @DocWrapper(type = Result.class, dataPath = "data")))
     public Result<OAuthClientResponse> create(@RequestBody @Valid CreateOAuthClientRequest request) {
         return Result.success(oAuthClientService.create(request));
     }
@@ -64,7 +84,15 @@ public class OAuthClientController {
      * @return OAuth Client 响应
      */
     @GetMapping("/{clientId}")
-    public Result<OAuthClientResponse> get(@PathVariable String clientId) {
+    @DocOperation(summary = "按客户端 ID 查询 OAuth Client", description = "根据客户端 ID 查询 OAuth Client 配置",
+            request = @DocRequest(params = {
+                    @DocParameter(name = "clientId", in = DocParamIn.PATH, description = "客户端 ID", required = true,
+                            dataType = @DocDataType(kind = DocDataKind.STRING), example = "family-web")
+            }),
+            response = @DocResponse(description = "查询成功",
+                    dataType = @DocDataType(kind = DocDataKind.OBJECT, type = OAuthClientResponse.class),
+                    wrapper = @DocWrapper(type = Result.class, dataPath = "data")))
+    public Result<OAuthClientResponse> get(@PathVariable @DocParam(description = "客户端 ID", required = true) String clientId) {
         return Result.success(oAuthClientService.get(clientId));
     }
 
@@ -74,7 +102,14 @@ public class OAuthClientController {
      * @return OAuth Client 列表
      */
     @GetMapping
+    @DocOperation(summary = "查询 OAuth Client 列表", description = "查询全部 OAuth Client 配置",
+            response = @DocResponse(description = "查询成功",
+                    dataType = @DocDataType(kind = DocDataKind.GENERIC, ref = OAuthClientListDataType.class),
+                    wrapper = @DocWrapper(type = Result.class, dataPath = "data")))
     public Result<List<OAuthClientResponse>> list() {
         return Result.success(oAuthClientService.list());
+    }
+
+    public static final class OAuthClientListDataType extends DocTypeReference<List<OAuthClientResponse>> {
     }
 }

@@ -9,6 +9,8 @@
  */
 package top.egon.familyaibutler.uaa.facade.dto.profile;
 
+import top.egon.openapi.console.annotation.DocField;
+
 /**
  * @BelongsProject: familyaibutler
  * @BelongsPackage: top.egon.familyaibutler.uaa.facade.dto.profile
@@ -19,13 +21,21 @@ package top.egon.familyaibutler.uaa.facade.dto.profile;
  * @Version: 1.0
  */
 public record ProfileResponse(
+        @DocField(description = "Profile ID", example = "profile-001")
         String profileId,
+        @DocField(description = "账号 ID", example = "account-001")
         String accountId,
+        @DocField(description = "昵称", example = "Mario")
         String nickname,
+        @DocField(description = "头像地址", example = "https://example.com/avatar.png")
         String avatar,
+        @DocField(description = "语言", example = "zh-CN")
         String language,
+        @DocField(description = "地区", example = "CN")
         String region,
+        @DocField(description = "Profile 类型", example = "PERSONAL")
         String profileType,
+        @DocField(description = "是否已删除", example = "false")
         boolean deleted
 ) {
 }

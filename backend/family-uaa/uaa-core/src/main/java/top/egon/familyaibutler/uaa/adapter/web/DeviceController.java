@@ -15,6 +15,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.familyaibutler.common.pojo.Result;
 import top.egon.familyaibutler.uaa.application.manage.DeviceManage;
+import top.egon.openapi.console.annotation.DocDataKind;
+import top.egon.openapi.console.annotation.DocDataType;
+import top.egon.openapi.console.annotation.DocOperation;
+import top.egon.openapi.console.annotation.DocParam;
+import top.egon.openapi.console.annotation.DocParamIn;
+import top.egon.openapi.console.annotation.DocParameter;
+import top.egon.openapi.console.annotation.DocProtocol;
+import top.egon.openapi.console.annotation.DocRequest;
+import top.egon.openapi.console.annotation.DocResponse;
+import top.egon.openapi.console.annotation.DocService;
+import top.egon.openapi.console.annotation.DocWrapper;
 
 /**
  * @BelongsProject: familyaibutler
@@ -27,6 +38,8 @@ import top.egon.familyaibutler.uaa.application.manage.DeviceManage;
  */
 @RestController
 @RequestMapping("/device")
+@DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-device",
+        serviceName = "设备服务", serviceDescription = "登录设备管理能力", protocol = DocProtocol.HTTP)
 public class DeviceController {
     private final DeviceManage deviceService;
 
@@ -46,7 +59,15 @@ public class DeviceController {
      * @return true 表示移除成功
      */
     @DeleteMapping("/{deviceId}")
-    public Result<Boolean> removeDevice(@PathVariable String deviceId) {
+    @DocOperation(summary = "移除设备", description = "按设备 ID 移除登录设备",
+            request = @DocRequest(params = {
+                    @DocParameter(name = "deviceId", in = DocParamIn.PATH, description = "设备 ID", required = true,
+                            dataType = @DocDataType(kind = DocDataKind.STRING), example = "device-001")
+            }),
+            response = @DocResponse(description = "移除成功",
+                    dataType = @DocDataType(kind = DocDataKind.BOOLEAN),
+                    wrapper = @DocWrapper(type = Result.class, dataPath = "data")))
+    public Result<Boolean> removeDevice(@PathVariable @DocParam(description = "设备 ID", required = true) String deviceId) {
         return Result.success(deviceService.removeDevice(deviceId));
     }
 }

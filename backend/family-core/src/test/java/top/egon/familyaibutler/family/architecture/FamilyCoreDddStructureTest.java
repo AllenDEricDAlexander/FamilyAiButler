@@ -10,7 +10,11 @@
 package top.egon.familyaibutler.family.architecture;
 
 import org.junit.jupiter.api.Test;
+import top.egon.familyaibutler.family.domain.passwordview.model.valueobject.StrengthDTO;
+import top.egon.openapi.console.annotation.DocField;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -100,6 +104,24 @@ class FamilyCoreDddStructureTest {
                 .doesNotContain("family.application.manage.impl.CategoryManageImpl")
                 .contains("CategoryManage")
                 .contains("CategoryTypeManage");
+    }
+
+    /**
+     * 校验 Web 适配层直接返回的值对象字段具备文档示例。
+     */
+    @Test
+    void adapterValueObjectFieldsShouldProvideDocFieldExamples() {
+        for (Field field : StrengthDTO.class.getDeclaredFields()) {
+            if (!Modifier.isStatic(field.getModifiers())) {
+                DocField docField = field.getAnnotation(DocField.class);
+                assertThat(docField)
+                        .as(StrengthDTO.class.getName() + "." + field.getName())
+                        .isNotNull();
+                assertThat(docField.example())
+                        .as(StrengthDTO.class.getName() + "." + field.getName() + " example")
+                        .isNotBlank();
+            }
+        }
     }
 
     /**

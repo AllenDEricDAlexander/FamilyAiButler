@@ -9,6 +9,8 @@
  */
 package top.egon.familyaibutler.uaa.application.result.account;
 
+import top.egon.openapi.console.annotation.DocField;
+
 /**
  * @BelongsProject: familyaibutler
  * @BelongsPackage: top.egon.familyaibutler.uaa.application.result.account
@@ -19,15 +21,15 @@ package top.egon.familyaibutler.uaa.application.result.account;
  * @Version: 1.0
  */
 public record AccountResponse(
-        String accountId,
-        String username,
-        String email,
-        String phone,
-        String status,
-        String accountType,
-        long authVersion,
-        long entitlementVersion,
-        long sessionVersion,
-        long riskVersion
+        @DocField(description = "账号 ID", example = "account-001") String accountId,
+        @DocField(description = "用户名", example = "mario") String username,
+        @DocField(description = "邮箱", example = "mario@example.com") String email,
+        @DocField(description = "手机号", example = "13800000000") String phone,
+        @DocField(description = "账号状态", example = "ACTIVE") String status,
+        @DocField(description = "账号类型", example = "NORMAL") String accountType,
+        @DocField(description = "认证版本", example = "1") long authVersion,
+        @DocField(description = "权益版本", example = "1") long entitlementVersion,
+        @DocField(description = "会话版本", example = "1") long sessionVersion,
+        @DocField(description = "风控版本", example = "1") long riskVersion
 ) {
 }

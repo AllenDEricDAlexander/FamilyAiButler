@@ -17,6 +17,10 @@
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>openapi-debug-console-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>

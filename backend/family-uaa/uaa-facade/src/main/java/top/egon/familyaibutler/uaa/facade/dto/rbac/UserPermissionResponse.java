@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
 import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
+import top.egon.openapi.console.annotation.DocField;
 
 import java.util.Set;
 
@@ -23,8 +24,11 @@ import java.util.Set;
  * @Version: 1.0
  */
 public record UserPermissionResponse(
+        @DocField(description = "账号 ID", example = "account-001")
         String accountId,
+        @DocField(description = "权限资源类型", example = "API")
         PermissionResourceType resourceType,
+        @DocField(description = "权限资源编码集合", example = "[\"FAMILY_PASSWORD_READ\"]")
         Set<String> resourceCodes
 ) {
 }

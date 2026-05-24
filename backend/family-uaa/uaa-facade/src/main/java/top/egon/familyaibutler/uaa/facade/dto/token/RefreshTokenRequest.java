@@ -9,6 +9,8 @@
  */
 package top.egon.familyaibutler.uaa.facade.dto.token;
 
+import top.egon.openapi.console.annotation.DocField;
+
 /**
  * @BelongsProject: familyaibutler
  * @BelongsPackage: top.egon.familyaibutler.uaa.facade.dto.token
@@ -19,8 +21,11 @@ package top.egon.familyaibutler.uaa.facade.dto.token;
  * @Version: 1.0
  */
 public record RefreshTokenRequest(
+        @DocField(description = "刷新令牌", example = "refresh-token-001")
         String refreshToken,
+        @DocField(description = "OAuth 客户端 ID", example = "family-web")
         String clientId,
+        @DocField(description = "设备 ID", example = "device-001")
         String deviceId
 ) {
 }

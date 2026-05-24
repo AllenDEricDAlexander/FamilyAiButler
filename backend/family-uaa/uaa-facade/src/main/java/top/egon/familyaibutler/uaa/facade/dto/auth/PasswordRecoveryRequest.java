@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
+import top.egon.openapi.console.annotation.DocField;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,7 +22,9 @@ import jakarta.validation.constraints.NotBlank;
  * @Version: 1.0
  */
 public record PasswordRecoveryRequest(
+        @DocField(description = "账号标识，支持用户名、邮箱或手机号", example = "mario@example.com")
         @NotBlank String principal,
+        @DocField(description = "找回密码通道", example = "EMAIL")
         String channel
 ) {
 }

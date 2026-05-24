@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
 import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
+import top.egon.openapi.console.annotation.DocField;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,12 +22,19 @@ import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
  * @Version: 1.0
  */
 public record PermissionResourceResponse(
+        @DocField(description = "权限资源编码", example = "FAMILY_PASSWORD_READ")
         String resourceCode,
+        @DocField(description = "权限资源名称", example = "查看家庭密码")
         String resourceName,
+        @DocField(description = "权限资源类型", example = "API")
         PermissionResourceType resourceType,
+        @DocField(description = "资源所属服务", example = "family-core")
         String resourceService,
+        @DocField(description = "资源路径匹配规则", example = "/password-view/**")
         String pathPattern,
+        @DocField(description = "访问动作", example = "READ")
         String action,
+        @DocField(description = "权限资源状态", example = "ENABLED")
         String status
 ) {
 }

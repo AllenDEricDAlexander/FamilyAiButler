@@ -9,6 +9,8 @@
  */
 package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
+import top.egon.openapi.console.annotation.DocField;
+
 /**
  * @BelongsProject: familyaibutler
  * @BelongsPackage: top.egon.familyaibutler.uaa.facade.dto.rbac
@@ -19,8 +21,11 @@ package top.egon.familyaibutler.uaa.facade.dto.rbac;
  * @Version: 1.0
  */
 public record RoleResponse(
+        @DocField(description = "角色编码", example = "FAMILY_ADMIN")
         String roleCode,
+        @DocField(description = "角色名称", example = "家庭管理员")
         String roleName,
+        @DocField(description = "角色状态", example = "ENABLED")
         String status
 ) {
 }

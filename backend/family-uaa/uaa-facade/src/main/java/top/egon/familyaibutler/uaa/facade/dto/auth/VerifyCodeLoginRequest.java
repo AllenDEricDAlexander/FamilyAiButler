@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
+import top.egon.openapi.console.annotation.DocField;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,10 +22,15 @@ import jakarta.validation.constraints.NotBlank;
  * @Version: 1.0
  */
 public record VerifyCodeLoginRequest(
+        @DocField(description = "账号标识，支持邮箱或手机号", example = "mario@example.com")
         @NotBlank String principal,
+        @DocField(description = "验证码", example = "123456")
         @NotBlank String verifyCode,
+        @DocField(description = "OAuth 客户端 ID", example = "family-web")
         String clientId,
+        @DocField(description = "设备名称", example = "Mario iPhone")
         String deviceName,
+        @DocField(description = "设备指纹", example = "device-fingerprint-001")
         String deviceFingerprint
 ) {
 }

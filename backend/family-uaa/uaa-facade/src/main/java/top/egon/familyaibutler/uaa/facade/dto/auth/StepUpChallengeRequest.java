@@ -9,6 +9,8 @@
  */
 package top.egon.familyaibutler.uaa.facade.dto.auth;
 
+import top.egon.openapi.console.annotation.DocField;
+
 /**
  * @BelongsProject: familyaibutler
  * @BelongsPackage: top.egon.familyaibutler.uaa.facade.dto.auth
@@ -19,9 +21,13 @@ package top.egon.familyaibutler.uaa.facade.dto.auth;
  * @Version: 1.0
  */
 public record StepUpChallengeRequest(
+        @DocField(description = "账号 ID", example = "account-001")
         String accountId,
+        @DocField(description = "需要二次验证的动作", example = "RESET_PASSWORD")
         String action,
+        @DocField(description = "二次验证挑战 ID", example = "challenge-001")
         String challengeId,
+        @DocField(description = "验证码", example = "123456")
         String verifyCode
 ) {
 }

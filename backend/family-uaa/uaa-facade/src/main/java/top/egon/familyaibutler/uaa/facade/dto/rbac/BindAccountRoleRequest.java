@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
 import jakarta.validation.constraints.NotBlank;
+import top.egon.openapi.console.annotation.DocField;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,7 +22,9 @@ import jakarta.validation.constraints.NotBlank;
  * @Version: 1.0
  */
 public record BindAccountRoleRequest(
+        @DocField(description = "账号 ID", example = "account-001")
         @NotBlank String accountId,
+        @DocField(description = "角色编码", example = "FAMILY_ADMIN")
         @NotBlank String roleCode
 ) {
 }

@@ -9,6 +9,8 @@
  */
 package top.egon.familyaibutler.uaa.facade.dto.token;
 
+import top.egon.openapi.console.annotation.DocField;
+
 /**
  * @BelongsProject: familyaibutler
  * @BelongsPackage: top.egon.familyaibutler.uaa.facade.dto.token
@@ -19,8 +21,11 @@ package top.egon.familyaibutler.uaa.facade.dto.token;
  * @Version: 1.0
  */
 public record TokenValidationRequest(
+        @DocField(description = "访问令牌", example = "access-token-001")
         String accessToken,
+        @DocField(description = "资源标识", example = "/password-view/1")
         String resource,
+        @DocField(description = "访问动作", example = "READ")
         String action
 ) {
 }

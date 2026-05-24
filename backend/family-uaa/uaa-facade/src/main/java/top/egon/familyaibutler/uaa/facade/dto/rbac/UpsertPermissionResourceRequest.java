@@ -12,6 +12,7 @@ package top.egon.familyaibutler.uaa.facade.dto.rbac;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
+import top.egon.openapi.console.annotation.DocField;
 
 /**
  * @BelongsProject: familyaibutler
@@ -23,11 +24,17 @@ import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
  * @Version: 1.0
  */
 public record UpsertPermissionResourceRequest(
+        @DocField(description = "权限资源编码", example = "FAMILY_PASSWORD_READ")
         @NotBlank String resourceCode,
+        @DocField(description = "权限资源名称", example = "查看家庭密码")
         @NotBlank String resourceName,
+        @DocField(description = "权限资源类型", example = "API")
         @NotNull PermissionResourceType resourceType,
+        @DocField(description = "资源所属服务", example = "family-core")
         String resourceService,
+        @DocField(description = "资源路径匹配规则", example = "/password-view/**")
         String pathPattern,
+        @DocField(description = "访问动作", example = "READ")
         String action
 ) {
 }
