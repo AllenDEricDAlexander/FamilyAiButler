@@ -24,11 +24,14 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeResetPasswordRequest", description = "认证授权重置密码请求")
 public record ResetPasswordRequest(
-        @DocField(description = "账号标识，支持用户名、邮箱或手机号", example = "mario@example.com")
+        /**账号标识，支持用户名、邮箱或手机号。*/
+        @DocField(description = "账号标识，支持用户名、邮箱或手机号", required = true, example = "mario@example.com")
         @NotBlank String principal,
-        @DocField(description = "验证码", example = "123456")
+        /**验证码。*/
+        @DocField(description = "验证码", required = true, example = "123456")
         @NotBlank String verificationCode,
-        @DocField(description = "新密码", example = "NewPassw0rd!")
+        /**新密码。*/
+        @DocField(description = "新密码", required = true, example = "NewPassw0rd!")
         @NotBlank String newPassword
 ) {
 }

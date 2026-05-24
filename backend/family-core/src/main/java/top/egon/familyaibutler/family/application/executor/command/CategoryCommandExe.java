@@ -18,6 +18,9 @@ import top.egon.familyaibutler.family.domain.category.model.aggregate.Category;
 @Service
 @RequiredArgsConstructor
 public class CategoryCommandExe {
+    /**
+     * Category 网关。
+     */
     private final CategoryGateway categoryGateway;
 
     /**

@@ -24,6 +24,9 @@ target/codegen-demo
 └── generated-src
 ```
 
+每次运行 demo 都会先刷新 demo 目录下的 `generated-src` 子目录，再重新生成示例工程，避免旧生成产物影响注解、注释或模板验收；
+`generator.yml` 和 `schema.sql` 缺失时会自动初始化，已存在时保留原文件内容。
+
 也可以显式指定 demo 目录：
 
 ```text
@@ -79,6 +82,10 @@ mvn -pl pg-ddd-codegen -DskipTests -Dexec.args="--config /path/to/generator.yml"
 - 生成 `application.yml`，默认 `spring.jpa.hibernate.ddl-auto=validate`，避免 Hibernate 自动更新数据库结构。
 - 模板文件位于 `src/main/resources/templates`，v1 使用 Freemarker 渲染 Controller、Manage、Executor、领域对象和持久化对象。
 - Web Request DTO 和 Command 会根据 DDL 补充 `@NotNull`、`@Size`、`@Digits` 等 Jakarta Validation 注解。
+- Web Request DTO、Web VO、application Command、Query、Result 默认补齐 `@DocModel`、字段 JavaDoc、
+  `@DocField(description, required, example)`、`@Data`、`@With`、`@NoArgsConstructor`、`@AllArgsConstructor`、
+  `@Accessors(chain = true)`、`@Builder` 和 `@EqualsAndHashCode`；存在继承关系时再改用 `@SuperBuilder`，需要比较父类字段时使用
+  `@EqualsAndHashCode(callSuper = true)`。
 - JPA Entity 会根据 `created_at` / `updated_at` 补充 `@CreatedDate` / `@LastModifiedDate` 和 `@EntityListeners`。
 
 ## 自定义枚举
@@ -135,6 +142,7 @@ spring:
 - MyBatis Plus Spring Boot 3 Starter
 - PostgreSQL JDBC
 - Lombok
+- openapi-debug-console-spring-boot-starter
 - Spring Boot Test
 - ArchUnit JUnit5
 

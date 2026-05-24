@@ -382,7 +382,8 @@ public class DddSourceRenderer {
             context.getRootTable().getColumn(filter).ifPresent(column -> appendQueryClassField(context, fields, column));
         }
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("imports", imports(importsFor(context.getRootTable(), context, false)));
+        model.put("imports", imports(importsFor(context.getRootTable(), context, false),
+                "top.egon.openapi.console.annotation.DocField"));
         model.put("fields", fields.toString());
         return renderTemplate(TemplateRegistry.DOMAIN_QUERY_CRITERIA, packageName, criteriaClassName(query), query.getName() + " 领域查询条件", model);
     }
@@ -433,8 +434,9 @@ public class DddSourceRenderer {
             appendValidatedClassField(context, fields, column);
         }
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("imports", imports(importsFor(context.getRootTable(), context, false), "jakarta.validation.constraints.*"));
+        model.put("imports", imports(adapterPojoImports(context.getRootTable(), context), "jakarta.validation.constraints.*"));
         model.put("fields", fields.toString());
+        model.put("hasFields", hasRenderedFields(fields));
         return renderTemplate(TemplateRegistry.APPLICATION_COMMAND, packageName, command.getName() + "Command", command.getName() + " 命令对象", model);
     }
 
@@ -453,8 +455,9 @@ public class DddSourceRenderer {
             context.getRootTable().getColumn(filter).ifPresent(column -> appendQueryClassField(context, fields, column));
         }
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("imports", imports(importsFor(context.getRootTable(), context, false)));
+        model.put("imports", imports(adapterPojoImports(context.getRootTable(), context)));
         model.put("fields", fields.toString());
+        model.put("hasFields", hasRenderedFields(fields));
         return renderTemplate(TemplateRegistry.APPLICATION_QUERY, packageName, className, query.getName() + " 查询对象", model);
     }
 
@@ -472,8 +475,9 @@ public class DddSourceRenderer {
             appendClassField(context, fields, column);
         }
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("imports", imports(importsFor(context.getRootTable(), context, false)));
+        model.put("imports", imports(adapterPojoImports(context.getRootTable(), context)));
         model.put("fields", fields.toString());
+        model.put("hasFields", hasRenderedFields(fields));
         return renderTemplate(TemplateRegistry.APPLICATION_RESULT, packageName, className, className + " 应用结果", model);
     }
 
@@ -527,8 +531,9 @@ public class DddSourceRenderer {
             appendValidatedClassField(context, fields, column);
         }
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("imports", imports(importsFor(context.getRootTable(), context, false), "jakarta.validation.constraints.*"));
+        model.put("imports", imports(adapterPojoImports(context.getRootTable(), context), "jakarta.validation.constraints.*"));
         model.put("fields", fields.toString());
+        model.put("hasFields", hasRenderedFields(fields));
         return renderTemplate(TemplateRegistry.ADAPTER_WEB_DTO, packageName, className, useCase + " Web 请求", model);
     }
 
@@ -547,8 +552,9 @@ public class DddSourceRenderer {
             context.getRootTable().getColumn(filter).ifPresent(column -> appendQueryClassField(context, fields, column));
         }
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("imports", imports(importsFor(context.getRootTable(), context, false)));
+        model.put("imports", imports(adapterPojoImports(context.getRootTable(), context)));
         model.put("fields", fields.toString());
+        model.put("hasFields", hasRenderedFields(fields));
         return renderTemplate(TemplateRegistry.ADAPTER_WEB_DTO, packageName, className, query.getName() + " Web 查询请求", model);
     }
 
@@ -566,8 +572,9 @@ public class DddSourceRenderer {
             appendClassField(context, fields, column);
         }
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("imports", imports(importsFor(context.getRootTable(), context, false)));
+        model.put("imports", imports(adapterPojoImports(context.getRootTable(), context)));
         model.put("fields", fields.toString());
+        model.put("hasFields", hasRenderedFields(fields));
         return renderTemplate(TemplateRegistry.ADAPTER_WEB_DTO, packageName, className, className + " Web 视图对象", model);
     }
 
@@ -606,8 +613,9 @@ public class DddSourceRenderer {
             appendValidatedClassField(context, fields, column);
         }
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("imports", imports(importsFor(table, context, false), "jakarta.validation.constraints.*"));
+        model.put("imports", imports(adapterPojoImports(table, context), "jakarta.validation.constraints.*"));
         model.put("fields", fields.toString());
+        model.put("hasFields", hasRenderedFields(fields));
         return renderTemplate(TemplateRegistry.APPLICATION_COMMAND, packageName, className, className + " 子实体命令对象", model);
     }
 
@@ -636,7 +644,10 @@ public class DddSourceRenderer {
             importSet.add(basePackage + ".application.command." + commandClassName);
             importSet.add(basePackage + ".application.result." + resultClassName);
             importSet.add(basePackage + ".application.executor.command." + executorClassName);
-            executorFields.append("    private final ").append(executorClassName).append(" ").append(executorFieldName).append(";\n");
+            executorFields.append("    /**\n")
+                    .append("     * ").append(command.getName()).append(" 命令执行器。\n")
+                    .append("     */\n")
+                    .append("    private final ").append(executorClassName).append(" ").append(executorFieldName).append(";\n");
             appendManageImplMethod(context, methods, command.getName(), commandClassName, resultClassName, "command", executorFieldName, true);
         }
         for (GeneratorConfig.QueryConfig query : context.getAggregate().getQueries()) {
@@ -647,7 +658,10 @@ public class DddSourceRenderer {
             importSet.add(basePackage + ".application.query." + queryClassName);
             importSet.add(basePackage + ".application.result." + resultClassName);
             importSet.add(basePackage + ".application.executor.query." + executorClassName);
-            executorFields.append("    private final ").append(executorClassName).append(" ").append(executorFieldName).append(";\n");
+            executorFields.append("    /**\n")
+                    .append("     * ").append(query.getName()).append(" 查询执行器。\n")
+                    .append("     */\n")
+                    .append("    private final ").append(executorClassName).append(" ").append(executorFieldName).append(";\n");
             appendManageImplMethod(context, methods, query.getName(), queryClassName, resultClassName, "query", executorFieldName, false);
         }
         Map<String, Object> model = new LinkedHashMap<>();
@@ -682,8 +696,17 @@ public class DddSourceRenderer {
         model.put("imports", imports(importSet));
         model.put("commandClassName", commandClassName);
         model.put("resultClassName", resultClassName);
-        model.put("fields", "    private final " + aggregateName + "Gateway " + context.getNaming().classToField(aggregateName + "Gateway") + ";\n"
+        model.put("fields", "    /**\n"
+                + "     * " + aggregateName + " 写模型网关。\n"
+                + "     */\n"
+                + "    private final " + aggregateName + "Gateway " + context.getNaming().classToField(aggregateName + "Gateway") + ";\n"
+                + "    /**\n"
+                + "     * " + aggregateName + " 领域服务。\n"
+                + "     */\n"
                 + "    private final " + aggregateName + "DomainService " + context.getNaming().classToField(aggregateName + "DomainService") + ";\n"
+                + "    /**\n"
+                + "     * " + aggregateName + " 应用层对象转换器。\n"
+                + "     */\n"
                 + "    private final " + applicationAssemblerName + " " + context.getNaming().classToField(applicationAssemblerName) + ";\n");
         model.put("applicationAssemblerFieldName", context.getNaming().classToField(applicationAssemblerName));
         model.put("assemblerMethodName", applicationAssemblerMethodName(command.getName()));
@@ -716,7 +739,13 @@ public class DddSourceRenderer {
         model.put("queryClassName", queryClassName);
         model.put("resultClassName", resultClassName);
         model.put("criteriaClassName", criteriaClassName);
-        model.put("fields", "    private final " + aggregateName + "QueryGateway " + context.getNaming().classToField(aggregateName + "QueryGateway") + ";\n"
+        model.put("fields", "    /**\n"
+                + "     * " + aggregateName + " 查询网关。\n"
+                + "     */\n"
+                + "    private final " + aggregateName + "QueryGateway " + context.getNaming().classToField(aggregateName + "QueryGateway") + ";\n"
+                + "    /**\n"
+                + "     * " + aggregateName + " 应用层对象转换器。\n"
+                + "     */\n"
                 + "    private final " + applicationAssemblerName + " " + context.getNaming().classToField(applicationAssemblerName) + ";\n");
         model.put("queryGatewayFieldName", context.getNaming().classToField(aggregateName + "QueryGateway"));
         model.put("queryGatewayMethodName", queryGatewayMethodName(query));
@@ -801,6 +830,7 @@ public class DddSourceRenderer {
         }
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("imports", imports(importSet));
+        model.put("aggregateName", aggregateName);
         model.put("requestMapping", requestMapping);
         model.put("manageInterfaceName", manageInterfaceName);
         model.put("manageFieldName", context.getNaming().classToField(manageInterfaceName));
@@ -1483,6 +1513,7 @@ public class DddSourceRenderer {
         fields.append("    /**\n")
                 .append("     * ").append(fieldComment(column)).append("\n")
                 .append("     */\n");
+        appendDocField(fields, column, !column.isNullable(), docFieldExample(javaType, column, context));
         if (!column.isNullable()) {
             fields.append("    @NotNull\n");
         }
@@ -1508,6 +1539,8 @@ public class DddSourceRenderer {
         fields.append("    /**\n")
                 .append("     * ").append(fieldComment(column)).append("\n")
                 .append("     */\n")
+                .append(docFieldAnnotation(column, !column.isNullable(),
+                        docFieldExample(context.getTypeMapper().toJavaType(column, context.getNaming()), column, context)))
                 .append("    private ").append(context.getTypeMapper().toJavaType(column, context.getNaming()))
                 .append(" ").append(context.getNaming().columnToField(column.getColumnName())).append(";\n\n");
     }
@@ -1526,14 +1559,116 @@ public class DddSourceRenderer {
             fields.append("    /**\n")
                     .append("     * ").append(fieldComment(column)).append("开始。\n")
                     .append("     */\n")
+                    .append(docFieldAnnotation(docFieldDescription(column) + "开始", false,
+                            docFieldExample(javaType, column, context)))
                     .append("    private ").append(javaType).append(" ").append(fieldName).append("Start;\n\n")
                     .append("    /**\n")
                     .append("     * ").append(fieldComment(column)).append("结束。\n")
                     .append("     */\n")
+                    .append(docFieldAnnotation(docFieldDescription(column) + "结束", false,
+                            docFieldExample(javaType, column, context)))
                     .append("    private ").append(javaType).append(" ").append(fieldName).append("End;\n\n");
         } else {
-            appendClassField(context, fields, column);
+            fields.append("    /**\n")
+                    .append("     * ").append(fieldComment(column)).append("\n")
+                    .append("     */\n");
+            appendDocField(fields, column, false, docFieldExample(javaType, column, context));
+            fields.append("    private ").append(javaType).append(" ").append(fieldName).append(";\n\n");
         }
+    }
+
+    /**
+     * 追加字段文档注解。
+     *
+     * @param fields   字段源码
+     * @param column   字段模型
+     * @param required 是否必填
+     * @param example  字段示例
+     */
+    private void appendDocField(StringBuilder fields, PgColumnModel column, boolean required, String example) {
+        fields.append(docFieldAnnotation(column, required, example));
+    }
+
+    /**
+     * 生成字段文档注解。
+     *
+     * @param column   字段模型
+     * @param required 是否必填
+     * @param example  字段示例
+     * @return 字段文档注解源码
+     */
+    private String docFieldAnnotation(PgColumnModel column, boolean required, String example) {
+        return docFieldAnnotation(docFieldDescription(column), required, example);
+    }
+
+    /**
+     * 生成字段文档注解。
+     *
+     * @param description 字段描述
+     * @param required    是否必填
+     * @param example     字段示例
+     * @return 字段文档注解源码
+     */
+    private String docFieldAnnotation(String description, boolean required, String example) {
+        return "    @DocField(description = \"" + escapeJava(description) + "\", required = " + required
+                + ", example = \"" + escapeJava(example) + "\")\n";
+    }
+
+    /**
+     * 获取字段文档描述。
+     *
+     * @param column 字段模型
+     * @return 字段文档描述
+     */
+    private String docFieldDescription(PgColumnModel column) {
+        String comment = fieldComment(column);
+        return comment.endsWith("。") ? comment.substring(0, comment.length() - 1) : comment;
+    }
+
+    /**
+     * 生成字段示例。
+     *
+     * @param javaType Java 字段类型
+     * @param column   字段模型
+     * @param context  生成上下文
+     * @return 字段示例
+     */
+    private String docFieldExample(String javaType, PgColumnModel column, GenerationContext context) {
+        if (column.isEnumType()) {
+            return "CREATED";
+        }
+        if ("String".equals(javaType)) {
+            return context.getNaming().columnToField(column.getColumnName()) + "-001";
+        }
+        if (Set.of("Long", "Integer", "Short", "Byte", "long", "int", "short", "byte").contains(javaType)) {
+            return "1";
+        }
+        if (Set.of("BigDecimal", "Double", "Float", "double", "float").contains(javaType)) {
+            return "1.00";
+        }
+        if (Set.of("Boolean", "boolean").contains(javaType)) {
+            return "true";
+        }
+        if ("Instant".equals(javaType)) {
+            return "2026-05-24T00:00:00Z";
+        }
+        if ("LocalDateTime".equals(javaType)) {
+            return "2026-05-24T00:00:00";
+        }
+        if ("LocalDate".equals(javaType)) {
+            return "2026-05-24";
+        }
+        return context.getNaming().columnToField(column.getColumnName()) + "-001";
+    }
+
+    /**
+     * 转义 Java 字符串字面量。
+     *
+     * @param value 原始内容
+     * @return 转义后内容
+     */
+    private String escapeJava(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     /**
@@ -1960,8 +2095,40 @@ public class DddSourceRenderer {
         Map<String, Object> templateModel = new LinkedHashMap<>(model);
         templateModel.put("packageName", packageName);
         templateModel.put("className", className);
+        templateModel.put("description", description);
         templateModel.put("classComment", classComment(packageName, className, description));
         return templateEngine.render(templateName, templateModel);
+    }
+
+    /**
+     * 判断模板字段区是否实际渲染了成员变量。
+     *
+     * @param fields 字段源码
+     * @return 是否存在字段
+     */
+    private boolean hasRenderedFields(StringBuilder fields) {
+        return fields != null && !fields.isEmpty();
+    }
+
+    /**
+     * 生成 adapter 和 application POJO 的 import 集合。
+     *
+     * @param table   表模型
+     * @param context 生成上下文
+     * @return import 集合
+     */
+    private Set<String> adapterPojoImports(PgTableModel table, GenerationContext context) {
+        Set<String> importSet = importsFor(table, context, false);
+        importSet.add("lombok.AllArgsConstructor");
+        importSet.add("lombok.Builder");
+        importSet.add("lombok.Data");
+        importSet.add("lombok.EqualsAndHashCode");
+        importSet.add("lombok.NoArgsConstructor");
+        importSet.add("lombok.With");
+        importSet.add("lombok.experimental.Accessors");
+        importSet.add("top.egon.openapi.console.annotation.DocField");
+        importSet.add("top.egon.openapi.console.annotation.DocModel");
+        return importSet;
     }
 
     /**

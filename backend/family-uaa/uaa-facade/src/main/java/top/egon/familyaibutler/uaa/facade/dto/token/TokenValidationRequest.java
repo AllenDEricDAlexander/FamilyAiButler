@@ -23,11 +23,14 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeTokenValidationRequest", description = "认证授权令牌校验请求")
 public record TokenValidationRequest(
-        @DocField(description = "访问令牌", example = "access-token-001")
+        /**访问令牌。*/
+        @DocField(description = "访问令牌", required = false, example = "access-token-001")
         String accessToken,
-        @DocField(description = "资源标识", example = "/password-view/1")
+        /**资源标识。*/
+        @DocField(description = "资源标识", required = false, example = "/password-view/1")
         String resource,
-        @DocField(description = "访问动作", example = "READ")
+        /**访问动作。*/
+        @DocField(description = "访问动作", required = false, example = "READ")
         String action
 ) {
 }

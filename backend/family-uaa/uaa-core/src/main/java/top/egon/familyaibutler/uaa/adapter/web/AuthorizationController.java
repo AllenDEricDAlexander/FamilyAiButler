@@ -41,6 +41,9 @@ import top.egon.openapi.console.annotation.DocWrapper;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-authorization",
         serviceName = "授权决策服务", serviceDescription = "资源访问授权决策能力", protocol = DocProtocol.HTTP)
 public class AuthorizationController {
+    /**
+     * Authorization 应用服务。
+     */
     private final AuthorizationManage authorizationService;
 
     /**

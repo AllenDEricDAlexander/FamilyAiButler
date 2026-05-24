@@ -39,12 +39,30 @@ import java.util.UUID;
  */
 @Service
 public class TokenManageImpl implements TokenManage {
+    /**
+     * Access Token 默认过期秒数。
+     */
     private static final long ACCESS_TOKEN_EXPIRES_IN = 300L;
+    /**
+     * Refresh Token 默认过期秒数。
+     */
     private static final long REFRESH_TOKEN_EXPIRES_IN = 2592000L;
 
+    /**
+     * Token 网关。
+     */
     private final TokenGateway tokenGateway;
+    /**
+     * Session 网关。
+     */
     private final SessionGateway sessionGateway;
+    /**
+     * Token 领域服务。
+     */
     private final TokenDomainService tokenDomainService;
+    /**
+     * Family JWT 服务。
+     */
     private final FamilyJwtService familyJwtService;
 
     /**

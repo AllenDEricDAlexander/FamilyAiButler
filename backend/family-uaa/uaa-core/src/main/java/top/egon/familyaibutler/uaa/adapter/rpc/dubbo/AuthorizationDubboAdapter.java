@@ -38,6 +38,9 @@ import top.egon.openapi.console.annotation.DocService;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-authorization-dubbo",
         serviceName = "授权决策 Dubbo 服务", serviceDescription = "资源访问授权决策 RPC 能力", protocol = DocProtocol.DUBBO_TRIPLE)
 public class AuthorizationDubboAdapter implements AuthorizationFacade {
+    /**
+     * Authorization 应用服务。
+     */
     private final AuthorizationManage authorizationService;
 
     /**

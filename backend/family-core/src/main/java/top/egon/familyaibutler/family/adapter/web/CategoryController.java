@@ -21,6 +21,7 @@ import top.egon.familyaibutler.family.application.result.CategoryTypeDTO;
 import top.egon.openapi.console.annotation.DocBody;
 import top.egon.openapi.console.annotation.DocDataKind;
 import top.egon.openapi.console.annotation.DocDataType;
+import top.egon.openapi.console.annotation.DocModel;
 import top.egon.openapi.console.annotation.DocOperation;
 import top.egon.openapi.console.annotation.DocParamIn;
 import top.egon.openapi.console.annotation.DocParameter;
@@ -49,7 +50,13 @@ import top.egon.openapi.console.annotation.DocWrapper;
 @RequiredArgsConstructor
 public class CategoryController {
 
+    /**
+     * Category 应用服务。
+     */
     private final CategoryManage categoryService;
+    /**
+     * Category Type 应用服务。
+     */
     private final CategoryTypeManage categoryTypeService;
 
     @GetMapping("/list")
@@ -161,9 +168,17 @@ public class CategoryController {
         return Result.success(categoryTypeService.delete(id));
     }
 
+    /**
+     * 分类分页响应数据类型引用。
+     */
+    @DocModel(name = "CategoryPageDataType", description = "分类分页响应数据类型引用")
     public static final class CategoryPageDataType extends DocTypeReference<PageResult<CategoryDTO>> {
     }
 
+    /**
+     * 分类类型分页响应数据类型引用。
+     */
+    @DocModel(name = "CategoryTypePageDataType", description = "分类类型分页响应数据类型引用")
     public static final class CategoryTypePageDataType extends DocTypeReference<PageResult<CategoryTypeDTO>> {
     }
 

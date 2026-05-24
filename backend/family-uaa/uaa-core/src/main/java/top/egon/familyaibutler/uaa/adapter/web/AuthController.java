@@ -46,6 +46,9 @@ import top.egon.openapi.console.annotation.DocWrapper;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-auth",
         serviceName = "认证服务", serviceDescription = "登录、退出和密码找回能力", protocol = DocProtocol.HTTP)
 public class AuthController {
+    /**
+     * Auth 应用服务。
+     */
     private final AuthManage authService;
 
     /**

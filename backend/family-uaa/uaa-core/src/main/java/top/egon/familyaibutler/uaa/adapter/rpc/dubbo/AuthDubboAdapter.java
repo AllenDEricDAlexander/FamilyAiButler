@@ -43,6 +43,9 @@ import top.egon.openapi.console.annotation.DocService;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-auth-dubbo",
         serviceName = "认证 Dubbo 服务", serviceDescription = "登录、退出、密码找回和二次验证 RPC 能力", protocol = DocProtocol.DUBBO_TRIPLE)
 public class AuthDubboAdapter implements AuthFacade {
+    /**
+     * Auth 应用服务。
+     */
     private final AuthManage authService;
 
     /**

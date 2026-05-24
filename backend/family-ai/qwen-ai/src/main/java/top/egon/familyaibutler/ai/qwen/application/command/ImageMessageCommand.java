@@ -10,6 +10,8 @@
 package top.egon.familyaibutler.ai.qwen.application.command;
 
 import top.egon.familyaibutler.ai.qwen.domain.image.model.valueobject.ImagePayload;
+import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.util.List;
 
@@ -22,7 +24,12 @@ import java.util.List;
  * @Description: 图片生成文本描述命令对象
  * @Version: 1.0
  */
+@DocModel(name = "QwenImageMessageCommand", description = "图片生成文本描述命令对象")
 public record ImageMessageCommand(
+        /**
+         * 图片载荷列表。
+         */
+        @DocField(description = "图片载荷列表", required = true, example = "[]")
         List<ImagePayload> images
 ) {
 }

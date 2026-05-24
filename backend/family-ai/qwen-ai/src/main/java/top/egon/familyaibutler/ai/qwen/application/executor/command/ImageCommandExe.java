@@ -27,6 +27,9 @@ import top.egon.familyaibutler.ai.qwen.domain.image.model.aggregate.ImageMessage
 @Service
 @RequiredArgsConstructor
 public class ImageCommandExe {
+    /**
+     * Image Model 网关。
+     */
     private final ImageModelGateway imageModelGateway;
 
     /**

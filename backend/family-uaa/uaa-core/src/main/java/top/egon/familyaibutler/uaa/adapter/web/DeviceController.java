@@ -41,6 +41,9 @@ import top.egon.openapi.console.annotation.DocWrapper;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-device",
         serviceName = "设备服务", serviceDescription = "登录设备管理能力", protocol = DocProtocol.HTTP)
 public class DeviceController {
+    /**
+     * Device 应用服务。
+     */
     private final DeviceManage deviceService;
 
     /**

@@ -32,7 +32,13 @@ import top.egon.familyaibutler.uaa.facade.dto.account.RegisterAccountRequest;
  */
 @Service
 public class AccountManageImpl implements AccountManage {
+    /**
+     * Account 命令执行器。
+     */
     private final AccountCommandExe accountCommandService;
+    /**
+     * Account 查询执行器。
+     */
     private final AccountQueryExe accountQueryService;
 
     /**

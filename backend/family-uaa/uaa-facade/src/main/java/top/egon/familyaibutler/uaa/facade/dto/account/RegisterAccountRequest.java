@@ -24,13 +24,17 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeRegisterAccountRequest", description = "认证授权账号注册请求")
 public record RegisterAccountRequest(
-        @DocField(description = "用户名", example = "mario")
+        /**用户名。*/
+        @DocField(description = "用户名", required = false, example = "mario")
         String username,
-        @DocField(description = "邮箱", example = "mario@example.com")
+        /**邮箱。*/
+        @DocField(description = "邮箱", required = false, example = "mario@example.com")
         String email,
-        @DocField(description = "手机号", example = "13800138000")
+        /**手机号。*/
+        @DocField(description = "手机号", required = false, example = "13800138000")
         String phone,
-        @DocField(description = "登录密码", example = "Passw0rd!")
+        /**登录密码。*/
+        @DocField(description = "登录密码", required = true, example = "Passw0rd!")
         @NotBlank String password
 ) {
 }

@@ -18,6 +18,7 @@ import top.egon.familyaibutler.uaa.facade.dto.profile.ProfileResponse;
 import top.egon.openapi.console.annotation.DocBody;
 import top.egon.openapi.console.annotation.DocDataKind;
 import top.egon.openapi.console.annotation.DocDataType;
+import top.egon.openapi.console.annotation.DocModel;
 import top.egon.openapi.console.annotation.DocOperation;
 import top.egon.openapi.console.annotation.DocParamIn;
 import top.egon.openapi.console.annotation.DocParameter;
@@ -43,6 +44,9 @@ import java.util.List;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-profile-dubbo",
         serviceName = "Profile Dubbo 服务", serviceDescription = "账号 Profile 创建、修改、删除、切换和查询 RPC 能力", protocol = DocProtocol.DUBBO_TRIPLE)
 public class ProfileDubboAdapter implements ProfileFacade {
+    /**
+     * Profile 应用服务。
+     */
     private final ProfileManage profileService;
 
     /**
@@ -129,6 +133,10 @@ public class ProfileDubboAdapter implements ProfileFacade {
         return profileService.listProfiles(accountId);
     }
 
+    /**
+     * Profile 列表响应数据类型引用。
+     */
+    @DocModel(name = "UaaDubboProfileListDataType", description = "UAA Dubbo Profile 列表响应数据类型引用")
     public static final class ProfileListDataType extends DocTypeReference<List<ProfileResponse>> {
     }
 }

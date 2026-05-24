@@ -8,6 +8,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
+import java.util.stream.Stream;
 
 /**
  * @BelongsProject: familyaibutler
@@ -65,10 +67,41 @@ public class CodegenApplication {
      * @param demoDir demo 工作目录
      */
     private void runDemo(Path demoDir) {
-        copyStarterFiles(demoDir, true);
+        copyStarterFiles(demoDir, false);
+        refreshGeneratedSourceDirectory(demoDir);
         Path configPath = demoDir.resolve("generator.yml").toAbsolutePath().normalize();
         System.out.println("Running demo generator config: " + configPath);
         generate(configPath);
+    }
+
+    /**
+     * 刷新 demo 输出目录，避免 CREATE_ONLY 文件被旧 generated-src 产物污染。
+     *
+     * @param demoDir demo 工作目录
+     */
+    private void refreshGeneratedSourceDirectory(Path demoDir) {
+        Path generatedDir = demoDir.toAbsolutePath().normalize().resolve("generated-src");
+        if (!Files.exists(generatedDir)) {
+            return;
+        }
+        try (Stream<Path> paths = Files.walk(generatedDir)) {
+            paths.sorted(Comparator.reverseOrder()).forEach(this::deletePath);
+        } catch (IOException exception) {
+            throw new IllegalStateException("刷新 demo generated-src 失败: " + generatedDir, exception);
+        }
+    }
+
+    /**
+     * 删除 generated-src 下的单个路径。
+     *
+     * @param path 待删除路径
+     */
+    private void deletePath(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException exception) {
+            throw new IllegalStateException("删除 demo generated-src 文件失败: " + path, exception);
+        }
     }
 
     /**

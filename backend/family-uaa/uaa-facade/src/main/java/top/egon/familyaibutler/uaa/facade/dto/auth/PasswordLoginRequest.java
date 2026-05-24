@@ -24,17 +24,23 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadePasswordLoginRequest", description = "认证授权密码登录请求")
 public record PasswordLoginRequest(
-        @DocField(description = "账号标识，支持用户名、邮箱或手机号", example = "mario@example.com")
+        /**账号标识，支持用户名、邮箱或手机号。*/
+        @DocField(description = "账号标识，支持用户名、邮箱或手机号", required = true, example = "mario@example.com")
         @NotBlank String principal,
-        @DocField(description = "登录密码", example = "Passw0rd!")
+        /**登录密码。*/
+        @DocField(description = "登录密码", required = true, example = "Passw0rd!")
         @NotBlank String password,
-        @DocField(description = "OAuth 客户端 ID", example = "family-web")
+        /**OAuth客户端ID。*/
+        @DocField(description = "OAuth 客户端 ID", required = false, example = "family-web")
         String clientId,
-        @DocField(description = "OAuth 客户端密钥", example = "family-secret")
+        /**OAuth客户端密钥。*/
+        @DocField(description = "OAuth 客户端密钥", required = false, example = "family-secret")
         String clientSecret,
-        @DocField(description = "设备名称", example = "Mario iPhone")
+        /**设备名称。*/
+        @DocField(description = "设备名称", required = false, example = "Mario iPhone")
         String deviceName,
-        @DocField(description = "设备指纹", example = "device-fingerprint-001")
+        /**设备指纹。*/
+        @DocField(description = "设备指纹", required = false, example = "device-fingerprint-001")
         String deviceFingerprint
 ) {
 }

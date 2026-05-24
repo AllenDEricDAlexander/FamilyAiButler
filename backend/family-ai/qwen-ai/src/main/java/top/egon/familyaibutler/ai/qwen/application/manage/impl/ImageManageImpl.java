@@ -18,6 +18,9 @@ import top.egon.familyaibutler.ai.qwen.application.manage.ImageManage;
 @Service
 @RequiredArgsConstructor
 public class ImageManageImpl implements ImageManage {
+    /**
+     * Image 命令执行器。
+     */
     private final ImageCommandExe imageCommandExe;
 
     /**

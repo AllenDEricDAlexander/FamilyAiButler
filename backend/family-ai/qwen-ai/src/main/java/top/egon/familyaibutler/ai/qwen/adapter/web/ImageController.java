@@ -48,6 +48,9 @@ import java.util.List;
         serviceName = "Qwen 图片理解相关接口", serviceDescription = "Qwen 图片理解接口", protocol = DocProtocol.HTTP)
 @RequiredArgsConstructor
 public class ImageController {
+    /**
+     * Image 应用服务。
+     */
     private final ImageManage imageService;
 
     /**

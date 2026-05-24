@@ -32,7 +32,13 @@ import java.util.Set;
  */
 @Service
 public class OAuthClientManageImpl implements OAuthClientManage {
+    /**
+     * OAuth Client 网关。
+     */
     private final OAuthClientGateway oAuthClientGateway;
+    /**
+     * Token 领域服务。
+     */
     private final TokenDomainService tokenDomainService;
 
     /**

@@ -50,6 +50,11 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>openapi-debug-console-spring-boot-starter</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>

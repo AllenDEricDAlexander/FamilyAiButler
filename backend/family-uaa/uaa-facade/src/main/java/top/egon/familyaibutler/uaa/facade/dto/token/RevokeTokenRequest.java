@@ -23,15 +23,20 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeRevokeTokenRequest", description = "认证授权撤销令牌请求")
 public record RevokeTokenRequest(
-        @DocField(description = "待撤销令牌", example = "access-token-001")
+        /**待撤销令牌。*/
+        @DocField(description = "待撤销令牌", required = false, example = "access-token-001")
         String token,
-        @DocField(description = "令牌 ID", example = "token-001")
+        /**令牌ID。*/
+        @DocField(description = "令牌 ID", required = false, example = "token-001")
         String tokenId,
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = false, example = "account-001")
         String accountId,
-        @DocField(description = "设备 ID", example = "device-001")
+        /**设备ID。*/
+        @DocField(description = "设备 ID", required = false, example = "device-001")
         String deviceId,
-        @DocField(description = "OAuth 客户端 ID", example = "family-web")
+        /**OAuth客户端ID。*/
+        @DocField(description = "OAuth 客户端 ID", required = false, example = "family-web")
         String clientId
 ) {
 }

@@ -31,7 +31,13 @@ import java.util.List;
  */
 @Service
 public class ProfileManageImpl implements ProfileManage {
+    /**
+     * Account 网关。
+     */
     private final AccountGateway accountGateway;
+    /**
+     * Profile 网关。
+     */
     private final ProfileGateway profileGateway;
 
     /**

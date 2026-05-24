@@ -41,6 +41,9 @@ import top.egon.openapi.console.annotation.DocWrapper;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-session",
         serviceName = "会话服务", serviceDescription = "登录会话管理能力", protocol = DocProtocol.HTTP)
 public class SessionController {
+    /**
+     * Session 应用服务。
+     */
     private final SessionManage sessionService;
 
     /**

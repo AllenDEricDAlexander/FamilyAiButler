@@ -43,7 +43,13 @@ import top.egon.openapi.console.annotation.DocWrapper;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-account",
         serviceName = "账号服务", serviceDescription = "账号注册与账号资料查询能力", protocol = DocProtocol.HTTP)
 public class AccountController {
+    /**
+     * Account 应用服务。
+     */
     private final AccountManage accountService;
+    /**
+     * Account Web 对象转换器。
+     */
     private final AccountWebAssembler accountWebAssembler;
 
     /**

@@ -24,15 +24,20 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeVerifyCodeLoginRequest", description = "认证授权验证码登录请求")
 public record VerifyCodeLoginRequest(
-        @DocField(description = "账号标识，支持邮箱或手机号", example = "mario@example.com")
+        /**账号标识，支持邮箱或手机号。*/
+        @DocField(description = "账号标识，支持邮箱或手机号", required = true, example = "mario@example.com")
         @NotBlank String principal,
-        @DocField(description = "验证码", example = "123456")
+        /**验证码。*/
+        @DocField(description = "验证码", required = true, example = "123456")
         @NotBlank String verifyCode,
-        @DocField(description = "OAuth 客户端 ID", example = "family-web")
+        /**OAuth客户端ID。*/
+        @DocField(description = "OAuth 客户端 ID", required = false, example = "family-web")
         String clientId,
-        @DocField(description = "设备名称", example = "Mario iPhone")
+        /**设备名称。*/
+        @DocField(description = "设备名称", required = false, example = "Mario iPhone")
         String deviceName,
-        @DocField(description = "设备指纹", example = "device-fingerprint-001")
+        /**设备指纹。*/
+        @DocField(description = "设备指纹", required = false, example = "device-fingerprint-001")
         String deviceFingerprint
 ) {
 }

@@ -23,7 +23,13 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PasswordViewCommandExe {
+    /**
+     * Password View 网关。
+     */
     private final PasswordViewGateway passwordViewGateway;
+    /**
+     * Password 领域服务。
+     */
     private final PasswordDomainService passwordDomainService;
 
     /**

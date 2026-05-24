@@ -403,6 +403,33 @@ DTO / VO 字段使用 @DocField 补充 description、required、example
 复杂泛型使用 DocTypeReference<T>
 ```
 
+被 `@DocDataType(type = Xxx.class)`、`@DocDataType(itemType = Xxx.class)` 或 `DocTypeReference<T>` 引用的 schema
+类型必须补齐：
+
+```text
+类级：@DocModel(name = "...", description = "...")
+字段级：字段 JavaDoc + @DocField(description = "...", required = ..., example = "...")
+注释级：class、public/protected method、承载独立逻辑的 private method、field 三层级均补 JavaDoc
+```
+
+adapter POJO class、application command/query/result、对外 VO/DTO 默认使用项目统一 Lombok 组合：
+
+```text
+@Data
+@With
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+@Builder
+@EqualsAndHashCode
+```
+
+只有存在继承关系且需要父类字段参与构建时，才使用 `@SuperBuilder`；只有存在继承关系且确实需要比较父类字段时，才使用
+`@EqualsAndHashCode(callSuper = true)`。无父类的 POJO 使用 `@EqualsAndHashCode`，不额外声明 `callSuper = true`，也不为了静态规则强加
+`@EqualsAndHashCode(callSuper = false)`。已有 `record` 契约不强制改成 class；record 应保留 `@DocModel`、record component
+JavaDoc 和
+`@DocField`，避免破坏 facade / RPC 调用方的编译契约。
+
 禁止：
 
 ```text
@@ -470,6 +497,13 @@ public class PasswordViewController {
  * @Version: 1.0
  */
 @Data
+@With
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+@Builder
+@EqualsAndHashCode
+@DocModel(name = "CreatePasswordViewRequestDTO", description = "新增账号密码 Web 请求")
 public class CreatePasswordViewRequestDTO {
 
     /**
@@ -496,7 +530,7 @@ public class CreatePasswordViewRequestDTO {
     /**
      * 备注。
      */
-    @DocField(description = "备注", example = "个人账号")
+    @DocField(description = "备注", required = false, example = "个人账号")
     private String remark;
 }
 ```
@@ -1804,6 +1838,7 @@ proto 文件使用 `//` 注释，不使用 JavaDoc 风格。
 @Getter
 @Setter
 @Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @RequiredArgsConstructor
@@ -1816,6 +1851,7 @@ proto 文件使用 `//` 注释，不使用 JavaDoc 风格。
 
 ```text
 DTO / Command / Query / Result 可以使用 @Data
+adapter POJO class、Command、Query、Result、VO、DTO 无继承时默认使用 @Builder 和 @EqualsAndHashCode，存在继承构建需求时才使用 @SuperBuilder，继承类按需使用 @EqualsAndHashCode(callSuper = true)
 Spring Bean 优先使用 @RequiredArgsConstructor
 Domain Aggregate / Value Object 优先使用 @Getter，不建议直接使用 @Data
 ```

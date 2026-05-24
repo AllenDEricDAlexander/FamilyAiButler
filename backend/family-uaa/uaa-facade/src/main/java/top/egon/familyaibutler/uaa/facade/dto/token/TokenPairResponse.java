@@ -23,23 +23,32 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeTokenPairResponse", description = "认证授权令牌对响应")
 public record TokenPairResponse(
-        @DocField(description = "访问令牌", example = "access-token-001")
+        /**访问令牌。*/
+        @DocField(description = "访问令牌", required = false, example = "access-token-001")
         String accessToken,
-        @DocField(description = "刷新令牌", example = "refresh-token-001")
+        /**刷新令牌。*/
+        @DocField(description = "刷新令牌", required = false, example = "refresh-token-001")
         String refreshToken,
-        @DocField(description = "访问令牌剩余有效期秒数", example = "7200")
+        /**访问令牌剩余有效期秒数。*/
+        @DocField(description = "访问令牌剩余有效期秒数", required = false, example = "7200")
         long accessTokenExpiresIn,
-        @DocField(description = "刷新令牌剩余有效期秒数", example = "2592000")
+        /**刷新令牌剩余有效期秒数。*/
+        @DocField(description = "刷新令牌剩余有效期秒数", required = false, example = "2592000")
         long refreshTokenExpiresIn,
-        @DocField(description = "令牌类型", example = "Bearer")
+        /**令牌类型。*/
+        @DocField(description = "令牌类型", required = false, example = "Bearer")
         String tokenType,
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = false, example = "account-001")
         String accountId,
-        @DocField(description = "Profile ID", example = "profile-001")
+        /**ProfileID。*/
+        @DocField(description = "Profile ID", required = false, example = "profile-001")
         String profileId,
-        @DocField(description = "会话 ID", example = "session-001")
+        /**会话ID。*/
+        @DocField(description = "会话 ID", required = false, example = "session-001")
         String sessionId,
-        @DocField(description = "设备 ID", example = "device-001")
+        /**设备ID。*/
+        @DocField(description = "设备 ID", required = false, example = "device-001")
         String deviceId
 ) {
 }

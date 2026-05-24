@@ -22,6 +22,9 @@ import top.egon.familyaibutler.family.domain.passwordview.model.aggregate.Passwo
 @Service
 @RequiredArgsConstructor
 public class PasswordViewQueryExe {
+    /**
+     * Password View 网关。
+     */
     private final PasswordViewGateway passwordViewGateway;
 
     /**

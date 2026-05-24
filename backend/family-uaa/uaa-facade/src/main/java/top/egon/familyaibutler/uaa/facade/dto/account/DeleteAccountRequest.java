@@ -24,9 +24,11 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeDeleteAccountRequest", description = "认证授权账号注销请求")
 public record DeleteAccountRequest(
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = true, example = "account-001")
         @NotBlank String accountId,
-        @DocField(description = "注销验证码", example = "123456")
+        /**注销验证码。*/
+        @DocField(description = "注销验证码", required = false, example = "123456")
         String verificationCode
 ) {
 }

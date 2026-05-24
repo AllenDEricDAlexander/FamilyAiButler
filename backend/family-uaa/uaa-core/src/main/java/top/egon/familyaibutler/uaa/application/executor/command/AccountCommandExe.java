@@ -34,10 +34,25 @@ import java.util.List;
  */
 @Service
 public class AccountCommandExe {
+    /**
+     * Account 领域服务。
+     */
     private final AccountDomainService accountDomainService;
+    /**
+     * Credential 领域服务。
+     */
     private final CredentialDomainService credentialDomainService;
+    /**
+     * Account 网关。
+     */
     private final AccountGateway accountGateway;
+    /**
+     * Credential 网关。
+     */
     private final CredentialGateway credentialGateway;
+    /**
+     * Profile 网关。
+     */
     private final ProfileGateway profileGateway;
 
     /**

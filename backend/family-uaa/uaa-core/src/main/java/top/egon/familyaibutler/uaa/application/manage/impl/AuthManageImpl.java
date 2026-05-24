@@ -54,16 +54,49 @@ import java.util.UUID;
  */
 @Service
 public class AuthManageImpl implements AuthManage {
+    /**
+     * Account 网关。
+     */
     private final AccountGateway accountGateway;
+    /**
+     * Credential 网关。
+     */
     private final CredentialGateway credentialGateway;
+    /**
+     * Device 网关。
+     */
     private final DeviceGateway deviceGateway;
+    /**
+     * Profile 网关。
+     */
     private final ProfileGateway profileGateway;
+    /**
+     * Security Notification 网关。
+     */
     private final SecurityNotificationGateway securityNotificationGateway;
+    /**
+     * Session 网关。
+     */
     private final SessionGateway sessionGateway;
+    /**
+     * Token 网关。
+     */
     private final TokenGateway tokenGateway;
+    /**
+     * OAuth Client 网关。
+     */
     private final OAuthClientGateway oAuthClientGateway;
+    /**
+     * Credential 领域服务。
+     */
     private final CredentialDomainService credentialDomainService;
+    /**
+     * Token 领域服务。
+     */
     private final TokenDomainService tokenDomainService;
+    /**
+     * Family JWT 服务。
+     */
     private final FamilyJwtService familyJwtService;
 
     /**

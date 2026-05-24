@@ -22,7 +22,13 @@ import java.util.Optional;
 @Service("categoryApplicationService")
 @RequiredArgsConstructor
 public class CategoryManageImpl implements CategoryManage {
+    /**
+     * Category 命令执行器。
+     */
     private final CategoryCommandExe categoryCommandService;
+    /**
+     * Category 查询执行器。
+     */
     private final CategoryQueryExe categoryQueryService;
 
     /**

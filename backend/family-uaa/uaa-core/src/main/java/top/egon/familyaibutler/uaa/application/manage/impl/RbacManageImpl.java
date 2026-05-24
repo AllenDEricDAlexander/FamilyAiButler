@@ -38,6 +38,9 @@ import java.util.stream.Collectors;
  */
 @Service
 public class RbacManageImpl implements RbacManage {
+    /**
+     * RBAC 网关。
+     */
     private final RbacGateway rbacGateway;
 
     /**

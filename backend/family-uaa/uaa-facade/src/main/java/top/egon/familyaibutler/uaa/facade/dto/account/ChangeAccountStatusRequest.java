@@ -24,9 +24,11 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeChangeAccountStatusRequest", description = "认证授权修改账号状态请求")
 public record ChangeAccountStatusRequest(
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = true, example = "account-001")
         @NotBlank String accountId,
-        @DocField(description = "账号状态", example = "ENABLED")
+        /**账号状态。*/
+        @DocField(description = "账号状态", required = true, example = "ENABLED")
         @NotBlank String status
 ) {
 }

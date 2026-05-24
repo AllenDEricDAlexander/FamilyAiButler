@@ -18,6 +18,9 @@ import top.egon.familyaibutler.family.domain.category.model.entity.CategoryType;
 @Service
 @RequiredArgsConstructor
 public class CategoryTypeCommandExe {
+    /**
+     * Category Type 网关。
+     */
     private final CategoryTypeGateway categoryTypeGateway;
 
     /**

@@ -23,6 +23,7 @@ import top.egon.familyaibutler.uaa.facade.dto.oauthclient.OAuthClientResponse;
 import top.egon.openapi.console.annotation.DocBody;
 import top.egon.openapi.console.annotation.DocDataKind;
 import top.egon.openapi.console.annotation.DocDataType;
+import top.egon.openapi.console.annotation.DocModel;
 import top.egon.openapi.console.annotation.DocOperation;
 import top.egon.openapi.console.annotation.DocParam;
 import top.egon.openapi.console.annotation.DocParamIn;
@@ -50,6 +51,9 @@ import java.util.List;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-oauth-client",
         serviceName = "OAuth Client 服务", serviceDescription = "OAuth Client 创建与查询能力", protocol = DocProtocol.HTTP)
 public class OAuthClientController {
+    /**
+     * OAuth Client 应用服务。
+     */
     private final OAuthClientManage oAuthClientService;
 
     /**
@@ -110,6 +114,10 @@ public class OAuthClientController {
         return Result.success(oAuthClientService.list());
     }
 
+    /**
+     * OAuth Client 列表响应数据类型引用。
+     */
+    @DocModel(name = "UaaWebOAuthClientListDataType", description = "UAA Web OAuth Client 列表响应数据类型引用")
     public static final class OAuthClientListDataType extends DocTypeReference<List<OAuthClientResponse>> {
     }
 }

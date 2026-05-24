@@ -39,6 +39,9 @@ import java.util.Map;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-jwk",
         serviceName = "JWK 公钥服务", serviceDescription = "JWT RSA 公钥集发布能力", protocol = DocProtocol.HTTP)
 public class JwkController {
+    /**
+     * Family JWT 服务。
+     */
     private final FamilyJwtService familyJwtService;
 
     /**

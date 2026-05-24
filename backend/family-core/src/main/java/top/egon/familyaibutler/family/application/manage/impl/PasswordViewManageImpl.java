@@ -26,7 +26,13 @@ import java.util.List;
 @Service("passwordViewApplicationService")
 @RequiredArgsConstructor
 public class PasswordViewManageImpl implements PasswordViewManage {
+    /**
+     * Password View 命令执行器。
+     */
     private final PasswordViewCommandExe passwordViewCommandService;
+    /**
+     * Password View 查询执行器。
+     */
     private final PasswordViewQueryExe passwordViewQueryService;
 
     /**

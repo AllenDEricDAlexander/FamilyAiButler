@@ -60,4 +60,35 @@ class CodegenApplicationTest {
         assertThat(demoDir.resolve("generated-src/src/main/resources/application.yml")).exists();
         assertThat(Files.readString(demoDir.resolve("generated-src/generation-report.md"))).contains("Order", "OrderStatus");
     }
+
+    /**
+     * 校验 demo 模式重复运行时会刷新 generated-src，避免旧生成产物影响验收。
+     *
+     * @param tempDir JUnit 临时目录
+     * @throws Exception 文件读写异常
+     */
+    @Test
+    void shouldRefreshGeneratedSourceDirectoryWhenDemoReruns(@TempDir Path tempDir) throws Exception {
+        Path demoDir = tempDir.resolve("codegen-demo");
+        Path generatedDir = demoDir.resolve("generated-src");
+        Path staleFile = generatedDir.resolve("stale.txt");
+        Path configFile = demoDir.resolve("generator.yml");
+        Path schemaFile = demoDir.resolve("schema.sql");
+        Path controllerFile = generatedDir.resolve("src/main/java/com/example/codegen/demo/adapter/web/OrderController.java");
+
+        new CodegenApplication().run(new String[]{"--demo", demoDir.toString()});
+        Files.writeString(configFile, Files.readString(configFile) + "\n# keep-user-generator\n");
+        Files.writeString(schemaFile, Files.readString(schemaFile) + "\n-- keep-user-schema\n");
+        Files.writeString(staleFile, "legacy generated file");
+        Files.writeString(controllerFile, "legacy controller without field comments");
+
+        new CodegenApplication().run(new String[]{"--demo", demoDir.toString()});
+
+        assertThat(Files.readString(configFile)).contains("keep-user-generator");
+        assertThat(Files.readString(schemaFile)).contains("keep-user-schema");
+        assertThat(staleFile).doesNotExist();
+        assertThat(Files.readString(controllerFile))
+                .contains("Order 应用服务接口。", "Order Web 对象转换器。")
+                .doesNotContain("legacy controller without field comments");
+    }
 }

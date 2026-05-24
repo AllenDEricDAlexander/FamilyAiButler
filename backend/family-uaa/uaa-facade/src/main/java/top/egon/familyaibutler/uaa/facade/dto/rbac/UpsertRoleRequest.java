@@ -24,9 +24,11 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeRbacUpsertRoleRequest", description = "认证授权新增或更新角色请求")
 public record UpsertRoleRequest(
-        @DocField(description = "角色编码", example = "FAMILY_ADMIN")
+        /**角色编码。*/
+        @DocField(description = "角色编码", required = true, example = "FAMILY_ADMIN")
         @NotBlank String roleCode,
-        @DocField(description = "角色名称", example = "家庭管理员")
+        /**角色名称。*/
+        @DocField(description = "角色名称", required = true, example = "家庭管理员")
         @NotBlank String roleName
 ) {
 }

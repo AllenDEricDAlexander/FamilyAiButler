@@ -113,19 +113,24 @@ mvn -f backend/pom.xml -pl family-uaa/uaa-core -am test
 
 本地启动健康检查路径：
 
-| 服务 | 健康检查 |
-| --- | --- |
-| `family-uaa` | `http://127.0.0.1:39092/.well-known/jwks.json` |
-| `family-core` | `http://127.0.0.1:39090/actuator/health` |
-| `family-ai-qwen` | `http://127.0.0.1:39091/actuator/health` |
-| `family-gateway` | `http://127.0.0.1:9527/actuator/health` |
+| 服务               | 健康检查                                           |
+|------------------|------------------------------------------------|
+| `family-uaa`     | `http://127.0.0.1:39092/.well-known/jwks.json` |
+| `family-core`    | `http://127.0.0.1:39090/actuator/health`       |
+| `family-ai-qwen` | `http://127.0.0.1:39091/actuator/health`       |
+| `family-gateway` | `http://127.0.0.1:9527/actuator/health`        |
 
 ## 接口文档与调试控制台
 
 后端接口文档由 `openapi-debug-console-spring-boot-starter` 提供。业务模块只负责生产 OpenAPI JSON，网关负责聚合服务列表、
 登录认证、接口调试、测试数据生成、压测和文档导出。
 
-adapter 层 Controller / RPC adapter 需要使用 doc 模块自有注解描述接口、请求、响应和 DTO/VO 字段示例。注解和示例见
+adapter 层 Controller / RPC adapter 使用 doc 模块自有注解描述接口、请求、响应和 DTO/VO 字段示例。被 schema 引用的
+Java 类型已按 `@DocModel`、`@DocField(description, required, example)`、字段 JavaDoc 和稳定模型名输出。adapter POJO class
+和 application command/query/result 使用链式 Lombok 组合；非继承对象使用 `@Builder` 和 `@EqualsAndHashCode`
+，存在继承关系且需要父类字段参与构建时才使用
+`@SuperBuilder`；
+facade record 保持 record 契约并补齐 record component 文档。注解和示例见
 `backend/openapi-debug-console-spring-boot-starter/README.md`，adapter 层编码约束见 `backend/code_style.md`。
 
 ## 大前端

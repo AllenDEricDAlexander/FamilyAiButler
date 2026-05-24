@@ -24,9 +24,11 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeRbacBindAccountRoleRequest", description = "认证授权绑定账号角色请求")
 public record BindAccountRoleRequest(
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = true, example = "account-001")
         @NotBlank String accountId,
-        @DocField(description = "角色编码", example = "FAMILY_ADMIN")
+        /**角色编码。*/
+        @DocField(description = "角色编码", required = true, example = "FAMILY_ADMIN")
         @NotBlank String roleCode
 ) {
 }

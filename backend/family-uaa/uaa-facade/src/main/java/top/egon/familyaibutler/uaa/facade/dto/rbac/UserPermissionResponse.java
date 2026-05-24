@@ -26,11 +26,14 @@ import java.util.Set;
  */
 @DocModel(name = "UaaFacadeRbacUserPermissionResponse", description = "认证授权用户权限响应")
 public record UserPermissionResponse(
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = false, example = "account-001")
         String accountId,
-        @DocField(description = "权限资源类型", example = "API")
+        /**权限资源类型。*/
+        @DocField(description = "权限资源类型", required = false, example = "API")
         PermissionResourceType resourceType,
-        @DocField(description = "权限资源编码集合", example = "[\"FAMILY_PASSWORD_READ\"]")
+        /**权限资源编码集合。*/
+        @DocField(description = "权限资源编码集合", required = false, example = "[\"FAMILY_PASSWORD_READ\"]")
         Set<String> resourceCodes
 ) {
 }

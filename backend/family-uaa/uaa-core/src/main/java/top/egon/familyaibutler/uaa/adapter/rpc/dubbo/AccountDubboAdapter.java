@@ -42,6 +42,9 @@ import top.egon.openapi.console.annotation.DocService;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-account-dubbo",
         serviceName = "账号 Dubbo 服务", serviceDescription = "账号注册、查询、状态变更和注销 RPC 能力", protocol = DocProtocol.DUBBO_TRIPLE)
 public class AccountDubboAdapter implements AccountFacade {
+    /**
+     * Account 应用服务。
+     */
     private final AccountManage accountService;
 
     /**

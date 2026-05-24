@@ -23,11 +23,14 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeRbacRoleResponse", description = "认证授权角色响应")
 public record RoleResponse(
-        @DocField(description = "角色编码", example = "FAMILY_ADMIN")
+        /**角色编码。*/
+        @DocField(description = "角色编码", required = false, example = "FAMILY_ADMIN")
         String roleCode,
-        @DocField(description = "角色名称", example = "家庭管理员")
+        /**角色名称。*/
+        @DocField(description = "角色名称", required = false, example = "家庭管理员")
         String roleName,
-        @DocField(description = "角色状态", example = "ENABLED")
+        /**角色状态。*/
+        @DocField(description = "角色状态", required = false, example = "ENABLED")
         String status
 ) {
 }

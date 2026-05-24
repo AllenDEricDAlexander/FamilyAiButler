@@ -23,11 +23,14 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeLogoutRequest", description = "认证授权退出登录请求")
 public record LogoutRequest(
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = false, example = "account-001")
         String accountId,
-        @DocField(description = "会话 ID", example = "session-001")
+        /**会话ID。*/
+        @DocField(description = "会话 ID", required = false, example = "session-001")
         String sessionId,
-        @DocField(description = "设备 ID", example = "device-001")
+        /**设备ID。*/
+        @DocField(description = "设备 ID", required = false, example = "device-001")
         String deviceId
 ) {
 }

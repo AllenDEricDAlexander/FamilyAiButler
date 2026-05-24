@@ -23,21 +23,29 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeTokenValidationResponse", description = "认证授权令牌校验响应")
 public record TokenValidationResponse(
-        @DocField(description = "令牌是否有效", example = "true")
+        /**令牌是否有效。*/
+        @DocField(description = "令牌是否有效", required = false, example = "true")
         boolean valid,
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = false, example = "account-001")
         String accountId,
-        @DocField(description = "Profile ID", example = "profile-001")
+        /**ProfileID。*/
+        @DocField(description = "Profile ID", required = false, example = "profile-001")
         String profileId,
-        @DocField(description = "会话 ID", example = "session-001")
+        /**会话ID。*/
+        @DocField(description = "会话 ID", required = false, example = "session-001")
         String sessionId,
-        @DocField(description = "设备 ID", example = "device-001")
+        /**设备ID。*/
+        @DocField(description = "设备 ID", required = false, example = "device-001")
         String deviceId,
-        @DocField(description = "认证版本号", example = "1")
+        /**认证版本号。*/
+        @DocField(description = "认证版本号", required = false, example = "1")
         long authVersion,
-        @DocField(description = "权益版本号", example = "1")
+        /**权益版本号。*/
+        @DocField(description = "权益版本号", required = false, example = "1")
         long entitlementVersion,
-        @DocField(description = "校验结果原因", example = "VALID")
+        /**校验结果原因。*/
+        @DocField(description = "校验结果原因", required = false, example = "VALID")
         String reason
 ) {
 }

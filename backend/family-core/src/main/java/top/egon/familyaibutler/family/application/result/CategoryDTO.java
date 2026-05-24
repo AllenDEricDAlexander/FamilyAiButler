@@ -24,24 +24,42 @@ import java.io.Serializable;
  */
 @Data
 @With
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
-@EqualsAndHashCode(callSuper = false)
+@Builder
+@EqualsAndHashCode
 @DocModel(name = "FamilyCategoryDTO", description = "家庭分类信息传输对象")
 public class CategoryDTO implements Serializable {
 
     @Serial
+    /**
+     * 序列化版本号。
+     */
     private static final long serialVersionUID = -7033547257705498021L;
 
-    @DocField(description = "id", example = "1")
+    /**
+     * 分类 ID。
+     */
+    @DocField(description = "分类 ID", required = false, example = "1")
     private Long id;
-    @DocField(description = "name", example = "生活")
+
+    /**
+     * 分类名称。
+     */
+    @DocField(description = "分类名称", required = false, example = "生活")
     private String categoryName;
-    @DocField(description = "description", example = "家庭生活分类")
+
+    /**
+     * 分类描述。
+     */
+    @DocField(description = "分类描述", required = false, example = "家庭生活分类")
     private String description;
-    @DocField(description = "parentId", example = "0")
+
+    /**
+     * 父分类 ID。
+     */
+    @DocField(description = "父分类 ID", required = false, example = "0")
     private Long parentId;
 
 }

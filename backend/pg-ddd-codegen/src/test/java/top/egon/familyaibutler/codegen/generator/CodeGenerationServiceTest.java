@@ -361,7 +361,8 @@ class CodeGenerationServiceTest {
 
         assertThat(outputDir.resolve("pom.xml")).exists();
         assertThat(Files.readString(outputDir.resolve("pom.xml")))
-                .contains("spring-boot-starter-data-jpa", "mybatis-plus-spring-boot3-starter", "archunit-junit5");
+                .contains("spring-boot-starter-data-jpa", "mybatis-plus-spring-boot3-starter",
+                        "openapi-debug-console-spring-boot-starter", "archunit-junit5");
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/TradeApplication.java")).exists();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/manage/OrderManage.java")).exists();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/manage/impl/OrderManageImpl.java")).exists();
@@ -383,6 +384,7 @@ class CodeGenerationServiceTest {
         assertThat(outputDir.resolve("src/test/java/com/acme/trade/infrastructure/OrderMapperIntegrationTest.java")).exists();
         assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/manage/impl/OrderManageImpl.java")))
                 .contains("@Service", "implements OrderManage")
+                .contains("     * CreateOrder 命令执行器。", "     * PageOrder 查询执行器。")
                 .doesNotContain("public Object ");
         assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/executor/command/CreateOrderCmdExe.java")))
                 .contains("@Component", "CreateOrderCommand", "CreateOrderResult execute");
@@ -397,7 +399,9 @@ class CodeGenerationServiceTest {
                         "List<Order> pageOrder(OrderPageCriteria criteria);")
                 .doesNotContain("application.query");
         assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/domain/order/gateway/query/OrderPageCriteria.java")))
-                .contains("@Data", "private String orderNo;", "private Instant createdAtStart;", "private Instant createdAtEnd;")
+                .contains("import top.egon.openapi.console.annotation.DocField;",
+                        "@Data", "@DocField(description = \"order_no\", required = false, example = \"",
+                        "private String orderNo;", "private Instant createdAtStart;", "private Instant createdAtEnd;")
                 .doesNotContain("application.query");
         assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/domain/order/service/OrderDomainService.java")))
                 .contains("import org.springframework.stereotype.Service;", "@Service");
@@ -410,6 +414,7 @@ class CodeGenerationServiceTest {
                         "OrderPageCriteria toOrderPageCriteria(OrderPageQuery query)");
         assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/OrderController.java")))
                 .contains("OrderManage", "OrderWebAssembler", "CreateOrderRequestDTO", "CreateOrderCommand", "CreateOrderVO", "@PostMapping", "@GetMapping")
+                .contains("     * Order 应用服务接口。", "     * Order Web 对象转换器。")
                 .doesNotContain("application.manage.impl")
                 .doesNotContain("com.acme.trade.application.OrderServiceImpl");
         assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/assembler/OrderWebAssembler.java")))
@@ -419,6 +424,39 @@ class CodeGenerationServiceTest {
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/dto/CreateOrderVO.java")).exists();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/dto/OrderDetailVO.java")).exists();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/dto/OrderPageVO.java")).exists();
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/dto/CreateOrderRequestDTO.java")))
+                .contains("@DocModel(name = \"CreateOrderRequestDTO\", description = \"CreateOrder Web 请求\")",
+                        "@DocField(description = \"order_no\", required = true, example = \"",
+                        "@Builder",
+                        "@EqualsAndHashCode",
+                        "@Accessors(chain = true)",
+                        "     * order_no。");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/command/CreateOrderCommand.java")))
+                .contains("@DocModel(name = \"CreateOrderCommand\", description = \"CreateOrder 命令对象\")",
+                        "@DocField(description = \"order_no\", required = true, example = \"",
+                        "@Builder",
+                        "@EqualsAndHashCode",
+                        "@NoArgsConstructor",
+                        "@AllArgsConstructor",
+                        "     * order_no。");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/query/OrderPageQuery.java")))
+                .contains("@DocModel(name = \"OrderPageQuery\", description = \"PageOrder 查询对象\")",
+                        "@DocField(description = \"order_no\", required = false, example = \"",
+                        "@Builder",
+                        "@EqualsAndHashCode",
+                        "     * order_no。");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/application/result/OrderDetailResult.java")))
+                .contains("@DocModel(name = \"OrderDetailResult\", description = \"OrderDetailResult 应用结果\")",
+                        "@DocField(description = \"order_no\", required = true, example = \"",
+                        "@Builder",
+                        "@EqualsAndHashCode",
+                        "     * order_no。");
+        assertThat(Files.readString(outputDir.resolve("src/main/java/com/acme/trade/adapter/web/dto/GetOrderDetailRequestDTO.java")))
+                .contains("@NoArgsConstructor",
+                        "@Builder",
+                        "@EqualsAndHashCode",
+                        "@DocModel(name = \"GetOrderDetailRequestDTO\", description = \"GetOrderDetail Web 查询请求\")")
+                .doesNotContain("\n@AllArgsConstructor");
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/client")).doesNotExist();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/app")).doesNotExist();
         assertThat(outputDir.resolve("src/main/java/com/acme/trade/application/dto")).doesNotExist();

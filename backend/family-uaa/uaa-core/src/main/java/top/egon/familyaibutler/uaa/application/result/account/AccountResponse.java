@@ -23,15 +23,45 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaCoreAccountResponse", description = "认证授权账号详情响应")
 public record AccountResponse(
-        @DocField(description = "账号 ID", example = "account-001") String accountId,
-        @DocField(description = "用户名", example = "mario") String username,
-        @DocField(description = "邮箱", example = "mario@example.com") String email,
-        @DocField(description = "手机号", example = "13800000000") String phone,
-        @DocField(description = "账号状态", example = "ACTIVE") String status,
-        @DocField(description = "账号类型", example = "NORMAL") String accountType,
-        @DocField(description = "认证版本", example = "1") long authVersion,
-        @DocField(description = "权益版本", example = "1") long entitlementVersion,
-        @DocField(description = "会话版本", example = "1") long sessionVersion,
-        @DocField(description = "风控版本", example = "1") long riskVersion
+        /**
+         * 账号 ID。
+         */
+        @DocField(description = "账号 ID", required = false, example = "account-001") String accountId,
+        /**
+         * 用户名。
+         */
+        @DocField(description = "用户名", required = false, example = "mario") String username,
+        /**
+         * 邮箱。
+         */
+        @DocField(description = "邮箱", required = false, example = "mario@example.com") String email,
+        /**
+         * 手机号。
+         */
+        @DocField(description = "手机号", required = false, example = "13800000000") String phone,
+        /**
+         * 账号状态。
+         */
+        @DocField(description = "账号状态", required = false, example = "ACTIVE") String status,
+        /**
+         * 账号类型。
+         */
+        @DocField(description = "账号类型", required = false, example = "NORMAL") String accountType,
+        /**
+         * 认证版本。
+         */
+        @DocField(description = "认证版本", required = false, example = "1") long authVersion,
+        /**
+         * 权益版本。
+         */
+        @DocField(description = "权益版本", required = false, example = "1") long entitlementVersion,
+        /**
+         * 会话版本。
+         */
+        @DocField(description = "会话版本", required = false, example = "1") long sessionVersion,
+        /**
+         * 风控版本。
+         */
+        @DocField(description = "风控版本", required = false, example = "1") long riskVersion
 ) {
 }

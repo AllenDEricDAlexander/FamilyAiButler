@@ -36,21 +36,31 @@ DocTypeReference<T>
 ```
 
 HTTP controller 和 Dubbo adapter 都纳入该注解体系。DTO、VO、record 字段需要使用
-`@DocField(description = "...", example = "...")` 提供字段说明和示例。被 OpenAPI schema 引用的 DTO、VO、record 和 wrapper
-必须使用 `@DocModel(name = "...", description = "...")` 提供稳定模型名和模型描述，`name` 必须唯一、非空、PascalCase，
+`@DocField(description = "...", required = ..., example = "...")` 提供字段说明、必填语义和示例。被 OpenAPI schema 引用的
+DTO、VO、record 和 wrapper 必须使用 `@DocModel(name = "...", description = "...")` 提供稳定模型名和模型描述，`name`
+必须唯一、非空、PascalCase，
 建议使用模块前缀避免跨模块同名类型冲突。`Result<T>`、`PageResult<T>`、
 `List<T>` 等泛型返回需要通过 `@DocResponse`、`@DocDataType`、`@DocWrapper` 和 `DocTypeReference<T>` 明确表达。
 如果两个不同 Java 类型声明了相同 `@DocModel.name`，OpenAPI schema 生成会失败，避免导出文档时出现 schema 覆盖。
+
+adapter POJO class、application command/query/result、Web DTO/VO 默认使用 `@Data`、`@With`、`@NoArgsConstructor`、
+`@AllArgsConstructor`、`@Accessors(chain = true)` 和
+`@Builder`，并声明 `@EqualsAndHashCode`。只有存在继承关系且需要父类字段参与构建时才使用 `@SuperBuilder`；继承类需要比较父类字段时才使用
+`@EqualsAndHashCode(callSuper = true)`。已有 facade record 保持 record 契约，只补齐 `@DocModel`、record component JavaDoc 和
+`@DocField(required, example)`，避免破坏 RPC 调用方。
 
 业务模块不得使用 Springdoc 或 Swagger 注解作为项目自有接口文档来源。
 
 ## 本轮迁移范围
 
-- `family-core`：HTTP controller 已使用 doc 注解，DTO 已补齐 `@DocModel` 和字段示例约束。
+- `family-core`：HTTP controller 已使用 doc 注解，DTO、命令、查询和密码强度结果已补齐 `@DocModel`、`@DocField`、字段 JavaDoc
+  和规范 Lombok builder。
 - `family-ai/qwen-ai`：HTTP controller 已使用 doc 注解。
 - `family-uaa/uaa-core`：HTTP controller 和 Dubbo adapter 均已纳入 doc 注解体系。
-- `family-uaa/uaa-facade`：UAA request/response records 已补齐 `@DocModel(name, description)` 和
-  `@DocField(description, example)`。
+- `family-uaa/uaa-facade`：UAA request/response records 已补齐 `@DocModel(name, description)`、record component JavaDoc 和
+  `@DocField(description, required, example)`。
+- `pg-ddd-codegen`：生成的 adapter Web DTO/VO、application command/query/result 已默认输出 `@DocModel`、`@DocField`、
+  字段 JavaDoc、无继承 POJO 的 `@Builder` 和 `@EqualsAndHashCode`。
 - `family-gateway`：作为网关和 OpenAPI console 聚合入口；异常 handler 是运行边界，不作为业务 doc adapter 输出。
 
 ## OpenAPI Console 导出

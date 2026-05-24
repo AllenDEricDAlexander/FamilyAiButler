@@ -23,19 +23,26 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeProfileRequest", description = "认证授权用户档案请求")
 public record ProfileRequest(
-        @DocField(description = "Profile ID", example = "profile-001")
+        /**ProfileID。*/
+        @DocField(description = "Profile ID", required = false, example = "profile-001")
         String profileId,
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = false, example = "account-001")
         String accountId,
-        @DocField(description = "昵称", example = "Mario")
+        /**昵称。*/
+        @DocField(description = "昵称", required = false, example = "Mario")
         String nickname,
-        @DocField(description = "头像地址", example = "https://example.com/avatar.png")
+        /**头像地址。*/
+        @DocField(description = "头像地址", required = false, example = "https://example.com/avatar.png")
         String avatar,
-        @DocField(description = "语言", example = "zh-CN")
+        /**语言。*/
+        @DocField(description = "语言", required = false, example = "zh-CN")
         String language,
-        @DocField(description = "地区", example = "CN")
+        /**地区。*/
+        @DocField(description = "地区", required = false, example = "CN")
         String region,
-        @DocField(description = "Profile 类型", example = "PERSONAL")
+        /**Profile类型。*/
+        @DocField(description = "Profile 类型", required = false, example = "PERSONAL")
         String profileType
 ) {
 }

@@ -36,10 +36,25 @@ import top.egon.familyaibutler.uaa.facade.dto.authorization.AuthorizationDecisio
  */
 @Service
 public class AuthorizationManageImpl implements AuthorizationManage {
+    /**
+     * Account 网关。
+     */
     private final AccountGateway accountGateway;
+    /**
+     * Token 网关。
+     */
     private final TokenGateway tokenGateway;
+    /**
+     * OAuth Client 网关。
+     */
     private final OAuthClientGateway oAuthClientGateway;
+    /**
+     * RBAC 网关。
+     */
     private final RbacGateway rbacGateway;
+    /**
+     * Family JWT 服务。
+     */
     private final FamilyJwtService familyJwtService;
 
     /**

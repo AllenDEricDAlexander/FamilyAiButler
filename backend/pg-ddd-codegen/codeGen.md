@@ -213,6 +213,9 @@ ignore:
     - sys_config
 ```
 
+默认 demo 和 `--demo <dir>` 会在生成前刷新 demo 目录下的 `generated-src` 子目录，避免旧生成产物污染模板注解、
+字段注释和工程结构验收；`generator.yml` 和 `schema.sql` 缺失时自动初始化，已存在时保留原文件内容。
+
 我的建议是：**DDL 负责结构，YAML 负责业务语义。**
 不要试图从 DDL 自动推导所有 DDD 设计。数据库会沉默，沉默不代表它懂业务。
 
@@ -1316,6 +1319,25 @@ web/dto/OrderPageVO.java
 web/assembler/OrderWebAssembler.java
 ```
 
+adapter Web DTO / VO 生成结果默认包含：
+
+```text
+@DocModel(name = "...", description = "...")
+字段 JavaDoc
+@DocField(description = "...", required = ..., example = "...")
+@Data
+@With
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+@Builder
+@EqualsAndHashCode
+```
+
+application Command / Query / Result 使用同一套 POJO 文档和 Lombok 规范。无父类生成类型使用 `@Builder` 和
+`@EqualsAndHashCode`；
+存在继承关系时再改用 `@SuperBuilder`，需要比较父类字段时使用 `@EqualsAndHashCode(callSuper = true)`。
+
 ## 14.3 domain
 
 ```text
@@ -1789,6 +1811,7 @@ Freemarker
 ArchUnit
 Jackson
 Jakarta Validation
+openapi-debug-console-spring-boot-starter
 Testcontainers 可选
 MapStruct 可选
 Lombok 可选

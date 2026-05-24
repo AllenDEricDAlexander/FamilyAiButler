@@ -25,9 +25,11 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeRbacUserPermissionQuery", description = "认证授权用户权限查询")
 public record UserPermissionQuery(
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = true, example = "account-001")
         @NotBlank String accountId,
-        @DocField(description = "权限资源类型", example = "API")
+        /**权限资源类型。*/
+        @DocField(description = "权限资源类型", required = false, example = "API")
         PermissionResourceType resourceType
 ) {
 }

@@ -55,6 +55,9 @@ import top.egon.openapi.console.annotation.DocWrapper;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-rbac",
         serviceName = "RBAC 服务", serviceDescription = "角色、权限资源和用户权限查询能力", protocol = DocProtocol.HTTP)
 public class RbacController {
+    /**
+     * RBAC 应用服务。
+     */
     private final RbacManage rbacService;
 
     /**

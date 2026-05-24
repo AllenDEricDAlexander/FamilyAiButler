@@ -14,7 +14,13 @@ ${classComment}@RestController
 @RequiredArgsConstructor
 public class ${className} {
 
+/**
+* ${aggregateName} 应用服务接口。
+*/
 private final ${manageInterfaceName} ${manageFieldName};
+/**
+* ${aggregateName} Web 对象转换器。
+*/
 private final ${webAssemblerName} ${webAssemblerFieldName};
 
 ${methods}

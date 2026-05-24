@@ -23,25 +23,35 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeAccountSummaryResponse", description = "认证授权账号摘要响应")
 public record AccountSummaryResponse(
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = false, example = "account-001")
         String accountId,
-        @DocField(description = "用户名", example = "mario")
+        /**用户名。*/
+        @DocField(description = "用户名", required = false, example = "mario")
         String username,
-        @DocField(description = "邮箱", example = "mario@example.com")
+        /**邮箱。*/
+        @DocField(description = "邮箱", required = false, example = "mario@example.com")
         String email,
-        @DocField(description = "手机号", example = "13800138000")
+        /**手机号。*/
+        @DocField(description = "手机号", required = false, example = "13800138000")
         String phone,
-        @DocField(description = "账号状态", example = "ENABLED")
+        /**账号状态。*/
+        @DocField(description = "账号状态", required = false, example = "ENABLED")
         String status,
-        @DocField(description = "账号类型", example = "PERSONAL")
+        /**账号类型。*/
+        @DocField(description = "账号类型", required = false, example = "PERSONAL")
         String accountType,
-        @DocField(description = "认证版本号", example = "1")
+        /**认证版本号。*/
+        @DocField(description = "认证版本号", required = false, example = "1")
         long authVersion,
-        @DocField(description = "权益版本号", example = "1")
+        /**权益版本号。*/
+        @DocField(description = "权益版本号", required = false, example = "1")
         long entitlementVersion,
-        @DocField(description = "会话版本号", example = "1")
+        /**会话版本号。*/
+        @DocField(description = "会话版本号", required = false, example = "1")
         long sessionVersion,
-        @DocField(description = "风控版本号", example = "1")
+        /**风控版本号。*/
+        @DocField(description = "风控版本号", required = false, example = "1")
         long riskVersion
 ) {
 }

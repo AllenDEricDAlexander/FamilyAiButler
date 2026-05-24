@@ -43,6 +43,9 @@ import top.egon.openapi.console.annotation.DocService;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-token-dubbo",
         serviceName = "Token Dubbo 服务", serviceDescription = "令牌刷新、校验和撤销 RPC 能力", protocol = DocProtocol.DUBBO_TRIPLE)
 public class TokenDubboAdapter implements TokenFacade {
+    /**
+     * Token 应用服务。
+     */
     private final TokenManage tokenService;
 
     /**

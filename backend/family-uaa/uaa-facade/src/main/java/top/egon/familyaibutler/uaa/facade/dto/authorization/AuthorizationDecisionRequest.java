@@ -23,13 +23,17 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeAuthorizationDecisionRequest", description = "认证授权资源访问授权决策请求")
 public record AuthorizationDecisionRequest(
-        @DocField(description = "访问令牌", example = "access-token-001")
+        /**访问令牌。*/
+        @DocField(description = "访问令牌", required = false, example = "access-token-001")
         String accessToken,
-        @DocField(description = "资源所属服务", example = "family-core")
+        /**资源所属服务。*/
+        @DocField(description = "资源所属服务", required = false, example = "family-core")
         String resourceService,
-        @DocField(description = "资源路径", example = "/password-view/1")
+        /**资源路径。*/
+        @DocField(description = "资源路径", required = false, example = "/password-view/1")
         String resourcePath,
-        @DocField(description = "访问动作", example = "READ")
+        /**访问动作。*/
+        @DocField(description = "访问动作", required = false, example = "READ")
         String action
 ) {
 }

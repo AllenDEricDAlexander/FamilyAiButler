@@ -26,8 +26,17 @@ import top.egon.familyaibutler.uaa.domain.auth.gateway.TokenGateway;
  */
 @Service
 public class DeviceManageImpl implements DeviceManage {
+    /**
+     * Device 网关。
+     */
     private final DeviceGateway deviceGateway;
+    /**
+     * Session 网关。
+     */
     private final SessionGateway sessionGateway;
+    /**
+     * Token 网关。
+     */
     private final TokenGateway tokenGateway;
 
     /**

@@ -34,29 +34,47 @@ import java.util.Date;
  */
 @Data
 @With
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
-@EqualsAndHashCode(callSuper = false)
+@Builder
+@EqualsAndHashCode
 @DocModel(name = "FamilyCategoryTypeDTO", description = "家庭分类类型信息传输对象")
 public class CategoryTypeDTO implements Serializable {
 
     @Serial
+    /**
+     * 序列化版本号。
+     */
     private static final long serialVersionUID = -7041315135873001168L;
 
-    @DocField(description = "id", example = "1")
+    /**
+     * 分类类型 ID。
+     */
+    @DocField(description = "分类类型 ID", required = false, example = "1")
     private Long id;
 
-    @DocField(description = "typeName", example = "支出")
+    /**
+     * 分类类型名称。
+     */
+    @DocField(description = "分类类型名称", required = false, example = "支出")
     private String typeName;
 
-    @DocField(description = "description", example = "家庭支出类型")
+    /**
+     * 分类类型描述。
+     */
+    @DocField(description = "分类类型描述", required = false, example = "家庭支出类型")
     private String description;
 
-    @DocField(description = "createTime", example = "2026-05-22T00:00:00")
+    /**
+     * 创建时间。
+     */
+    @DocField(description = "创建时间", required = false, example = "2026-05-22T00:00:00")
     private Date createTime;
 
-    @DocField(description = "updateTime", example = "2026-05-22T00:00:00")
+    /**
+     * 更新时间。
+     */
+    @DocField(description = "更新时间", required = false, example = "2026-05-22T00:00:00")
     private Date updateTime;
 }

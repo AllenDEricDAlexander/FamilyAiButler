@@ -24,9 +24,11 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadePasswordRecoveryRequest", description = "认证授权找回密码请求")
 public record PasswordRecoveryRequest(
-        @DocField(description = "账号标识，支持用户名、邮箱或手机号", example = "mario@example.com")
+        /**账号标识，支持用户名、邮箱或手机号。*/
+        @DocField(description = "账号标识，支持用户名、邮箱或手机号", required = true, example = "mario@example.com")
         @NotBlank String principal,
-        @DocField(description = "找回密码通道", example = "EMAIL")
+        /**找回密码通道。*/
+        @DocField(description = "找回密码通道", required = false, example = "EMAIL")
         String channel
 ) {
 }

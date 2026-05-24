@@ -23,13 +23,17 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeStepUpChallengeRequest", description = "认证授权二次验证请求")
 public record StepUpChallengeRequest(
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = false, example = "account-001")
         String accountId,
-        @DocField(description = "需要二次验证的动作", example = "RESET_PASSWORD")
+        /**需要二次验证的动作。*/
+        @DocField(description = "需要二次验证的动作", required = false, example = "RESET_PASSWORD")
         String action,
-        @DocField(description = "二次验证挑战 ID", example = "challenge-001")
+        /**二次验证挑战ID。*/
+        @DocField(description = "二次验证挑战 ID", required = false, example = "challenge-001")
         String challengeId,
-        @DocField(description = "验证码", example = "123456")
+        /**验证码。*/
+        @DocField(description = "验证码", required = false, example = "123456")
         String verifyCode
 ) {
 }

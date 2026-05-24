@@ -22,6 +22,9 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class CategoryTypeQueryExe {
+    /**
+     * Category Type 网关。
+     */
     private final CategoryTypeGateway categoryTypeGateway;
 
     /**

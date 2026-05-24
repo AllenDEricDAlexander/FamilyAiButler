@@ -26,17 +26,23 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeRbacUpsertPermissionResourceRequest", description = "认证授权新增或更新权限资源请求")
 public record UpsertPermissionResourceRequest(
-        @DocField(description = "权限资源编码", example = "FAMILY_PASSWORD_READ")
+        /**权限资源编码。*/
+        @DocField(description = "权限资源编码", required = true, example = "FAMILY_PASSWORD_READ")
         @NotBlank String resourceCode,
-        @DocField(description = "权限资源名称", example = "查看家庭密码")
+        /**权限资源名称。*/
+        @DocField(description = "权限资源名称", required = true, example = "查看家庭密码")
         @NotBlank String resourceName,
-        @DocField(description = "权限资源类型", example = "API")
+        /**权限资源类型。*/
+        @DocField(description = "权限资源类型", required = true, example = "API")
         @NotNull PermissionResourceType resourceType,
-        @DocField(description = "资源所属服务", example = "family-core")
+        /**资源所属服务。*/
+        @DocField(description = "资源所属服务", required = false, example = "family-core")
         String resourceService,
-        @DocField(description = "资源路径匹配规则", example = "/password-view/**")
+        /**资源路径匹配规则。*/
+        @DocField(description = "资源路径匹配规则", required = false, example = "/password-view/**")
         String pathPattern,
-        @DocField(description = "访问动作", example = "READ")
+        /**访问动作。*/
+        @DocField(description = "访问动作", required = false, example = "READ")
         String action
 ) {
 }

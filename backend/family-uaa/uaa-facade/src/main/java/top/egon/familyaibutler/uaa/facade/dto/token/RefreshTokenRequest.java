@@ -23,11 +23,14 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeRefreshTokenRequest", description = "认证授权刷新令牌请求")
 public record RefreshTokenRequest(
-        @DocField(description = "刷新令牌", example = "refresh-token-001")
+        /**刷新令牌。*/
+        @DocField(description = "刷新令牌", required = false, example = "refresh-token-001")
         String refreshToken,
-        @DocField(description = "OAuth 客户端 ID", example = "family-web")
+        /**OAuth客户端ID。*/
+        @DocField(description = "OAuth 客户端 ID", required = false, example = "family-web")
         String clientId,
-        @DocField(description = "设备 ID", example = "device-001")
+        /**设备ID。*/
+        @DocField(description = "设备 ID", required = false, example = "device-001")
         String deviceId
 ) {
 }

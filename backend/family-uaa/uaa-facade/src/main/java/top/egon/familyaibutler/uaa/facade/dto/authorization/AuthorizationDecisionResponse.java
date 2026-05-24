@@ -23,19 +23,26 @@ import top.egon.openapi.console.annotation.DocModel;
  */
 @DocModel(name = "UaaFacadeAuthorizationDecisionResponse", description = "认证授权资源访问授权决策响应")
 public record AuthorizationDecisionResponse(
-        @DocField(description = "是否允许访问", example = "true")
+        /**是否允许访问。*/
+        @DocField(description = "是否允许访问", required = false, example = "true")
         boolean allowed,
-        @DocField(description = "授权决策原因", example = "ALLOW")
+        /**授权决策原因。*/
+        @DocField(description = "授权决策原因", required = false, example = "ALLOW")
         String reason,
-        @DocField(description = "账号 ID", example = "account-001")
+        /**账号ID。*/
+        @DocField(description = "账号 ID", required = false, example = "account-001")
         String accountId,
-        @DocField(description = "Profile ID", example = "profile-001")
+        /**ProfileID。*/
+        @DocField(description = "Profile ID", required = false, example = "profile-001")
         String profileId,
-        @DocField(description = "OAuth 客户端 ID", example = "family-web")
+        /**OAuth客户端ID。*/
+        @DocField(description = "OAuth 客户端 ID", required = false, example = "family-web")
         String clientId,
-        @DocField(description = "会话 ID", example = "session-001")
+        /**会话ID。*/
+        @DocField(description = "会话 ID", required = false, example = "session-001")
         String sessionId,
-        @DocField(description = "设备 ID", example = "device-001")
+        /**设备ID。*/
+        @DocField(description = "设备 ID", required = false, example = "device-001")
         String deviceId
 ) {
 }

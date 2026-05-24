@@ -44,6 +44,9 @@ import top.egon.openapi.console.annotation.DocService;
 @DocService(groupId = "uaa", groupName = "认证授权服务", serviceId = "uaa-rbac-dubbo",
         serviceName = "RBAC Dubbo 服务", serviceDescription = "角色、权限资源和用户权限查询 RPC 能力", protocol = DocProtocol.DUBBO_TRIPLE)
 public class RbacDubboAdapter implements RbacFacade {
+    /**
+     * RBAC 应用服务。
+     */
     private final RbacManage rbacService;
 
     /**

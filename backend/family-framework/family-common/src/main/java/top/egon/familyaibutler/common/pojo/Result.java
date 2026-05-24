@@ -2,6 +2,7 @@ package top.egon.familyaibutler.common.pojo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.With;
 import lombok.experimental.Accessors;
@@ -29,6 +30,7 @@ import java.io.Serializable;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode
 @Accessors(chain = true)
 @DocModel(name = "Result", description = "接口统一返回对象")
 public class Result<T> implements Serializable {

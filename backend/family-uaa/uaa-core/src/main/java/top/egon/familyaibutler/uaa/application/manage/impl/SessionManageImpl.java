@@ -25,7 +25,13 @@ import top.egon.familyaibutler.uaa.domain.auth.gateway.TokenGateway;
  */
 @Service
 public class SessionManageImpl implements SessionManage {
+    /**
+     * Session 网关。
+     */
     private final SessionGateway sessionGateway;
+    /**
+     * Token 网关。
+     */
     private final TokenGateway tokenGateway;
 
     /**

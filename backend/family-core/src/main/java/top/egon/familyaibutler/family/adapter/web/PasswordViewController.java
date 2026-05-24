@@ -24,6 +24,7 @@ import top.egon.familyaibutler.family.domain.passwordview.model.valueobject.Stre
 import top.egon.openapi.console.annotation.DocBody;
 import top.egon.openapi.console.annotation.DocDataKind;
 import top.egon.openapi.console.annotation.DocDataType;
+import top.egon.openapi.console.annotation.DocModel;
 import top.egon.openapi.console.annotation.DocOperation;
 import top.egon.openapi.console.annotation.DocParam;
 import top.egon.openapi.console.annotation.DocParamIn;
@@ -55,11 +56,23 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PasswordViewController {
 
+    /**
+     * 默认密码特殊字符集。
+     */
     private static final String SPECIAL_CHARACTERS = "!@#$%^&*()-_=+<>?";
 
+    /**
+     * 默认密码长度。
+     */
     private static final int PASSWORD_LENGTH = 12;
 
+    /**
+     * Password View 应用服务。
+     */
     private final PasswordViewManage passwordViewService;
+    /**
+     * Password View Web 对象转换器。
+     */
     private final PasswordViewWebAssembler passwordViewWebAssembler;
 
     @GetMapping("/business/{businessId}")
@@ -195,9 +208,17 @@ public class PasswordViewController {
         return Result.success(passwordViewService.checkValid(password));
     }
 
+    /**
+     * 密码分页响应数据类型引用。
+     */
+    @DocModel(name = "PasswordViewPageDataType", description = "密码分页响应数据类型引用")
     public static final class PasswordViewPageDataType extends DocTypeReference<PageResult<PasswordViewDTO>> {
     }
 
+    /**
+     * Long 主键列表数据类型引用。
+     */
+    @DocModel(name = "LongListDataType", description = "Long 主键列表数据类型引用")
     public static final class LongListDataType extends DocTypeReference<List<Long>> {
     }
 
