@@ -11,6 +11,7 @@ package top.egon.familyaibutler.uaa.facade.dto.account;
 
 import jakarta.validation.constraints.NotBlank;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,6 +22,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 修改账号状态请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeChangeAccountStatusRequest", description = "认证授权修改账号状态请求")
 public record ChangeAccountStatusRequest(
         @DocField(description = "账号 ID", example = "account-001")
         @NotBlank String accountId,

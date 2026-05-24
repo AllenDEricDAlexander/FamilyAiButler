@@ -137,6 +137,23 @@ class ApiDocSpringMvcOpenApiGeneratorTest {
     }
 
     /**
+     * 测试不同 Java 类型不能复用同一个 OpenAPI Schema 名称。
+     */
+    @Test
+    void testSchemaNameConflictShouldFailFast() {
+        ApiDocOpenApiSchemaGenerator generator = new ApiDocOpenApiSchemaGenerator(new ObjectMapper());
+        generator.schema(FirstConflictDoc.class);
+
+        IllegalStateException exception = Assertions.assertThrows(IllegalStateException.class,
+                () -> generator.schema(SecondConflictDoc.class));
+
+        Assertions.assertTrue(exception.getMessage().contains("OpenAPI Schema 名称冲突"));
+        Assertions.assertTrue(exception.getMessage().contains(FirstConflictDoc.class.getName()));
+        Assertions.assertTrue(exception.getMessage().contains(SecondConflictDoc.class.getName()));
+        Assertions.assertTrue(exception.getMessage().contains("@DocModel(name=...)"));
+    }
+
+    /**
      * 测试 OpenAPI info 可以保留 producer 元数据
      */
     @Test
@@ -1235,5 +1252,19 @@ class ApiDocSpringMvcOpenApiGeneratorTest {
 
         @DocField(description = "名称")
         private String name;
+    }
+
+    @DocModel(name = "ConflictDoc", description = "第一个冲突测试对象")
+    static class FirstConflictDoc {
+
+        @DocField(description = "名称", example = "first")
+        private String name;
+    }
+
+    @DocModel(name = "ConflictDoc", description = "第二个冲突测试对象")
+    static class SecondConflictDoc {
+
+        @DocField(description = "编码", example = "second")
+        private String code;
     }
 }

@@ -27,16 +27,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import top.egon.openapi.console.ApiDocConsolePayloads;
+import top.egon.openapi.console.ApiDocConsoleProperties;
+import top.egon.openapi.console.core.ApiDocConsoleService;
+import top.egon.openapi.console.core.ApiDocConsoleSessionService;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
-
-import top.egon.openapi.console.ApiDocConsolePayloads;
-import top.egon.openapi.console.ApiDocConsoleProperties;
-import top.egon.openapi.console.core.ApiDocConsoleService;
-import top.egon.openapi.console.core.ApiDocConsoleSessionService;
 
 /**
  * @BelongsProject: openapi-console
@@ -254,6 +253,7 @@ public class ApiDocConsoleController {
     @GetMapping("/export/{serviceId}")
     public Mono<ResponseEntity<byte[]>> export(@PathVariable String serviceId,
                                                @RequestParam(defaultValue = "md") String format,
+                                               @RequestParam(defaultValue = "service") String scope,
                                                ServerWebExchange exchange) {
         Optional<ApiDocConsolePayloads.UserSession> session = requireSession(exchange);
         if (session.isEmpty()) {
@@ -265,8 +265,14 @@ public class ApiDocConsoleController {
         if (!properties.getExport().isEnabled()) {
             return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).build());
         }
-        String normalizedFormat = "pdf".equalsIgnoreCase(format) ? "pdf" : "md";
-        Mono<byte[]> content = "pdf".equals(normalizedFormat) ? consoleService.exportPdf(serviceId) : consoleService.exportMarkdown(serviceId);
+        if (!"service".equalsIgnoreCase(scope)) {
+            return Mono.just(ResponseEntity.badRequest().build());
+        }
+        String normalizedFormat = normalizeExportFormat(format);
+        if (normalizedFormat == null) {
+            return Mono.just(ResponseEntity.badRequest().build());
+        }
+        Mono<byte[]> content = exportContent(serviceId, normalizedFormat);
         return content.map(bytes -> exportResponse(serviceId, normalizedFormat, bytes))
                 .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.BAD_GATEWAY).build()));
     }
@@ -353,11 +359,77 @@ public class ApiDocConsoleController {
      * @return ResponseEntity<byte[]> 返回导出响应
      */
     private ResponseEntity<byte[]> exportResponse(String serviceId, String format, byte[] bytes) {
-        MediaType mediaType = "pdf".equals(format) ? MediaType.APPLICATION_PDF : new MediaType("text", "markdown", StandardCharsets.UTF_8);
-        ContentDisposition disposition = ContentDisposition.attachment().filename(serviceId + "." + format, StandardCharsets.UTF_8).build();
+        MediaType mediaType = exportMediaType(format);
+        ContentDisposition disposition = ContentDisposition.attachment().filename(exportFileName(serviceId, format), StandardCharsets.UTF_8).build();
         return ResponseEntity.ok()
                 .contentType(mediaType)
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(bytes);
+    }
+
+    /**
+     * 规范化导出格式。
+     *
+     * @param format 导出格式
+     * @return String 返回规范化格式
+     */
+    private String normalizeExportFormat(String format) {
+        if (!StringUtils.hasText(format) || "md".equalsIgnoreCase(format)) {
+            return "md";
+        }
+        if ("pdf".equalsIgnoreCase(format)) {
+            return "pdf";
+        }
+        if ("openapi-json".equalsIgnoreCase(format) || "json".equalsIgnoreCase(format)) {
+            return "openapi-json";
+        }
+        return null;
+    }
+
+    /**
+     * 获取导出内容。
+     *
+     * @param serviceId 服务 ID
+     * @param format    导出格式
+     * @return Mono<byte[]> 返回导出内容
+     */
+    private Mono<byte[]> exportContent(String serviceId, String format) {
+        if ("pdf".equals(format)) {
+            return consoleService.exportPdf(serviceId);
+        }
+        if ("openapi-json".equals(format)) {
+            return consoleService.exportOpenApiJson(serviceId);
+        }
+        return consoleService.exportMarkdown(serviceId);
+    }
+
+    /**
+     * 获取导出响应类型。
+     *
+     * @param format 导出格式
+     * @return MediaType 返回响应类型
+     */
+    private MediaType exportMediaType(String format) {
+        if ("pdf".equals(format)) {
+            return MediaType.APPLICATION_PDF;
+        }
+        if ("openapi-json".equals(format)) {
+            return new MediaType("application", "json", StandardCharsets.UTF_8);
+        }
+        return new MediaType("text", "markdown", StandardCharsets.UTF_8);
+    }
+
+    /**
+     * 获取导出文件名。
+     *
+     * @param serviceId 服务 ID
+     * @param format    导出格式
+     * @return String 返回文件名
+     */
+    private String exportFileName(String serviceId, String format) {
+        if ("openapi-json".equals(format)) {
+            return serviceId + ".openapi.json";
+        }
+        return serviceId + "." + format;
     }
 }

@@ -29,7 +29,7 @@ import java.io.Serializable;
 @With
 @Accessors(chain = true)
 @Builder
-@DocModel(name = "StrengthDTO", description = "Strength api dto")
+@DocModel(name = "FamilyPasswordStrengthDTO", description = "密码强度评估结果传输对象")
 public class StrengthDTO implements Serializable {
     @Serial
     private static final long serialVersionUID = -5108785276179717760L;

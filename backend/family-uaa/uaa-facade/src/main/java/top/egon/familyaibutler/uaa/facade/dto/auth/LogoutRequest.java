@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.auth;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -20,6 +21,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 退出登录请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeLogoutRequest", description = "认证授权退出登录请求")
 public record LogoutRequest(
         @DocField(description = "账号 ID", example = "account-001")
         String accountId,

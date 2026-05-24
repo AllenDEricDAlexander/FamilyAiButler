@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -20,6 +21,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 角色响应
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeRbacRoleResponse", description = "认证授权角色响应")
 public record RoleResponse(
         @DocField(description = "角色编码", example = "FAMILY_ADMIN")
         String roleCode,

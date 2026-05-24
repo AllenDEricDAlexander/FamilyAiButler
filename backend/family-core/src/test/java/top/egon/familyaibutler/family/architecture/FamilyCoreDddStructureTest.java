@@ -11,13 +11,25 @@ package top.egon.familyaibutler.family.architecture;
 
 import org.junit.jupiter.api.Test;
 import top.egon.familyaibutler.family.domain.passwordview.model.valueobject.StrengthDTO;
+import top.egon.openapi.console.annotation.DocDataType;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
+import top.egon.openapi.console.annotation.DocOperation;
+import top.egon.openapi.console.annotation.DocParameter;
+import top.egon.openapi.console.annotation.DocTypeReference;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -121,6 +133,31 @@ class FamilyCoreDddStructureTest {
                         .as(StrengthDTO.class.getName() + "." + field.getName() + " example")
                         .isNotBlank();
             }
+        }
+    }
+
+    /**
+     * 校验文档引用的 DTO/VO 模型具备唯一且完整的 DocModel 元数据。
+     */
+    @Test
+    void docReferencedModelsShouldProvideUniqueDocModelMetadata() {
+        Map<String, Class<?>> modelNames = new LinkedHashMap<>();
+        for (Class<?> modelType : adapterDocDataModelTypes()) {
+            DocModel docModel = modelType.getAnnotation(DocModel.class);
+            assertThat(docModel)
+                    .as(modelType.getName() + " should have @DocModel")
+                    .isNotNull();
+            assertThat(docModel.name())
+                    .as(modelType.getName() + " @DocModel.name")
+                    .isNotBlank()
+                    .matches("^[A-Z][A-Za-z0-9]*$");
+            assertThat(docModel.description())
+                    .as(modelType.getName() + " @DocModel.description")
+                    .isNotBlank();
+            Class<?> existingType = modelNames.putIfAbsent(docModel.name(), modelType);
+            assertThat(existingType)
+                    .as(docModel.name() + " should be unique")
+                    .isNull();
         }
     }
 
@@ -230,5 +267,142 @@ class FamilyCoreDddStructureTest {
         } catch (Exception exception) {
             throw new IllegalStateException("读取源码文件失败: " + path, exception);
         }
+    }
+
+    /**
+     * 获取适配层文档数据类型引用的受控模型类型。
+     *
+     * @return List 返回受控模型类型
+     */
+    private List<Class<?>> adapterDocDataModelTypes() {
+        Set<Class<?>> modelTypes = new LinkedHashSet<>();
+        for (Class<?> adapterType : adapterTypes()) {
+            for (Method method : adapterType.getDeclaredMethods()) {
+                DocOperation docOperation = method.getAnnotation(DocOperation.class);
+                if (docOperation == null) {
+                    continue;
+                }
+                collectDocDataModelTypes(docOperation.request().body().dataType(), modelTypes);
+                for (DocParameter parameter : docOperation.request().params()) {
+                    collectDocDataModelTypes(parameter.dataType(), modelTypes);
+                }
+                collectDocDataModelTypes(docOperation.response().dataType(), modelTypes);
+            }
+        }
+        return List.copyOf(modelTypes);
+    }
+
+    /**
+     * 获取适配层类型。
+     *
+     * @return List 返回适配层类型列表
+     */
+    private List<Class<?>> adapterTypes() {
+        try (Stream<Path> files = Files.walk(Path.of("src/main/java/top/egon/familyaibutler/family/adapter/web"), 1)) {
+            return files.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .map(this::toClassName)
+                    .map(this::loadClass)
+                    .toList();
+        } catch (Exception exception) {
+            throw new IllegalStateException("加载适配层类型失败", exception);
+        }
+    }
+
+    /**
+     * 转换 Java 源码路径为类型全限定名。
+     *
+     * @param path Java 源码路径
+     * @return String 返回类型全限定名
+     */
+    private String toClassName(Path path) {
+        return path.toString()
+                .replace("src/main/java/", "")
+                .replace("/", ".")
+                .replace(".java", "");
+    }
+
+    /**
+     * 加载 Java 类型。
+     *
+     * @param className 类型全限定名
+     * @return Class 返回 Java 类型
+     */
+    private Class<?> loadClass(String className) {
+        try {
+            return Class.forName(className);
+        } catch (Exception exception) {
+            throw new IllegalStateException("加载 Java 类型失败: " + className, exception);
+        }
+    }
+
+    /**
+     * 收集文档数据类型中的受控模型类型。
+     *
+     * @param docDataType 文档数据类型
+     * @param modelTypes  受控模型类型集合
+     */
+    private void collectDocDataModelTypes(DocDataType docDataType, Set<Class<?>> modelTypes) {
+        if (isControlledModelType(docDataType.type())) {
+            modelTypes.add(docDataType.type());
+        }
+        if (docDataType.ref() != DocTypeReference.None.class) {
+            collectDocTypeReferenceModelTypes(docDataType.ref(), modelTypes);
+        }
+    }
+
+    /**
+     * 收集复杂泛型引用中的受控模型类型。
+     *
+     * @param referenceType 复杂泛型引用类型
+     * @param modelTypes    受控模型类型集合
+     */
+    private void collectDocTypeReferenceModelTypes(Class<? extends DocTypeReference<?>> referenceType, Set<Class<?>> modelTypes) {
+        Type genericSuperclass = referenceType.getGenericSuperclass();
+        if (!(genericSuperclass instanceof ParameterizedType parameterizedType)) {
+            return;
+        }
+        for (Type actualTypeArgument : parameterizedType.getActualTypeArguments()) {
+            collectModelTypesFromGenericType(actualTypeArgument, modelTypes);
+        }
+    }
+
+    /**
+     * 收集泛型参数树中的受控模型类型。
+     *
+     * @param genericType 泛型参数
+     * @param modelTypes  受控模型类型集合
+     */
+    private void collectModelTypesFromGenericType(Type genericType, Set<Class<?>> modelTypes) {
+        if (genericType instanceof Class<?> clazz) {
+            if (isControlledModelType(clazz)) {
+                modelTypes.add(clazz);
+            }
+            return;
+        }
+        if (genericType instanceof ParameterizedType parameterizedType) {
+            Type rawType = parameterizedType.getRawType();
+            if (rawType instanceof Class<?> clazz && isControlledModelType(clazz)) {
+                modelTypes.add(clazz);
+            }
+            for (Type actualTypeArgument : parameterizedType.getActualTypeArguments()) {
+                collectModelTypesFromGenericType(actualTypeArgument, modelTypes);
+            }
+        }
+    }
+
+    /**
+     * 判断是否受控文档模型类型。
+     *
+     * @param type Java 类型
+     * @return boolean 返回 true 表示受控模型类型
+     */
+    private boolean isControlledModelType(Class<?> type) {
+        return type != Void.class
+                && type.getName().startsWith("top.egon.familyaibutler.family.")
+                && (type.getSimpleName().endsWith("DTO")
+                || type.getSimpleName().endsWith("VO")
+                || type.getSimpleName().endsWith("Request")
+                || type.getSimpleName().endsWith("Response"));
     }
 }

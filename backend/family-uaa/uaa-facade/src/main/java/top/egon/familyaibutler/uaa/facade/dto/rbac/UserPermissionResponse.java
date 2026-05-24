@@ -11,6 +11,7 @@ package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
 import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.util.Set;
 
@@ -23,6 +24,7 @@ import java.util.Set;
  * @Description: 用户权限响应
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeRbacUserPermissionResponse", description = "认证授权用户权限响应")
 public record UserPermissionResponse(
         @DocField(description = "账号 ID", example = "account-001")
         String accountId,

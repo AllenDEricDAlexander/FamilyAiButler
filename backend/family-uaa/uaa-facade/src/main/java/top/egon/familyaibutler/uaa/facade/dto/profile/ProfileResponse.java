@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.profile;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -20,6 +21,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: Profile 响应
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeProfileResponse", description = "认证授权用户档案响应")
 public record ProfileResponse(
         @DocField(description = "Profile ID", example = "profile-001")
         String profileId,

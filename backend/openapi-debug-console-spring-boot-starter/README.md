@@ -7,7 +7,8 @@
 
 - 业务模块：不使用 Springdoc 生成 `/v3/api-docs`；Starter 自建 Spring MVC REST 扫描器，读取 Spring MVC 注解、新文档注解、Jackson
   注解和 Bean Validation 注解后输出标准 OpenAPI JSON。
-- 网关模块：聚合多个业务模块的 OpenAPI JSON，提供登录、接口浏览、自动测试数据、代理调试、轻量压力测试、Markdown/PDF 导出。
+- 网关模块：聚合多个业务模块的 OpenAPI JSON，提供登录、接口浏览、自动测试数据、代理调试、轻量压力测试、Markdown/PDF/OpenAPI
+  JSON 导出。
 - 服务发现：网关侧可使用 `http://service-name` 形式配置文档和调试地址，Starter 会在存在 `ReactiveDiscoveryClient` 或
   `DiscoveryClient` 时解析到实际服务实例。
 - 状态管理：账号、密码、服务列表、环境开关、签名、导出、压测均来自配置文件，不落库。
@@ -15,7 +16,7 @@
 - 环境保护：`mode=auto` 时，`prod` 默认只读，其他环境默认可调试。
 - 默认保护：控制台默认关闭，业务模块只生成 OpenAPI JSON，不会暴露调试页面；只有显式配置 `egon.openapi.console.enabled=true`
   的网关模块才开放页面。
-- 导出策略：Markdown/PDF 由请求实时生成并直接返回，不在服务端留存。
+- 导出策略：Markdown/PDF/OpenAPI JSON 由请求实时生成并直接返回，不在服务端留存。
 
 ## 业务模块配置
 
@@ -85,6 +86,9 @@ Springdoc / Swagger runtime。
 - `@DocResponse` 固定表达为 `dataType + wrapper`。
 - `wrapper` 只能有一个，用于最外层统一响应包装，例如 `Result<T>`。
 - 分页、列表、Map 和复杂泛型属于 `dataType`，通过 `DocDataType` 或 `DocTypeReference<T>` 表达。
+- 被 OpenAPI schema 引用的 DTO / VO / record / wrapper 必须使用 `@DocModel(name = "...", description = "...")`。
+  `name` 必须稳定、唯一、PascalCase，建议使用模块前缀加类型名，例如 `FamilyCoreCategoryDTO`、`UaaFacadeTokenPairResponse`。
+  如果两个不同 Java 类型声明了相同 `@DocModel.name`，OpenAPI 生成会直接失败，避免导出的 schema 名称冲突。
 - DTO / VO 字段通过 `@DocField(example = "...")` 提供示例，生成器会合成 schema example、request example 和 response
   example。
 
@@ -247,7 +251,7 @@ import top.egon.openapi.console.annotation.DocModel;
 
 import java.util.List;
 
-@DocModel(description = "创建用户请求")
+@DocModel(name = "DocUserCreateRequest", description = "创建用户请求")
 public class UserCreateRequest {
 
     @NotBlank
@@ -272,7 +276,7 @@ public class UserCreateRequest {
 统一响应包装类型也建议加模型注解和字段示例：
 
 ```java
-@DocModel(description = "统一响应")
+@DocModel(name = "DocResult", description = "统一响应")
 public class Result<T> {
 
     @DocField(description = "业务状态码", required = true, example = "0")
@@ -285,7 +289,7 @@ public class Result<T> {
     private T data;
 }
 
-@DocModel(description = "分页响应")
+@DocModel(name = "DocPageResult", description = "分页响应")
 public class PageResult<T> {
 
     @DocField(description = "总数", required = true, example = "100")
@@ -351,7 +355,7 @@ Schema MVP 支持：
 5. 请求体用 `@DocRequest.body` 声明 `contentType` 和 `dataType`。
 6. 返回值统一使用 `@DocResponse(dataType = ..., wrapper = ...)`。
 7. `Result<List<X>>` 使用 `DocDataKind.ARRAY + itemType`；`Result<PageResult<X>>` 使用 `DocTypeReference<PageResult<X>>`。
-8. DTO / VO / wrapper 上用 `@DocModel`、`@DocField` 补充模型、字段说明和 example。
+8. DTO / VO / record / wrapper 上用 `@DocModel(name, description)`、`@DocField` 补充模型、字段说明和 example。
 9. 需要从文档隐藏的内部接口、字段或参数使用 `@DocIgnore`。
 10. 移除业务模块中的 Springdoc / Swagger 注解依赖和配置；Starter 不再读取这些注解作为文档元数据来源。
 
@@ -412,6 +416,25 @@ egon:
 ```
 
 默认页面地址：`/openapi-console/index.html`。
+
+## 服务级文档导出
+
+控制台导出按服务维度执行，不再只导出当前选中的单个接口。导出接口实时读取对应服务的 OpenAPI JSON，生成结果直接返回给浏览器，不写入本地文件、
+缓存或数据库。
+
+```http
+GET /openapi-console/api/export/{serviceId}?format=md&scope=service
+GET /openapi-console/api/export/{serviceId}?format=pdf&scope=service
+GET /openapi-console/api/export/{serviceId}?format=openapi-json&scope=service
+```
+
+- `format=md`：导出 Markdown，文件名为 `{serviceId}.md`。
+- `format=pdf`：导出 PDF，文件名为 `{serviceId}.pdf`。
+- `format=openapi-json`：导出标准 OpenAPI JSON，文件名为 `{serviceId}.openapi.json`。
+- `format=json` 是 `openapi-json` 的兼容别名。
+- `scope` 默认值为 `service`；当前只支持服务级导出，传入其他值会返回 400。
+- 导出功能受 `export.enabled` 控制；只读模式允许导出，关闭导出或未登录时会拒绝请求。
+- 前端请求该接口时不传 `operationId` 或单接口参数，控制台 API 签名仍按登录后的 HMAC 机制校验。
 
 ## 密码配置
 

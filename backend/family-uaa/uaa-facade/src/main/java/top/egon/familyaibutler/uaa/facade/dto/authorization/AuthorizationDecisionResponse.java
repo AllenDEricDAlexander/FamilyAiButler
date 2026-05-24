@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.authorization;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -20,6 +21,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 授权决策响应
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeAuthorizationDecisionResponse", description = "认证授权资源访问授权决策响应")
 public record AuthorizationDecisionResponse(
         @DocField(description = "是否允许访问", example = "true")
         boolean allowed,

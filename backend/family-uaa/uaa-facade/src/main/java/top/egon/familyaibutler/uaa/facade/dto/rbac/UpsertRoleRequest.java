@@ -11,6 +11,7 @@ package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
 import jakarta.validation.constraints.NotBlank;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,6 +22,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 新增或更新角色请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeRbacUpsertRoleRequest", description = "认证授权新增或更新角色请求")
 public record UpsertRoleRequest(
         @DocField(description = "角色编码", example = "FAMILY_ADMIN")
         @NotBlank String roleCode,

@@ -11,6 +11,7 @@ package top.egon.familyaibutler.uaa.facade.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,6 +22,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 验证码登录请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeVerifyCodeLoginRequest", description = "认证授权验证码登录请求")
 public record VerifyCodeLoginRequest(
         @DocField(description = "账号标识，支持邮箱或手机号", example = "mario@example.com")
         @NotBlank String principal,

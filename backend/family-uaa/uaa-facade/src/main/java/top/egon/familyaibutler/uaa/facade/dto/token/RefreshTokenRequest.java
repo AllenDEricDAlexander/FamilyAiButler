@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.token;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -20,6 +21,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 刷新令牌请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeRefreshTokenRequest", description = "认证授权刷新令牌请求")
 public record RefreshTokenRequest(
         @DocField(description = "刷新令牌", example = "refresh-token-001")
         String refreshToken,

@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.oauthclient;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.util.Set;
 
@@ -22,6 +23,7 @@ import java.util.Set;
  * @Description: OAuth Client 响应
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeOAuthClientResponse", description = "认证授权 OAuth 客户端响应")
 public record OAuthClientResponse(
         @DocField(description = "OAuth 客户端 ID", example = "family-web")
         String clientId,

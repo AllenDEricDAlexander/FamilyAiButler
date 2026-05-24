@@ -11,6 +11,7 @@ package top.egon.familyaibutler.uaa.facade.dto.oauthclient;
 
 import jakarta.validation.constraints.NotBlank;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 import java.util.Set;
 
@@ -23,6 +24,7 @@ import java.util.Set;
  * @Description: 创建 OAuth Client 请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeCreateOAuthClientRequest", description = "认证授权创建 OAuth 客户端请求")
 public record CreateOAuthClientRequest(
         @DocField(description = "OAuth 客户端 ID", example = "family-web")
         @NotBlank String clientId,

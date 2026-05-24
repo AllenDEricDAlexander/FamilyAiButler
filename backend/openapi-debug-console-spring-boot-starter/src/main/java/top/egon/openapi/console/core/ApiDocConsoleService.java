@@ -204,6 +204,17 @@ public class ApiDocConsoleService {
     }
 
     /**
+     * 导出 OpenAPI JSON 文档
+     *
+     * @param serviceId 服务 ID
+     * @return Mono<byte[]> 返回 OpenAPI JSON 字节
+     */
+    public Mono<byte[]> exportOpenApiJson(String serviceId) {
+        return fetchOpenApi(serviceId)
+                .map(this::writeOpenApiJson);
+    }
+
+    /**
      * 导出 PDF 文档
      *
      * @param serviceId 服务 ID
@@ -213,6 +224,20 @@ public class ApiDocConsoleService {
         return fetchOpenApi(serviceId)
                 .map(documentRenderer::renderMarkdown)
                 .map(documentRenderer::renderPdf);
+    }
+
+    /**
+     * 序列化 OpenAPI JSON。
+     *
+     * @param openApi OpenAPI JSON
+     * @return byte[] 返回 JSON 字节
+     */
+    private byte[] writeOpenApiJson(JsonNode openApi) {
+        try {
+            return objectMapper.writeValueAsBytes(openApi);
+        } catch (Exception exception) {
+            throw new IllegalStateException("OpenAPI JSON 序列化失败", exception);
+        }
     }
 
     /**

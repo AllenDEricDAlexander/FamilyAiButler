@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.token;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -20,6 +21,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 撤销令牌请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeRevokeTokenRequest", description = "认证授权撤销令牌请求")
 public record RevokeTokenRequest(
         @DocField(description = "待撤销令牌", example = "access-token-001")
         String token,

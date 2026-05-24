@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.openapi.console.annotation.DocDataType;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 import top.egon.openapi.console.annotation.DocOperation;
 import top.egon.openapi.console.annotation.DocParameter;
 import top.egon.openapi.console.annotation.DocService;
@@ -25,8 +26,10 @@ import java.lang.reflect.RecordComponent;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -261,6 +264,31 @@ class UaaDddArchitectureTest {
     }
 
     /**
+     * 校验 Web 文档引用和 facade DTO 记录具备唯一且完整的 DocModel 元数据。
+     */
+    @Test
+    void docReferencedRecordsShouldProvideUniqueDocModelMetadata() {
+        Map<String, Class<?>> modelNames = new LinkedHashMap<>();
+        for (Class<?> modelType : controlledDocModelTypes()) {
+            DocModel docModel = modelType.getAnnotation(DocModel.class);
+            assertThat(docModel)
+                    .as(modelType.getName() + " should have @DocModel")
+                    .isNotNull();
+            assertThat(docModel.name())
+                    .as(modelType.getName() + " @DocModel.name")
+                    .isNotBlank()
+                    .matches("^[A-Z][A-Za-z0-9]*$");
+            assertThat(docModel.description())
+                    .as(modelType.getName() + " @DocModel.description")
+                    .isNotBlank();
+            Class<?> existingType = modelNames.putIfAbsent(docModel.name(), modelType);
+            assertThat(existingType)
+                    .as(docModel.name() + " should be unique")
+                    .isNull();
+        }
+    }
+
+    /**
      * 读取 Java 源码文件内容。
      *
      * @param path Java 源码路径
@@ -331,8 +359,9 @@ class UaaDddArchitectureTest {
      * @return String 返回类型全限定名
      */
     private String toClassName(Path path) {
-        return path.toString()
-                .replace("src/main/java/", "")
+        String sourcePath = path.toString();
+        int sourceRootIndex = sourcePath.indexOf("src/main/java/");
+        return sourcePath.substring(sourceRootIndex + "src/main/java/".length())
                 .replace("/", ".")
                 .replace(".java", "");
     }
@@ -372,6 +401,37 @@ class UaaDddArchitectureTest {
             }
         }
         return List.copyOf(recordTypes);
+    }
+
+    /**
+     * 获取受控 DocModel 类型。
+     *
+     * @return List 返回受控模型类型
+     */
+    private List<Class<?>> controlledDocModelTypes() {
+        Set<Class<?>> modelTypes = new LinkedHashSet<>(adapterDocDataRecordTypes());
+        modelTypes.addAll(facadeDtoRecordTypes());
+        return List.copyOf(modelTypes);
+    }
+
+    /**
+     * 获取 facade DTO 包下所有 public record 类型。
+     *
+     * @return List 返回 facade DTO 记录类型
+     */
+    private List<Class<?>> facadeDtoRecordTypes() {
+        Path facadeDtoPath = Path.of("../uaa-facade/src/main/java/top/egon/familyaibutler/uaa/facade/dto");
+        try (Stream<Path> files = Files.walk(facadeDtoPath)) {
+            return files.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .filter(path -> readSource(path).contains("public record "))
+                    .map(this::toClassName)
+                    .map(this::loadClass)
+                    .filter(Class::isRecord)
+                    .toList();
+        } catch (Exception exception) {
+            throw new IllegalStateException("加载 facade DTO 记录类型失败: " + facadeDtoPath, exception);
+        }
     }
 
     /**

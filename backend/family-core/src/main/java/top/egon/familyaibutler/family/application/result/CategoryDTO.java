@@ -29,7 +29,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
-@DocModel(name = "CategoryDTO", description = "Category DTO")
+@DocModel(name = "FamilyCategoryDTO", description = "家庭分类信息传输对象")
 public class CategoryDTO implements Serializable {
 
     @Serial

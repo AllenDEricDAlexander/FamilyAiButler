@@ -39,7 +39,7 @@ import java.util.Date;
 @AllArgsConstructor
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
-@DocModel(name = "CategoryTypeDTO", description = "Category Type DTO")
+@DocModel(name = "FamilyCategoryTypeDTO", description = "家庭分类类型信息传输对象")
 public class CategoryTypeDTO implements Serializable {
 
     @Serial

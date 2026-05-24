@@ -14,6 +14,8 @@ import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -36,6 +38,10 @@ import java.time.Duration;
  * @Version: 1.0
  */
 class ApiDocConsoleMvcControllerTest {
+
+    private static final String OPENAPI_JSON = """
+            {"openapi":"3.0.3","info":{"title":"Demo API","version":"v1"},"paths":{}}
+            """;
 
     /**
      * 测试 Servlet 环境控制台可以通过 MVC Controller 执行调试请求
@@ -76,6 +82,60 @@ class ApiDocConsoleMvcControllerTest {
     }
 
     /**
+     * 测试只读模式仍允许按服务范围导出 OpenAPI JSON。
+     */
+    @Test
+    void testMvcControllerExportOpenApiJsonInReadOnlyMode() {
+        ApiDocConsoleProperties properties = secureProperties();
+        properties.setMode(ApiDocConsoleProperties.Mode.READ_ONLY);
+        ApiDocConsoleSessionService sessionService = new ApiDocConsoleSessionService(properties, new MockEnvironment());
+        ApiDocConsoleMvcController controller = new ApiDocConsoleMvcController(properties, sessionService,
+                exportConsoleService(properties), new ObjectMapper());
+        MockHttpServletRequest servletRequest = signedExportRequest(sessionService, "format=openapi-json&scope=service");
+
+        ResponseEntity<byte[]> response = controller.export("demo", "openapi-json", "service", servletRequest);
+
+        Assertions.assertEquals(200, response.getStatusCode().value());
+        Assertions.assertEquals(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8", response.getHeaders().getContentType().toString());
+        Assertions.assertTrue(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION).contains("demo.openapi.json"));
+        Assertions.assertTrue(new String(response.getBody(), java.nio.charset.StandardCharsets.UTF_8).contains("\"openapi\":\"3.0.3\""));
+    }
+
+    /**
+     * 测试 json 别名兼容导出 OpenAPI JSON。
+     */
+    @Test
+    void testMvcControllerExportJsonAlias() {
+        ApiDocConsoleProperties properties = secureProperties();
+        ApiDocConsoleSessionService sessionService = new ApiDocConsoleSessionService(properties, new MockEnvironment());
+        ApiDocConsoleMvcController controller = new ApiDocConsoleMvcController(properties, sessionService,
+                exportConsoleService(properties), new ObjectMapper());
+        MockHttpServletRequest servletRequest = signedExportRequest(sessionService, "format=json");
+
+        ResponseEntity<byte[]> response = controller.export("demo", "json", "service", servletRequest);
+
+        Assertions.assertEquals(200, response.getStatusCode().value());
+        Assertions.assertEquals(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8", response.getHeaders().getContentType().toString());
+        Assertions.assertTrue(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION).contains("demo.openapi.json"));
+    }
+
+    /**
+     * 测试导出接口拒绝非服务范围。
+     */
+    @Test
+    void testMvcControllerExportRejectsUnsupportedScope() {
+        ApiDocConsoleProperties properties = secureProperties();
+        ApiDocConsoleSessionService sessionService = new ApiDocConsoleSessionService(properties, new MockEnvironment());
+        ApiDocConsoleMvcController controller = new ApiDocConsoleMvcController(properties, sessionService,
+                exportConsoleService(properties), new ObjectMapper());
+        MockHttpServletRequest servletRequest = signedExportRequest(sessionService, "format=md&scope=operation");
+
+        ResponseEntity<byte[]> response = controller.export("demo", "md", "operation", servletRequest);
+
+        Assertions.assertEquals(400, response.getStatusCode().value());
+    }
+
+    /**
      * 创建安全控制台配置
      *
      * @return ApiDocConsoleProperties 返回安全控制台配置
@@ -96,5 +156,45 @@ class ApiDocConsoleMvcControllerTest {
         route.setBaseUrl("http://demo");
         properties.getServices().add(route);
         return properties;
+    }
+
+    /**
+     * 创建导出测试控制台服务。
+     *
+     * @param properties 控制台配置
+     * @return ApiDocConsoleService 返回控制台服务
+     */
+    private ApiDocConsoleService exportConsoleService(ApiDocConsoleProperties properties) {
+        return new ApiDocConsoleService(
+                properties,
+                new ObjectMapper(),
+                request -> {
+                    ApiDocConsoleHttpResponse response = new ApiDocConsoleHttpResponse();
+                    response.setStatus(200);
+                    response.setDurationMillis(12);
+                    response.setBody(OPENAPI_JSON);
+                    return Mono.just(response);
+                },
+                new ApiDocConsoleDocumentRenderer(),
+                new DefaultListableBeanFactory().getBeanProvider(org.springframework.cloud.client.discovery.ReactiveDiscoveryClient.class),
+                new DefaultListableBeanFactory().getBeanProvider(org.springframework.cloud.client.discovery.DiscoveryClient.class));
+    }
+
+    /**
+     * 创建携带登录 Cookie 的导出请求。
+     *
+     * @param sessionService 会话服务
+     * @param queryString    查询串
+     * @return MockHttpServletRequest 返回 Servlet 请求
+     */
+    private MockHttpServletRequest signedExportRequest(ApiDocConsoleSessionService sessionService, String queryString) {
+        MockHttpServletRequest servletRequest = new MockHttpServletRequest();
+        servletRequest.setMethod("GET");
+        servletRequest.setRequestURI("/openapi-console/api/export/demo");
+        servletRequest.setQueryString(queryString);
+        String sessionCookie = sessionService.createSessionCookie("admin").toString().split(";", 2)[0];
+        String[] cookieParts = sessionCookie.split("=", 2);
+        servletRequest.setCookies(new Cookie(cookieParts[0], cookieParts[1]));
+        return servletRequest;
     }
 }

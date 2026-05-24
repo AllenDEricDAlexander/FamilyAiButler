@@ -69,6 +69,8 @@ public class ApiDocOpenApiSchemaGenerator {
 
     private final Map<String, Object> schemas = new LinkedHashMap<>();
 
+    private final Map<String, Class<?>> schemaSources = new LinkedHashMap<>();
+
     private final Set<String> generatingTypes = new LinkedHashSet<>();
 
     private ApiDocConsoleProperties.Policy examplePolicy = ApiDocConsoleProperties.Policy.WARN;
@@ -191,6 +193,7 @@ public class ApiDocOpenApiSchemaGenerator {
      */
     public void reset() {
         schemas.clear();
+        schemaSources.clear();
         generatingTypes.clear();
     }
 
@@ -489,6 +492,7 @@ public class ApiDocOpenApiSchemaGenerator {
     private Map<String, Object> componentRef(ResolvableType modelType) {
         Class<?> modelClass = resolveClass(modelType);
         String schemaName = schemaName(modelType);
+        assertSchemaNameNotConflicting(schemaName, modelClass);
         if (!schemas.containsKey(schemaName)) {
             schemas.put(schemaName, new LinkedHashMap<>());
             if (!generatingTypes.contains(schemaName)) {
@@ -498,6 +502,22 @@ public class ApiDocOpenApiSchemaGenerator {
             }
         }
         return Map.of("$ref", "#/components/schemas/" + schemaName);
+    }
+
+    /**
+     * 校验 Schema 名称没有被不同 Java 类型复用。
+     *
+     * @param schemaName Schema 名称
+     * @param modelClass 模型类型
+     */
+    private void assertSchemaNameNotConflicting(String schemaName, Class<?> modelClass) {
+        Class<?> existingClass = schemaSources.putIfAbsent(schemaName, modelClass);
+        if (existingClass != null && existingClass != modelClass) {
+            throw new IllegalStateException("OpenAPI Schema 名称冲突: " + schemaName
+                    + " 已由 " + existingClass.getName()
+                    + " 使用，不能再用于 " + modelClass.getName()
+                    + "，请为其中一个类型补唯一 @DocModel(name=...)");
+        }
     }
 
     /**

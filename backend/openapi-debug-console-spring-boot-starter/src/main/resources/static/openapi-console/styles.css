@@ -1253,7 +1253,7 @@ pre {
     z-index: 20;
     display: grid;
     gap: 4px;
-    width: 168px;
+    width: 220px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: #fff;

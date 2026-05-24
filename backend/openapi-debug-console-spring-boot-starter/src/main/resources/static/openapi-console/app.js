@@ -62,6 +62,7 @@ function bindEvents() {
     $("runLoadTest").addEventListener("click", runLoadTest);
     $("exportMd").addEventListener("click", () => exportDoc("md"));
     $("exportPdf").addEventListener("click", () => exportDoc("pdf"));
+    $("exportOpenApiJson").addEventListener("click", () => exportDoc("openapi-json"));
     $("formatEditor").addEventListener("click", formatActiveEditor);
     $("clearEditor").addEventListener("click", clearActiveEditor);
     $("importEditorJson").addEventListener("click", () => $("editorJsonFile").click());
@@ -1541,21 +1542,43 @@ function clearBrowserStorage() {
 }
 
 /**
- * 导出接口文档
+ * 导出当前服务接口文档
  *
  * @param {string} format 导出格式
  */
 async function exportDoc(format) {
     if (!state.service) {
+        setResponseError("未选择服务，无法导出当前服务文档");
         return;
     }
-    const response = await apiFetch(`/export/${encodeURIComponent(state.service.id)}?format=${encodeURIComponent(format)}`);
-    if (!response.ok) {
-        setResponseError("接口文档导出失败");
-        return;
+    try {
+        const response = await apiFetch(`/export/${encodeURIComponent(state.service.id)}?format=${encodeURIComponent(format)}&scope=service`);
+        if (!response.ok) {
+            setResponseError(await exportErrorMessage(response));
+            return;
+        }
+        const blob = await response.blob();
+        downloadBlob(serviceExportFilename(state.service, format), blob);
+    } catch (error) {
+        setResponseError(`导出失败: ${error.message || "请稍后重试"}`);
     }
-    const blob = await response.blob();
-    downloadBlob(downloadFilename(serviceFilenamePrefix(state.service), format), blob);
+}
+
+/**
+ * 读取导出失败提示
+ *
+ * @param {Response} response 响应对象
+ * @returns {Promise<string>} 返回失败提示
+ */
+async function exportErrorMessage(response) {
+    let detail = "";
+    try {
+        const payload = await response.json();
+        detail = payload.message || "";
+    } catch (error) {
+        detail = response.statusText || "";
+    }
+    return detail ? `导出失败: ${detail}` : "导出失败";
 }
 
 /**
@@ -1599,6 +1622,7 @@ function disableWorkspace(disabled) {
     $("favoriteOperation").disabled = disabled;
     $("exportMd").disabled = !capabilities.export || !state.service;
     $("exportPdf").disabled = !capabilities.export || !state.service;
+    $("exportOpenApiJson").disabled = !capabilities.export || !state.service;
 }
 
 /**
@@ -1822,6 +1846,21 @@ function downloadBlob(filename, blob) {
  */
 function serviceFilenamePrefix(service) {
     return safeFilenameSlug(service?.id || service?.name || "openapi-doc", "openapi-doc");
+}
+
+/**
+ * 获取服务文档导出文件名
+ *
+ * @param {object} service 服务条目
+ * @param {string} format 导出格式
+ * @returns {string} 返回文件名
+ */
+function serviceExportFilename(service, format) {
+    const prefix = serviceFilenamePrefix(service);
+    if (format === "openapi-json") {
+        return `${prefix}.openapi.json`;
+    }
+    return `${prefix}.${safeFilenameSlug(format, "dat")}`;
 }
 
 /**

@@ -31,7 +31,7 @@ import java.time.LocalDateTime;
 @With
 @Accessors(chain = true)
 @Builder
-@DocModel(name = "PasswordViewDTO", description = "password view api dto")
+@DocModel(name = "FamilyPasswordViewDTO", description = "家庭密码视图信息传输对象")
 public class PasswordViewDTO implements Serializable {
     @Serial
     private static final long serialVersionUID = 9146111814279753262L;

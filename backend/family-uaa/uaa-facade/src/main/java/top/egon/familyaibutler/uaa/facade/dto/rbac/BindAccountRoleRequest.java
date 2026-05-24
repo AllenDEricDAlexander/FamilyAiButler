@@ -11,6 +11,7 @@ package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
 import jakarta.validation.constraints.NotBlank;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,6 +22,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 绑定账号和角色请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeRbacBindAccountRoleRequest", description = "认证授权绑定账号角色请求")
 public record BindAccountRoleRequest(
         @DocField(description = "账号 ID", example = "account-001")
         @NotBlank String accountId,

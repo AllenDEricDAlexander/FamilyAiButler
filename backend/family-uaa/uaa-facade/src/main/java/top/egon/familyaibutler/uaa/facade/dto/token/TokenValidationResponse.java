@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.token;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -20,6 +21,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: Token 校验响应
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeTokenValidationResponse", description = "认证授权令牌校验响应")
 public record TokenValidationResponse(
         @DocField(description = "令牌是否有效", example = "true")
         boolean valid,

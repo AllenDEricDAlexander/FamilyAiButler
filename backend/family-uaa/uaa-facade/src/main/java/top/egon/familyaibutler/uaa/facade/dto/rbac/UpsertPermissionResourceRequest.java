@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -23,6 +24,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 新增或更新权限资源请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeRbacUpsertPermissionResourceRequest", description = "认证授权新增或更新权限资源请求")
 public record UpsertPermissionResourceRequest(
         @DocField(description = "权限资源编码", example = "FAMILY_PASSWORD_READ")
         @NotBlank String resourceCode,

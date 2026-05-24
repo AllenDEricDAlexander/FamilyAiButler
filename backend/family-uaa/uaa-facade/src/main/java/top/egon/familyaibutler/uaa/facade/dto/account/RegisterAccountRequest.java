@@ -11,6 +11,7 @@ package top.egon.familyaibutler.uaa.facade.dto.account;
 
 import jakarta.validation.constraints.NotBlank;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,6 +22,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 注册账号请求
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeRegisterAccountRequest", description = "认证授权账号注册请求")
 public record RegisterAccountRequest(
         @DocField(description = "用户名", example = "mario")
         String username,

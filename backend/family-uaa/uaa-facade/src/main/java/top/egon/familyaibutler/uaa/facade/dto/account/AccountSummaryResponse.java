@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.account;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -20,6 +21,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 账号摘要响应
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeAccountSummaryResponse", description = "认证授权账号摘要响应")
 public record AccountSummaryResponse(
         @DocField(description = "账号 ID", example = "account-001")
         String accountId,

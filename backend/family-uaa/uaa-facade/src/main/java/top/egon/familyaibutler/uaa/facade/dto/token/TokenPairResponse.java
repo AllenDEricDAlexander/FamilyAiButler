@@ -10,6 +10,7 @@
 package top.egon.familyaibutler.uaa.facade.dto.token;
 
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -20,6 +21,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 令牌对响应
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeTokenPairResponse", description = "认证授权令牌对响应")
 public record TokenPairResponse(
         @DocField(description = "访问令牌", example = "access-token-001")
         String accessToken,

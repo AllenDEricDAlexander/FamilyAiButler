@@ -11,6 +11,7 @@ package top.egon.familyaibutler.uaa.facade.dto.rbac;
 
 import top.egon.familyaibutler.uaa.facade.enums.PermissionResourceType;
 import top.egon.openapi.console.annotation.DocField;
+import top.egon.openapi.console.annotation.DocModel;
 
 /**
  * @BelongsProject: familyaibutler
@@ -21,6 +22,7 @@ import top.egon.openapi.console.annotation.DocField;
  * @Description: 权限资源响应
  * @Version: 1.0
  */
+@DocModel(name = "UaaFacadeRbacPermissionResourceResponse", description = "认证授权权限资源响应")
 public record PermissionResourceResponse(
         @DocField(description = "权限资源编码", example = "FAMILY_PASSWORD_READ")
         String resourceCode,
